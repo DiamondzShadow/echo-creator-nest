@@ -28,29 +28,43 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           name: `Stream ${Date.now()}`,
+          // Optimized profiles for low latency WebRTC playback
           profiles: [
             {
+              name: '1080p',
+              bitrate: 6000000,
+              fps: 30,
+              width: 1920,
+              height: 1080,
+              gop: '2.0', // 2 second keyframe interval for low latency
+            },
+            {
               name: '720p',
-              bitrate: 2000000,
+              bitrate: 3000000,
               fps: 30,
               width: 1280,
               height: 720,
+              gop: '2.0',
             },
             {
               name: '480p',
-              bitrate: 1000000,
+              bitrate: 1500000,
               fps: 30,
               width: 854,
               height: 480,
+              gop: '2.0',
             },
             {
               name: '360p',
-              bitrate: 500000,
+              bitrate: 800000,
               fps: 30,
               width: 640,
               height: 360,
+              gop: '2.0',
             },
           ],
+          // Enable recording for clips/VOD
+          record: true,
         }),
       });
 
