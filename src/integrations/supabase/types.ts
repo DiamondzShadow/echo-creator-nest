@@ -112,8 +112,11 @@ export type Database = {
           follower_count: number | null
           following_count: number | null
           id: string
+          tip_count: number | null
+          total_tips_received: number | null
           updated_at: string
           username: string
+          wallet_address: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -123,8 +126,11 @@ export type Database = {
           follower_count?: number | null
           following_count?: number | null
           id: string
+          tip_count?: number | null
+          total_tips_received?: number | null
           updated_at?: string
           username: string
+          wallet_address?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -134,8 +140,59 @@ export type Database = {
           follower_count?: number | null
           following_count?: number | null
           id?: string
+          tip_count?: number | null
+          total_tips_received?: number | null
           updated_at?: string
           username?: string
+          wallet_address?: string | null
+        }
+        Relationships: []
+      }
+      tips: {
+        Row: {
+          amount: string
+          block_number: number | null
+          created_at: string | null
+          from_user_id: string | null
+          from_wallet_address: string
+          id: string
+          metadata: Json | null
+          network: Database["public"]["Enums"]["blockchain_network"]
+          to_user_id: string
+          to_wallet_address: string
+          token_address: string | null
+          token_symbol: string
+          transaction_hash: string
+        }
+        Insert: {
+          amount: string
+          block_number?: number | null
+          created_at?: string | null
+          from_user_id?: string | null
+          from_wallet_address: string
+          id?: string
+          metadata?: Json | null
+          network: Database["public"]["Enums"]["blockchain_network"]
+          to_user_id: string
+          to_wallet_address: string
+          token_address?: string | null
+          token_symbol: string
+          transaction_hash: string
+        }
+        Update: {
+          amount?: string
+          block_number?: number | null
+          created_at?: string | null
+          from_user_id?: string | null
+          from_wallet_address?: string
+          id?: string
+          metadata?: Json | null
+          network?: Database["public"]["Enums"]["blockchain_network"]
+          to_user_id?: string
+          to_wallet_address?: string
+          token_address?: string | null
+          token_symbol?: string
+          transaction_hash?: string
         }
         Relationships: []
       }
@@ -147,7 +204,12 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      blockchain_network:
+        | "ethereum"
+        | "polygon"
+        | "base"
+        | "arbitrum"
+        | "optimism"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -274,6 +336,14 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      blockchain_network: [
+        "ethereum",
+        "polygon",
+        "base",
+        "arbitrum",
+        "optimism",
+      ],
+    },
   },
 } as const

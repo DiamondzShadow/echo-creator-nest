@@ -5,7 +5,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import Navbar from "@/components/Navbar";
 import FollowButton from "@/components/FollowButton";
-import { Users, UserPlus } from "lucide-react";
+import { WalletConnect } from "@/components/WalletConnect";
+import { TipButton } from "@/components/TipButton";
+import { Users, UserPlus, Wallet, Coins } from "lucide-react";
 
 const Profile = () => {
   const [user, setUser] = useState<any>(null);
@@ -80,10 +82,29 @@ const Profile = () => {
                 <h1 className="text-3xl font-bold mb-2">{profile.display_name}</h1>
                 <p className="text-muted-foreground mb-4">@{profile.username}</p>
                 {profile.bio && <p className="text-muted-foreground max-w-md mb-4">{profile.bio}</p>}
-                <FollowButton profileId={profile.id} currentUserId={user?.id} />
+                
+                <div className="flex gap-2 mb-4">
+                  <WalletConnect />
+                </div>
+                
+                {profile.wallet_address && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+                    <Wallet className="w-4 h-4" />
+                    <code className="text-xs">{profile.wallet_address.slice(0, 6)}...{profile.wallet_address.slice(-4)}</code>
+                  </div>
+                )}
+                
+                <div className="flex gap-2">
+                  <FollowButton profileId={profile.id} currentUserId={user?.id} />
+                  <TipButton 
+                    recipientUserId={profile.id}
+                    recipientWalletAddress={profile.wallet_address}
+                    recipientUsername={profile.username}
+                  />
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
                 <Card className="border shadow-card">
                   <CardContent className="pt-6 text-center">
                     <Users className="w-8 h-8 mx-auto mb-2 text-primary" />
@@ -96,6 +117,20 @@ const Profile = () => {
                     <UserPlus className="w-8 h-8 mx-auto mb-2 text-primary" />
                     <p className="text-2xl font-bold">{profile.following_count || 0}</p>
                     <p className="text-sm text-muted-foreground">Following</p>
+                  </CardContent>
+                </Card>
+                <Card className="border shadow-card">
+                  <CardContent className="pt-6 text-center">
+                    <Coins className="w-8 h-8 mx-auto mb-2 text-primary" />
+                    <p className="text-2xl font-bold">{profile.tip_count || 0}</p>
+                    <p className="text-sm text-muted-foreground">Tips Received</p>
+                  </CardContent>
+                </Card>
+                <Card className="border shadow-card">
+                  <CardContent className="pt-6 text-center">
+                    <Wallet className="w-8 h-8 mx-auto mb-2 text-primary" />
+                    <p className="text-2xl font-bold">{profile.wallet_address ? '✓' : '✗'}</p>
+                    <p className="text-sm text-muted-foreground">Wallet</p>
                   </CardContent>
                 </Card>
               </div>
