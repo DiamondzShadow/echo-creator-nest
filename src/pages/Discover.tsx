@@ -7,13 +7,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 const Discover = () => {
   const [liveStreams, setLiveStreams] = useState<any[]>([]);
   const [allStreams, setAllStreams] = useState<any[]>([]);
+  const [recordings, setRecordings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchStreams();
 
-    // Subscribe to realtime updates
-    const channel = supabase
+    // Subscribe to realtime updates for both streams and assets
+    const streamsChannel = supabase
       .channel("live_streams_changes")
       .on(
         "postgres_changes",
@@ -28,13 +29,29 @@ const Discover = () => {
       )
       .subscribe();
 
+    const assetsChannel = supabase
+      .channel("assets_changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "assets",
+        },
+        () => {
+          fetchStreams();
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(streamsChannel);
+      supabase.removeChannel(assetsChannel);
     };
   }, []);
 
   const fetchStreams = async () => {
-    // Only fetch streams with playback IDs (actual video streams)
+    // Fetch live streams
     const { data: live } = await supabase
       .from("live_streams")
       .select("*, profiles(username, display_name, avatar_url)")
@@ -42,6 +59,7 @@ const Discover = () => {
       .not("livepeer_playback_id", "is", null)
       .order("started_at", { ascending: false });
 
+    // Fetch all streams (including ended ones)
     const { data: all } = await supabase
       .from("live_streams")
       .select("*, profiles(username, display_name, avatar_url)")
@@ -49,8 +67,18 @@ const Discover = () => {
       .order("created_at", { ascending: false })
       .limit(20);
 
+    // Fetch ready recordings/assets
+    const { data: assets } = await supabase
+      .from("assets")
+      .select("*, profiles(username, display_name, avatar_url)")
+      .eq("status", "ready")
+      .not("livepeer_playback_id", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(20);
+
     setLiveStreams(live || []);
     setAllStreams(all || []);
+    setRecordings(assets || []);
     setLoading(false);
   };
 
@@ -72,6 +100,9 @@ const Discover = () => {
             <TabsTrigger value="live">
               Live Now {liveStreams.length > 0 && `(${liveStreams.length})`}
             </TabsTrigger>
+            <TabsTrigger value="recordings">
+              Recordings {recordings.length > 0 && `(${recordings.length})`}
+            </TabsTrigger>
             <TabsTrigger value="all">All Streams</TabsTrigger>
           </TabsList>
 
@@ -88,6 +119,25 @@ const Discover = () => {
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 animate-scale-in">
                 {liveStreams.map((stream) => (
                   <LiveStreamCard key={stream.id} stream={stream} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="recordings">
+            {loading ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">Loading recordings...</p>
+              </div>
+            ) : recordings.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No recordings available yet</p>
+                <p className="text-sm text-muted-foreground mt-2">Recordings will appear here after streams end</p>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 animate-scale-in">
+                {recordings.map((asset) => (
+                  <LiveStreamCard key={asset.id} stream={asset} isRecording={true} />
                 ))}
               </div>
             )}
