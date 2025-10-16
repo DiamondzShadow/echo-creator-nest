@@ -51,11 +51,23 @@ const Watch = () => {
   };
 
   const fetchStream = async () => {
-    const { data: streamData } = await supabase
+    // Try to fetch from live_streams first
+    let { data: streamData } = await supabase
       .from("live_streams")
       .select("*")
       .eq("id", streamId)
       .single();
+
+    // If not found in live_streams, try assets table
+    if (!streamData) {
+      const { data: assetData } = await supabase
+        .from("assets")
+        .select("*")
+        .eq("id", streamId)
+        .single();
+      
+      streamData = assetData;
+    }
 
     if (streamData) {
       setStream(streamData);
