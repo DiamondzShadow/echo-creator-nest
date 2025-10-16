@@ -197,6 +197,7 @@ const Live = () => {
                         onStreamStart={(key) => setStreamKey(key)}
                         onStreamEnd={handleEndStream}
                         isLive={isLive}
+                        streamKey={streamKey}
                       />
 
                       <Button
