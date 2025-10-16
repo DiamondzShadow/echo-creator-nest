@@ -1,7 +1,8 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Eye } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface LiveStreamCardProps {
   stream: {
@@ -13,13 +14,19 @@ interface LiveStreamCardProps {
     profiles: {
       username: string;
       display_name: string | null;
+      avatar_url: string | null;
     };
   };
 }
 
 const LiveStreamCard = ({ stream }: LiveStreamCardProps) => {
+  const navigate = useNavigate();
+
   return (
-    <Card className="border-0 shadow-card hover:shadow-glow transition-all cursor-pointer group">
+    <Card 
+      className="border-0 shadow-card hover:shadow-glow transition-all cursor-pointer group"
+      onClick={() => navigate(`/watch/${stream.id}`)}
+    >
       <CardContent className="p-0">
         <div className="relative aspect-video bg-gradient-hero rounded-t-lg overflow-hidden">
           <div className="absolute inset-0 bg-gradient-glow opacity-40 group-hover:opacity-60 transition-opacity" />
@@ -36,6 +43,7 @@ const LiveStreamCard = ({ stream }: LiveStreamCardProps) => {
         <div className="p-4">
           <div className="flex items-start gap-3">
             <Avatar className="w-10 h-10">
+              <AvatarImage src={stream.profiles.avatar_url || undefined} />
               <AvatarFallback className="bg-gradient-hero text-primary-foreground">
                 {stream.profiles.display_name?.[0]?.toUpperCase() || "C"}
               </AvatarFallback>

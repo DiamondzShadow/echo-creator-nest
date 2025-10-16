@@ -69,12 +69,18 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, isLive }: Instan
         },
       });
 
+      console.log('Stream obtained:', stream);
+      console.log('Video tracks:', stream.getVideoTracks());
+      console.log('Audio tracks:', stream.getAudioTracks());
+
       streamRef.current = stream;
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        // Ensure video plays
-        videoRef.current.play().catch(e => console.error('Error playing video:', e));
+        videoRef.current.onloadedmetadata = () => {
+          console.log('Video metadata loaded');
+          videoRef.current?.play().catch(e => console.error('Error playing video:', e));
+        };
       }
 
       // Set up audio visualization
