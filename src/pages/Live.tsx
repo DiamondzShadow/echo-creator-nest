@@ -41,15 +41,27 @@ const Live = () => {
     setLoading(true);
 
     try {
+      console.log('Creating Livepeer stream...');
       // Create Livepeer stream
       const { data: livepeerData, error: livepeerError } = await supabase.functions.invoke('livepeer-stream', {
         body: { action: 'create' }
       });
 
-      if (livepeerError) throw livepeerError;
+      console.log('Livepeer response:', { livepeerData, livepeerError });
+
+      if (livepeerError) {
+        console.error('Livepeer error:', livepeerError);
+        throw new Error(`Livepeer API error: ${livepeerError.message || 'Unknown error'}`);
+      }
+
+      if (!livepeerData || !livepeerData.streamId || !livepeerData.streamKey || !livepeerData.playbackId) {
+        console.error('Invalid Livepeer response:', livepeerData);
+        throw new Error('Invalid response from Livepeer API - missing required fields');
+      }
 
       const { streamId: lpStreamId, streamKey: lpStreamKey, playbackId: lpPlaybackId } = livepeerData;
 
+      console.log('Storing stream in database...');
       // Store stream in database
       const { data, error } = await supabase
         .from("live_streams")
@@ -66,21 +78,25 @@ const Live = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error:', error);
+        throw new Error(`Failed to save stream: ${error.message}`);
+      }
 
+      console.log('Stream created successfully:', data);
       setStreamId(data.id);
       setStreamKey(lpStreamKey);
       setPlaybackId(lpPlaybackId);
       setIsLive(true);
       toast({
         title: "Stream created!",
-        description: "Use your streaming software with the stream key below.",
+        description: "Your stream is ready. Start broadcasting to go live!",
       });
     } catch (error: any) {
       console.error('Stream creation error:', error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to create stream",
+        title: "Failed to create stream",
+        description: error.message || "Please check console for details",
         variant: "destructive",
       });
     } finally {

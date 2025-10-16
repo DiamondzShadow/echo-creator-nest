@@ -51,7 +51,7 @@ const Discover = () => {
   }, []);
 
   const fetchStreams = async () => {
-    // Fetch live streams
+    // Fetch live streams (only those with valid playback IDs)
     const { data: live } = await supabase
       .from("live_streams")
       .select("*, profiles(username, display_name, avatar_url)")
@@ -59,14 +59,14 @@ const Discover = () => {
       .not("livepeer_playback_id", "is", null)
       .order("started_at", { ascending: false });
 
-    // Fetch all streams (including ended ones)
+    // Fetch ALL streams (including those without playback IDs for debugging)
     const { data: all } = await supabase
       .from("live_streams")
       .select("*, profiles(username, display_name, avatar_url)")
-      .not("livepeer_playback_id", "is", null)
       .order("created_at", { ascending: false })
       .limit(20);
 
+    console.log('Fetched streams:', { live, all });
     setLiveStreams(live || []);
     setAllStreams(all || []);
     setRecordings([]);
