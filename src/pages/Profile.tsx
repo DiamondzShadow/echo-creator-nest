@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Navbar from "@/components/Navbar";
 import FollowButton from "@/components/FollowButton";
 import { WalletConnect } from "@/components/WalletConnect";
 import { TipButton } from "@/components/TipButton";
+import { ProfileEditDialog } from "@/components/ProfileEditDialog";
 import { Users, UserPlus, Wallet, Coins } from "lucide-react";
 
 const Profile = () => {
@@ -15,28 +16,33 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  const fetchProfile = async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session) {
+      navigate("/auth");
+      return;
+    }
+
+    setUser(session.user);
+
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", session.user.id)
+      .single();
+
+    setProfile(profileData);
+    setLoading(false);
+  };
+
+  const handleProfileUpdate = () => {
+    fetchProfile();
+  };
+
   useEffect(() => {
-    const fetchProfile = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session) {
-        navigate("/auth");
-        return;
-      }
-
-      setUser(session.user);
-
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", session.user.id)
-        .single();
-
-      setProfile(profileData);
-      setLoading(false);
-    };
 
     fetchProfile();
 
@@ -75,6 +81,7 @@ const Profile = () => {
             <CardContent className="pt-8">
               <div className="flex flex-col items-center text-center mb-8">
                 <Avatar className="w-24 h-24 mb-4 ring-4 ring-primary/20">
+                  <AvatarImage src={profile.avatar_url || undefined} />
                   <AvatarFallback className="text-2xl bg-gradient-hero text-primary-foreground">
                     {profile.display_name?.[0]?.toUpperCase() || "C"}
                   </AvatarFallback>
@@ -82,6 +89,12 @@ const Profile = () => {
                 <h1 className="text-3xl font-bold mb-2">{profile.display_name}</h1>
                 <p className="text-muted-foreground mb-4">@{profile.username}</p>
                 {profile.bio && <p className="text-muted-foreground max-w-md mb-4">{profile.bio}</p>}
+                
+                {user?.id === profile.id && (
+                  <div className="mb-4">
+                    <ProfileEditDialog profile={profile} onUpdate={handleProfileUpdate} />
+                  </div>
+                )}
                 
                 <div className="flex gap-2 mb-4">
                   <WalletConnect />

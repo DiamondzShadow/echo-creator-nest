@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Video, StopCircle, Loader2 } from "lucide-react";
+import { Video, StopCircle, Loader2, Copy, Check } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import { LiveStreamPlayer } from "@/components/LiveStreamPlayer";
 
 const Live = () => {
   const [user, setUser] = useState<any>(null);
@@ -17,6 +18,9 @@ const Live = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [streamId, setStreamId] = useState<string | null>(null);
+  const [streamKey, setStreamKey] = useState<string>("");
+  const [playbackId, setPlaybackId] = useState<string>("");
+  const [copied, setCopied] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -35,6 +39,16 @@ const Live = () => {
     setLoading(true);
 
     try {
+      // Create Livepeer stream
+      const { data: livepeerData, error: livepeerError } = await supabase.functions.invoke('livepeer-stream', {
+        body: { action: 'create' }
+      });
+
+      if (livepeerError) throw livepeerError;
+
+      const { streamId: lpStreamId, streamKey: lpStreamKey, playbackId: lpPlaybackId } = livepeerData;
+
+      // Store stream in database
       const { data, error } = await supabase
         .from("live_streams")
         .insert({
@@ -43,7 +57,9 @@ const Live = () => {
           description,
           is_live: true,
           started_at: new Date().toISOString(),
-          stream_key: crypto.randomUUID(),
+          stream_key: lpStreamKey,
+          livepeer_stream_id: lpStreamId,
+          livepeer_playback_id: lpPlaybackId,
         })
         .select()
         .single();
@@ -51,15 +67,18 @@ const Live = () => {
       if (error) throw error;
 
       setStreamId(data.id);
+      setStreamKey(lpStreamKey);
+      setPlaybackId(lpPlaybackId);
       setIsLive(true);
       toast({
-        title: "You're live!",
-        description: "Your stream has started successfully.",
+        title: "Stream created!",
+        description: "Use your streaming software with the stream key below.",
       });
     } catch (error: any) {
+      console.error('Stream creation error:', error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to create stream",
         variant: "destructive",
       });
     } finally {
@@ -83,6 +102,8 @@ const Live = () => {
 
       setIsLive(false);
       setStreamId(null);
+      setStreamKey("");
+      setPlaybackId("");
       setTitle("");
       setDescription("");
       toast({
@@ -98,6 +119,16 @@ const Live = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const copyStreamKey = () => {
+    navigator.clipboard.writeText(streamKey);
+    setCopied(true);
+    toast({
+      title: "Copied!",
+      description: "Stream key copied to clipboard",
+    });
+    setTimeout(() => setCopied(false), 2000);
   };
 
   if (!user) return null;
@@ -162,37 +193,56 @@ const Live = () => {
             </Card>
           ) : (
             <div className="space-y-6 animate-fade-in">
-              <Card className="border-0 shadow-glow bg-gradient-card">
-                <CardContent className="pt-6">
-                  <div className="aspect-video bg-muted rounded-lg flex items-center justify-center relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-hero opacity-20 animate-pulse" />
-                    <div className="relative z-10 text-center">
-                      <div className="w-20 h-20 rounded-full bg-gradient-hero flex items-center justify-center mx-auto mb-4 shadow-glow animate-float">
-                        <Video className="w-10 h-10 text-primary-foreground" />
-                      </div>
-                      <p className="text-2xl font-bold mb-2">You're Live!</p>
-                      <p className="text-muted-foreground">{title}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              {playbackId && (
+                <LiveStreamPlayer 
+                  playbackId={playbackId}
+                  title={title}
+                  isLive={true}
+                />
+              )}
 
               <Card className="border-0 shadow-card">
                 <CardContent className="pt-6">
-                  <h3 className="text-xl font-bold mb-4">Stream Info</h3>
-                  <div className="space-y-2 text-sm">
-                    <p>
-                      <span className="font-medium">Title:</span> {title}
-                    </p>
-                    {description && (
-                      <p>
-                        <span className="font-medium">Description:</span> {description}
+                  <h3 className="text-xl font-bold mb-4">Stream Configuration</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-sm font-medium mb-2 block">Stream Server</Label>
+                      <div className="bg-muted p-3 rounded-lg">
+                        <code className="text-sm">rtmp://rtmp.livepeer.com/live</code>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium mb-2 block">Stream Key</Label>
+                      <div className="flex gap-2">
+                        <div className="bg-muted p-3 rounded-lg flex-1 overflow-x-auto">
+                          <code className="text-sm">{streamKey}</code>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={copyStreamKey}
+                        >
+                          {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Use this with OBS, Streamlabs, or any RTMP-compatible streaming software
                       </p>
-                    )}
-                    <p>
-                      <span className="font-medium">Status:</span>{" "}
-                      <span className="text-green-500 font-bold">● LIVE</span>
-                    </p>
+                    </div>
+                    <div className="pt-2">
+                      <p className="text-sm">
+                        <span className="font-medium">Title:</span> {title}
+                      </p>
+                      {description && (
+                        <p className="text-sm mt-2">
+                          <span className="font-medium">Description:</span> {description}
+                        </p>
+                      )}
+                      <p className="text-sm mt-2">
+                        <span className="font-medium">Status:</span>{" "}
+                        <span className="text-green-500 font-bold">● LIVE</span>
+                      </p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

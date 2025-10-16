@@ -57,6 +57,8 @@ export type Database = {
           ended_at: string | null
           id: string
           is_live: boolean | null
+          livepeer_playback_id: string | null
+          livepeer_stream_id: string | null
           started_at: string | null
           stream_key: string | null
           thumbnail_url: string | null
@@ -71,6 +73,8 @@ export type Database = {
           ended_at?: string | null
           id?: string
           is_live?: boolean | null
+          livepeer_playback_id?: string | null
+          livepeer_stream_id?: string | null
           started_at?: string | null
           stream_key?: string | null
           thumbnail_url?: string | null
@@ -85,6 +89,8 @@ export type Database = {
           ended_at?: string | null
           id?: string
           is_live?: boolean | null
+          livepeer_playback_id?: string | null
+          livepeer_stream_id?: string | null
           started_at?: string | null
           stream_key?: string | null
           thumbnail_url?: string | null
