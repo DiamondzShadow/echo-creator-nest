@@ -1,5 +1,5 @@
 import { StorjTranscodeWithUpload } from '@/components/StorjTranscodeWithUpload';
-import { Navbar } from '@/components/Navbar';
+import Navbar from '@/components/Navbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, FileVideo, Cloud, Zap, Shield } from 'lucide-react';

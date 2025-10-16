@@ -67,18 +67,9 @@ const Discover = () => {
       .order("created_at", { ascending: false })
       .limit(20);
 
-    // Fetch ready recordings/assets
-    const { data: assets } = await supabase
-      .from("assets")
-      .select("*, profiles(username, display_name, avatar_url)")
-      .eq("status", "ready")
-      .not("livepeer_playback_id", "is", null)
-      .order("created_at", { ascending: false })
-      .limit(20);
-
     setLiveStreams(live || []);
     setAllStreams(all || []);
-    setRecordings(assets || []);
+    setRecordings([]);
     setLoading(false);
   };
 

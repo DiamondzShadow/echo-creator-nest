@@ -101,12 +101,6 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, isLive, streamKe
                 aspectRatio={16/9}
                 video={isVideoEnabled}
                 audio={isAudioEnabled}
-                onStreamStatusChange={(status) => {
-                  console.log('Stream status:', status);
-                  if (status === 'live' && !audioContextRef.current) {
-                    setupAudioVisualization();
-                  }
-                }}
               >
                 <Broadcast.Container className="w-full h-full">
                   <Broadcast.Video 

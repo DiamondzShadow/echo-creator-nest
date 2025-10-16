@@ -101,9 +101,21 @@ async function generateSignature(
 
 async function hmacSHA256(key: ArrayBuffer | Uint8Array, data: string): Promise<ArrayBuffer> {
   const encoder = new TextEncoder();
+  let keyBuffer: ArrayBuffer;
+  
+  if (key instanceof Uint8Array) {
+    const buf = key.buffer;
+    keyBuffer = buf instanceof ArrayBuffer ? buf : new Uint8Array(key).buffer;
+  } else if (key instanceof ArrayBuffer) {
+    keyBuffer = key;
+  } else {
+    // Handle SharedArrayBuffer by converting to ArrayBuffer
+    keyBuffer = new Uint8Array(key).buffer;
+  }
+  
   const cryptoKey = await crypto.subtle.importKey(
     'raw',
-    key,
+    keyBuffer,
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign']
