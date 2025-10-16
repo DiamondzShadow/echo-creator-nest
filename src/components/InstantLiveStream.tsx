@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Video, VideoOff, Mic, MicOff, Loader2 } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 
 interface InstantLiveStreamProps {
   onStreamStart: (streamKey: string) => void;
@@ -15,9 +16,42 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, isLive }: Instan
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [audioLevel, setAudioLevel] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
   const { toast } = useToast();
+
+  const setupAudioVisualization = (stream: MediaStream) => {
+    try {
+      const audioContext = new AudioContext();
+      const analyser = audioContext.createAnalyser();
+      const source = audioContext.createMediaStreamSource(stream);
+      
+      analyser.fftSize = 256;
+      source.connect(analyser);
+      
+      audioContextRef.current = audioContext;
+      analyserRef.current = analyser;
+      
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      
+      const updateAudioLevel = () => {
+        if (analyserRef.current) {
+          analyserRef.current.getByteFrequencyData(dataArray);
+          const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+          setAudioLevel(Math.min(100, (average / 128) * 100));
+          animationFrameRef.current = requestAnimationFrame(updateAudioLevel);
+        }
+      };
+      
+      updateAudioLevel();
+    } catch (error) {
+      console.error('Error setting up audio visualization:', error);
+    }
+  };
 
   const startCamera = async () => {
     setIsLoading(true);
@@ -39,7 +73,12 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, isLive }: Instan
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        // Ensure video plays
+        videoRef.current.play().catch(e => console.error('Error playing video:', e));
       }
+
+      // Set up audio visualization
+      setupAudioVisualization(stream);
 
       setIsStreaming(true);
       toast({
@@ -59,6 +98,21 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, isLive }: Instan
   };
 
   const stopCamera = () => {
+    // Stop animation frame
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    
+    // Close audio context
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+    
+    analyserRef.current = null;
+    setAudioLevel(0);
+    
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
@@ -107,14 +161,33 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, isLive }: Instan
                   autoPlay
                   playsInline
                   muted
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover mirror"
+                  style={{ transform: 'scaleX(-1)' }}
                 />
                 {isLive && (
-                  <div className="absolute top-4 left-4 bg-destructive text-destructive-foreground px-3 py-1 rounded-full text-sm font-bold flex items-center gap-2 shadow-glow animate-pulse">
+                  <div className="absolute top-4 left-4 bg-destructive text-destructive-foreground px-3 py-1 rounded-full text-sm font-bold flex items-center gap-2 shadow-glow animate-pulse z-10">
                     <span className="w-2 h-2 bg-destructive-foreground rounded-full animate-pulse"></span>
                     LIVE
                   </div>
                 )}
+                
+                {/* Audio Level Indicator */}
+                <div className="absolute bottom-4 left-4 right-4 z-10">
+                  <div className="bg-background/80 backdrop-blur-sm rounded-lg p-3">
+                    <div className="flex items-center gap-3">
+                      <Mic className="w-4 h-4 text-foreground" />
+                      <div className="flex-1">
+                        <Progress 
+                          value={audioLevel} 
+                          className="h-2"
+                        />
+                      </div>
+                      <span className="text-xs font-mono text-foreground">
+                        {Math.round(audioLevel)}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </>
             ) : (
               <div className="w-full h-full flex items-center justify-center">
