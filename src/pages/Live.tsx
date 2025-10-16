@@ -10,6 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Video, StopCircle, Loader2, Copy, Check } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { LiveStreamPlayer } from "@/components/LiveStreamPlayer";
+import { InstantLiveStream } from "@/components/InstantLiveStream";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Live = () => {
   const [user, setUser] = useState<any>(null);
@@ -145,50 +147,127 @@ const Live = () => {
                   Start Your Live Stream
                 </CardTitle>
                 <CardDescription>
-                  Share your content with your audience in real-time
+                  Choose how you want to stream
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleStartStream} className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="title">Stream Title</Label>
-                    <Input
-                      id="title"
-                      placeholder="What are you streaming today?"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      required
+                <Tabs defaultValue="instant" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 mb-6">
+                    <TabsTrigger value="instant">
+                      <Video className="w-4 h-4 mr-2" />
+                      Instant Stream
+                    </TabsTrigger>
+                    <TabsTrigger value="software">
+                      <Video className="w-4 h-4 mr-2" />
+                      Streaming Software
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="instant" className="space-y-6">
+                    <div className="text-center mb-4">
+                      <h3 className="text-xl font-bold mb-2">Go Live Instantly</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Stream directly from your browser - no software needed!
+                      </p>
+                    </div>
+                    
+                    <InstantLiveStream
+                      onStreamStart={(key) => setStreamKey(key)}
+                      onStreamEnd={handleEndStream}
+                      isLive={isLive}
                     />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="description">Description</Label>
-                    <Textarea
-                      id="description"
-                      placeholder="Tell viewers what to expect..."
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      rows={4}
-                    />
-                  </div>
-                  <Button
-                    type="submit"
-                    size="lg"
-                    className="w-full bg-gradient-hero hover:opacity-90 text-lg"
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Starting...
-                      </>
-                    ) : (
-                      <>
-                        <Video className="mr-2 h-5 w-5" />
-                        Go Live
-                      </>
-                    )}
-                  </Button>
-                </form>
+                    <form onSubmit={handleStartStream} className="space-y-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="title">Stream Title</Label>
+                        <Input
+                          id="title"
+                          placeholder="What are you streaming today?"
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="description">Description</Label>
+                        <Textarea
+                          id="description"
+                          placeholder="Tell viewers what to expect..."
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
+                          rows={4}
+                        />
+                      </div>
+                      <Button
+                        type="submit"
+                        size="lg"
+                        className="w-full bg-gradient-hero hover:opacity-90 text-lg"
+                        disabled={loading}
+                      >
+                        {loading ? (
+                          <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            Starting...
+                          </>
+                        ) : (
+                          <>
+                            <Video className="mr-2 h-5 w-5" />
+                            Go Live
+                          </>
+                        )}
+                      </Button>
+                    </form>
+                  </TabsContent>
+
+                  <TabsContent value="software" className="space-y-6">
+                    <div className="text-center mb-4">
+                      <h3 className="text-xl font-bold mb-2">Professional Streaming</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Use OBS, Streamlabs, or other streaming software for advanced features
+                      </p>
+                    </div>
+
+                    <form onSubmit={handleStartStream} className="space-y-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="title-software">Stream Title</Label>
+                        <Input
+                          id="title-software"
+                          placeholder="What are you streaming today?"
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="description-software">Description</Label>
+                        <Textarea
+                          id="description-software"
+                          placeholder="Tell viewers what to expect..."
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
+                          rows={4}
+                        />
+                      </div>
+                      <Button
+                        type="submit"
+                        size="lg"
+                        className="w-full bg-gradient-hero hover:opacity-90 text-lg"
+                        disabled={loading}
+                      >
+                        {loading ? (
+                          <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            Creating Stream...
+                          </>
+                        ) : (
+                          <>
+                            <Video className="mr-2 h-5 w-5" />
+                            Create Stream
+                          </>
+                        )}
+                      </Button>
+                    </form>
+                  </TabsContent>
+                </Tabs>
               </CardContent>
             </Card>
           ) : (
