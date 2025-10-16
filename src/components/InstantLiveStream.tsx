@@ -18,17 +18,15 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, isLive, streamKe
   const [isStreaming, setIsStreaming] = useState(false);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const { toast } = useToast();
 
-  const setupAudioVisualization = (stream: MediaStream) => {
+  const setupAudioVisualization = async () => {
     try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const audioContext = new AudioContext();
       const analyser = audioContext.createAnalyser();
       const source = audioContext.createMediaStreamSource(stream);
@@ -56,57 +54,15 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, isLive, streamKe
     }
   };
 
-  const startCamera = async () => {
-    setIsLoading(true);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          facingMode: 'user',
-        },
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      });
-
-      console.log('Stream obtained:', stream);
-      console.log('Video tracks:', stream.getVideoTracks());
-      console.log('Audio tracks:', stream.getAudioTracks());
-
-      streamRef.current = stream;
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.onloadedmetadata = () => {
-          console.log('Video metadata loaded');
-          videoRef.current?.play().catch(e => console.error('Error playing video:', e));
-        };
-      }
-
-      // Set up audio visualization
-      setupAudioVisualization(stream);
-
-      setIsStreaming(true);
-      toast({
-        title: 'Camera ready',
-        description: 'Your camera and microphone are active',
-      });
-    } catch (error) {
-      console.error('Error accessing media devices:', error);
-      toast({
-        title: 'Camera access denied',
-        description: 'Please allow camera and microphone access to stream',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
+  const toggleVideo = () => {
+    setIsVideoEnabled(!isVideoEnabled);
   };
 
-  const stopCamera = () => {
+  const toggleAudio = () => {
+    setIsAudioEnabled(!isAudioEnabled);
+  };
+
+  const stopStreaming = () => {
     // Stop animation frame
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
@@ -121,88 +77,75 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, isLive, streamKe
     
     analyserRef.current = null;
     setAudioLevel(0);
-    
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
     setIsStreaming(false);
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-  };
-
-  const toggleVideo = () => {
-    if (streamRef.current) {
-      const videoTrack = streamRef.current.getVideoTracks()[0];
-      if (videoTrack) {
-        videoTrack.enabled = !videoTrack.enabled;
-        setIsVideoEnabled(videoTrack.enabled);
-      }
-    }
-  };
-
-  const toggleAudio = () => {
-    if (streamRef.current) {
-      const audioTrack = streamRef.current.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.enabled = !audioTrack.enabled;
-        setIsAudioEnabled(audioTrack.enabled);
-      }
-    }
   };
 
   useEffect(() => {
     return () => {
-      stopCamera();
+      stopStreaming();
     };
   }, []);
+
+  // Enable broadcasting when streamKey is provided and isLive is true
+  const broadcastEnabled = isStreaming && streamKey && isLive;
+  const ingestUrl = broadcastEnabled ? getIngest(streamKey) : undefined;
 
   return (
     <Card className="border-0 shadow-glow bg-gradient-card">
       <CardContent className="pt-6">
         <div className="space-y-4">
           <div className="aspect-video bg-muted rounded-lg overflow-hidden relative">
-            {streamKey && isLive ? (
+            {isStreaming ? (
               <Broadcast.Root
-                ingestUrl={getIngest(streamKey)}
+                ingestUrl={ingestUrl}
                 aspectRatio={16/9}
+                video={isVideoEnabled}
+                audio={isAudioEnabled}
+                onStreamStatusChange={(status) => {
+                  console.log('Stream status:', status);
+                  if (status === 'live' && !audioContextRef.current) {
+                    setupAudioVisualization();
+                  }
+                }}
               >
-                <Broadcast.Video className="w-full h-full object-cover" />
-                <Broadcast.Controls className="absolute top-4 left-4 bg-destructive text-destructive-foreground px-3 py-1 rounded-full text-sm font-bold flex items-center gap-2 shadow-glow animate-pulse z-10">
-                  <span className="w-2 h-2 bg-destructive-foreground rounded-full animate-pulse"></span>
-                  LIVE
-                </Broadcast.Controls>
-              </Broadcast.Root>
-            ) : isStreaming ? (
-              <>
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="w-full h-full object-cover"
-                  style={{ transform: 'scaleX(-1)' }}
-                />
-                
-                {/* Audio Level Indicator */}
-                <div className="absolute bottom-4 left-4 right-4 z-10">
-                  <div className="bg-background/80 backdrop-blur-sm rounded-lg p-3">
-                    <div className="flex items-center gap-3">
-                      <Mic className="w-4 h-4 text-foreground" />
-                      <div className="flex-1">
-                        <Progress 
-                          value={audioLevel} 
-                          className="h-2"
-                        />
+                <Broadcast.Container className="w-full h-full">
+                  <Broadcast.Video 
+                    className="w-full h-full object-cover" 
+                    style={{ transform: 'scaleX(-1)' }}
+                  />
+                  
+                  <Broadcast.LoadingIndicator className="absolute inset-0 flex items-center justify-center bg-background/80">
+                    <Loader2 className="w-8 h-8 animate-spin" />
+                  </Broadcast.LoadingIndicator>
+
+                  {/* Audio Level Indicator */}
+                  {audioLevel > 0 && (
+                    <div className="absolute bottom-4 left-4 right-4 z-10">
+                      <div className="bg-background/80 backdrop-blur-sm rounded-lg p-3">
+                        <div className="flex items-center gap-3">
+                          <Mic className="w-4 h-4 text-foreground" />
+                          <div className="flex-1">
+                            <Progress 
+                              value={audioLevel} 
+                              className="h-2"
+                            />
+                          </div>
+                          <span className="text-xs font-mono text-foreground">
+                            {Math.round(audioLevel)}%
+                          </span>
+                        </div>
                       </div>
-                      <span className="text-xs font-mono text-foreground">
-                        {Math.round(audioLevel)}%
-                      </span>
                     </div>
-                  </div>
-                </div>
-              </>
+                  )}
+                  
+                  {isLive && (
+                    <div className="absolute top-4 left-4 bg-destructive text-destructive-foreground px-3 py-1 rounded-full text-sm font-bold flex items-center gap-2 shadow-glow animate-pulse z-10">
+                      <span className="w-2 h-2 bg-destructive-foreground rounded-full animate-pulse"></span>
+                      LIVE
+                    </div>
+                  )}
+                </Broadcast.Container>
+              </Broadcast.Root>
             ) : (
               <div className="w-full h-full flex items-center justify-center">
                 <div className="text-center">
@@ -217,21 +160,17 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, isLive, streamKe
           <div className="flex gap-2 justify-center">
             {!isStreaming ? (
               <Button
-                onClick={startCamera}
+                onClick={() => {
+                  setIsStreaming(true);
+                  toast({
+                    title: 'Camera ready',
+                    description: 'Your camera and microphone are active',
+                  });
+                }}
                 className="bg-gradient-hero hover:opacity-90"
-                disabled={isLoading}
               >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Starting Camera...
-                  </>
-                ) : (
-                  <>
-                    <Video className="w-4 h-4 mr-2" />
-                    Start Camera
-                  </>
-                )}
+                <Video className="w-4 h-4 mr-2" />
+                Start Camera
               </Button>
             ) : (
               <>
@@ -252,7 +191,7 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, isLive, streamKe
                 <Button
                   variant="destructive"
                   onClick={() => {
-                    stopCamera();
+                    stopStreaming();
                     if (isLive) {
                       onStreamEnd();
                     }
