@@ -154,12 +154,28 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, isLive, streamKe
           <div className="flex gap-2 justify-center">
             {!isStreaming ? (
               <Button
-                onClick={() => {
-                  setIsStreaming(true);
-                  toast({
-                    title: 'Camera ready',
-                    description: 'Your camera and microphone are active',
-                  });
+                onClick={async () => {
+                  try {
+                    // Prompt for camera + mic permissions explicitly
+                    const media = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                    // Immediately stop tracks (Broadcast will manage its own)
+                    media.getTracks().forEach((t) => t.stop());
+
+                    setIsStreaming(true);
+                    await setupAudioVisualization();
+
+                    toast({
+                      title: 'Camera ready',
+                      description: 'Permissions granted. Your camera and microphone are active.',
+                    });
+                  } catch (err: any) {
+                    console.error('Media permissions error:', err);
+                    toast({
+                      title: 'Permissions needed',
+                      description: 'Please allow camera and microphone access in your browser and try again.',
+                      variant: 'destructive',
+                    });
+                  }
                 }}
                 className="bg-gradient-hero hover:opacity-90"
               >

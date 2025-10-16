@@ -77,14 +77,15 @@ const Discover = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="container px-4 pt-24 pb-16">
-        <div className="mb-8 animate-fade-in">
-          <h1 className="text-4xl font-bold mb-2 bg-gradient-hero bg-clip-text text-transparent">
-            Discover Creators
-          </h1>
-          <p className="text-muted-foreground">
-            Watch live streams and explore amazing content
-          </p>
-        </div>
+      <div className="mb-8 animate-fade-in">
+        <h1 className="text-4xl font-bold mb-2 bg-gradient-hero bg-clip-text text-transparent">
+          Discover Creators
+        </h1>
+        <p className="text-muted-foreground">
+          Watch live streams and explore amazing content
+        </p>
+        <p className="text-xs text-muted-foreground mt-2">Note: Showing all streams for debugging, including ones without playback IDs.</p>
+      </div>
 
         <Tabs defaultValue="live" className="w-full">
           <TabsList className="mb-8">
