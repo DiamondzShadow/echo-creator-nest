@@ -171,16 +171,11 @@ const Live = () => {
                       </p>
                     </div>
                     
-                    <InstantLiveStream
-                      onStreamStart={(key) => setStreamKey(key)}
-                      onStreamEnd={handleEndStream}
-                      isLive={isLive}
-                    />
                     <form onSubmit={handleStartStream} className="space-y-6">
                       <div className="space-y-2">
-                        <Label htmlFor="title">Stream Title</Label>
+                        <Label htmlFor="title-instant">Stream Title</Label>
                         <Input
-                          id="title"
+                          id="title-instant"
                           placeholder="What are you streaming today?"
                           value={title}
                           onChange={(e) => setTitle(e.target.value)}
@@ -188,15 +183,22 @@ const Live = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="description">Description</Label>
+                        <Label htmlFor="description-instant">Description</Label>
                         <Textarea
-                          id="description"
+                          id="description-instant"
                           placeholder="Tell viewers what to expect..."
                           value={description}
                           onChange={(e) => setDescription(e.target.value)}
                           rows={4}
                         />
                       </div>
+                      
+                      <InstantLiveStream
+                        onStreamStart={(key) => setStreamKey(key)}
+                        onStreamEnd={handleEndStream}
+                        isLive={isLive}
+                      />
+
                       <Button
                         type="submit"
                         size="lg"
@@ -206,7 +208,7 @@ const Live = () => {
                         {loading ? (
                           <>
                             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                            Starting...
+                            Going Live...
                           </>
                         ) : (
                           <>

@@ -34,15 +34,18 @@ const Discover = () => {
   }, []);
 
   const fetchStreams = async () => {
+    // Only fetch streams with playback IDs (actual video streams)
     const { data: live } = await supabase
       .from("live_streams")
-      .select("*, profiles(username, display_name)")
+      .select("*, profiles(username, display_name, avatar_url)")
       .eq("is_live", true)
+      .not("livepeer_playback_id", "is", null)
       .order("started_at", { ascending: false });
 
     const { data: all } = await supabase
       .from("live_streams")
-      .select("*, profiles(username, display_name)")
+      .select("*, profiles(username, display_name, avatar_url)")
+      .not("livepeer_playback_id", "is", null)
       .order("created_at", { ascending: false })
       .limit(20);
 

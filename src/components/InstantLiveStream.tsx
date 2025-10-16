@@ -166,8 +166,7 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, isLive }: Instan
                   ref={videoRef}
                   autoPlay
                   playsInline
-                  muted
-                  className="w-full h-full object-cover mirror"
+                  className="w-full h-full object-cover"
                   style={{ transform: 'scaleX(-1)' }}
                 />
                 {isLive && (
@@ -200,6 +199,7 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, isLive }: Instan
                 <div className="text-center">
                   <Video className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
                   <p className="text-muted-foreground">Camera preview will appear here</p>
+                  <p className="text-xs text-muted-foreground mt-2">Click Start Camera below</p>
                 </div>
               </div>
             )}
