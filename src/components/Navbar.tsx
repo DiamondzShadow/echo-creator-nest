@@ -54,6 +54,9 @@ const Navbar = () => {
                 <Video className="w-4 h-4 mr-2" />
                 Go Live
               </Button>
+              <Button variant="outline" onClick={() => navigate("/discover")}>
+                Discover
+              </Button>
               <Button variant="outline" onClick={() => navigate("/profile")}>
                 <UserIcon className="w-4 h-4 mr-2" />
                 Profile

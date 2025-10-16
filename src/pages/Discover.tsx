@@ -1,0 +1,112 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import Navbar from "@/components/Navbar";
+import LiveStreamCard from "@/components/LiveStreamCard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+const Discover = () => {
+  const [liveStreams, setLiveStreams] = useState<any[]>([]);
+  const [allStreams, setAllStreams] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchStreams();
+
+    // Subscribe to realtime updates
+    const channel = supabase
+      .channel("live_streams_changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "live_streams",
+        },
+        () => {
+          fetchStreams();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const fetchStreams = async () => {
+    const { data: live } = await supabase
+      .from("live_streams")
+      .select("*, profiles(username, display_name)")
+      .eq("is_live", true)
+      .order("started_at", { ascending: false });
+
+    const { data: all } = await supabase
+      .from("live_streams")
+      .select("*, profiles(username, display_name)")
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    setLiveStreams(live || []);
+    setAllStreams(all || []);
+    setLoading(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      <div className="container px-4 pt-24 pb-16">
+        <div className="mb-8 animate-fade-in">
+          <h1 className="text-4xl font-bold mb-2 bg-gradient-hero bg-clip-text text-transparent">
+            Discover Creators
+          </h1>
+          <p className="text-muted-foreground">
+            Watch live streams and explore amazing content
+          </p>
+        </div>
+
+        <Tabs defaultValue="live" className="w-full">
+          <TabsList className="mb-8">
+            <TabsTrigger value="live">
+              Live Now {liveStreams.length > 0 && `(${liveStreams.length})`}
+            </TabsTrigger>
+            <TabsTrigger value="all">All Streams</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="live">
+            {loading ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">Loading streams...</p>
+              </div>
+            ) : liveStreams.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No live streams at the moment</p>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 animate-scale-in">
+                {liveStreams.map((stream) => (
+                  <LiveStreamCard key={stream.id} stream={stream} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="all">
+            {loading ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">Loading streams...</p>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 animate-scale-in">
+                {allStreams.map((stream) => (
+                  <LiveStreamCard key={stream.id} stream={stream} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
+};
+
+export default Discover;

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import Navbar from "@/components/Navbar";
+import FollowButton from "@/components/FollowButton";
 import { Users, UserPlus } from "lucide-react";
 
 const Profile = () => {
@@ -36,6 +37,27 @@ const Profile = () => {
     };
 
     fetchProfile();
+
+    // Subscribe to profile updates
+    const channel = supabase
+      .channel("profile_changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "profiles",
+          filter: `id=eq.${user?.id}`,
+        },
+        (payload) => {
+          setProfile(payload.new);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [navigate]);
 
   if (loading || !profile) {
@@ -56,8 +78,9 @@ const Profile = () => {
                   </AvatarFallback>
                 </Avatar>
                 <h1 className="text-3xl font-bold mb-2">{profile.display_name}</h1>
-                <p className="text-muted-foreground mb-1">@{profile.username}</p>
-                {profile.bio && <p className="text-muted-foreground max-w-md">{profile.bio}</p>}
+                <p className="text-muted-foreground mb-4">@{profile.username}</p>
+                {profile.bio && <p className="text-muted-foreground max-w-md mb-4">{profile.bio}</p>}
+                <FollowButton profileId={profile.id} currentUserId={user?.id} />
               </div>
 
               <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
