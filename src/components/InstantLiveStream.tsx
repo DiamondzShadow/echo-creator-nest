@@ -4,14 +4,17 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Video, VideoOff, Mic, MicOff, Loader2 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import * as Broadcast from '@livepeer/react/broadcast';
+import { getIngest } from '@livepeer/react/external';
 
 interface InstantLiveStreamProps {
   onStreamStart: (streamKey: string) => void;
   onStreamEnd: () => void;
   isLive: boolean;
+  streamKey?: string;
 }
 
-export const InstantLiveStream = ({ onStreamStart, onStreamEnd, isLive }: InstantLiveStreamProps) => {
+export const InstantLiveStream = ({ onStreamStart, onStreamEnd, isLive, streamKey }: InstantLiveStreamProps) => {
   const [isStreaming, setIsStreaming] = useState(false);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
@@ -160,21 +163,27 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, isLive }: Instan
       <CardContent className="pt-6">
         <div className="space-y-4">
           <div className="aspect-video bg-muted rounded-lg overflow-hidden relative">
-            {isStreaming ? (
+            {streamKey && isLive ? (
+              <Broadcast.Root
+                ingestUrl={getIngest(streamKey)}
+                aspectRatio={16/9}
+              >
+                <Broadcast.Video className="w-full h-full object-cover" />
+                <Broadcast.Controls className="absolute top-4 left-4 bg-destructive text-destructive-foreground px-3 py-1 rounded-full text-sm font-bold flex items-center gap-2 shadow-glow animate-pulse z-10">
+                  <span className="w-2 h-2 bg-destructive-foreground rounded-full animate-pulse"></span>
+                  LIVE
+                </Broadcast.Controls>
+              </Broadcast.Root>
+            ) : isStreaming ? (
               <>
                 <video
                   ref={videoRef}
                   autoPlay
                   playsInline
+                  muted
                   className="w-full h-full object-cover"
                   style={{ transform: 'scaleX(-1)' }}
                 />
-                {isLive && (
-                  <div className="absolute top-4 left-4 bg-destructive text-destructive-foreground px-3 py-1 rounded-full text-sm font-bold flex items-center gap-2 shadow-glow animate-pulse z-10">
-                    <span className="w-2 h-2 bg-destructive-foreground rounded-full animate-pulse"></span>
-                    LIVE
-                  </div>
-                )}
                 
                 {/* Audio Level Indicator */}
                 <div className="absolute bottom-4 left-4 right-4 z-10">

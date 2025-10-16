@@ -67,8 +67,8 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
 
       setAvatarUrl(publicUrl);
       toast({
-        title: 'Avatar uploaded',
-        description: 'Click Save to update your profile',
+        title: '✅ Avatar uploaded successfully',
+        description: 'Don\'t forget to click "Save Changes" to apply your new avatar!',
       });
     } catch (error: any) {
       console.error('Upload error:', error);
@@ -97,8 +97,8 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
       if (error) throw error;
 
       toast({
-        title: 'Profile updated',
-        description: 'Your profile has been updated successfully',
+        title: '✅ Profile saved successfully!',
+        description: 'Your changes have been saved and are now visible on your profile',
       });
       setOpen(false);
       onUpdate();
