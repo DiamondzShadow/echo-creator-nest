@@ -27,6 +27,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/live" element={<Live />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/profile/:userId" element={<Profile />} />
             <Route path="/discover" element={<Discover />} />
             <Route path="/watch/:streamId" element={<Watch />} />
             <Route path="/storj-transcode" element={<StorjTranscode />} />

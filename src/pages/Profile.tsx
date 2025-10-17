@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -11,9 +11,11 @@ import { ProfileEditDialog } from "@/components/ProfileEditDialog";
 import { Users, UserPlus, Wallet, Coins } from "lucide-react";
 
 const Profile = () => {
+  const { userId } = useParams();
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isOwnProfile, setIsOwnProfile] = useState(false);
   const navigate = useNavigate();
 
   const fetchProfile = async () => {
@@ -21,17 +23,27 @@ const Profile = () => {
       data: { session },
     } = await supabase.auth.getSession();
 
-    if (!session) {
-      navigate("/auth");
+    setUser(session?.user || null);
+
+    // If userId param exists, fetch that user's profile
+    // Otherwise, fetch the current user's profile
+    const profileId = userId || session?.user?.id;
+
+    if (!profileId) {
+      if (!userId) {
+        // Only redirect to auth if trying to view own profile without being logged in
+        navigate("/auth");
+      }
       return;
     }
 
-    setUser(session.user);
+    // Check if viewing own profile
+    setIsOwnProfile(session?.user?.id === profileId);
 
     const { data: profileData } = await supabase
       .from("profiles")
       .select("*")
-      .eq("id", session.user.id)
+      .eq("id", profileId)
       .single();
 
     setProfile(profileData);
@@ -47,6 +59,9 @@ const Profile = () => {
     fetchProfile();
 
     // Subscribe to profile updates
+    const profileId = userId || user?.id;
+    if (!profileId) return;
+
     const channel = supabase
       .channel("profile_changes")
       .on(
@@ -55,7 +70,7 @@ const Profile = () => {
           event: "UPDATE",
           schema: "public",
           table: "profiles",
-          filter: `id=eq.${user?.id}`,
+          filter: `id=eq.${profileId}`,
         },
         (payload) => {
           setProfile(payload.new);
@@ -66,7 +81,7 @@ const Profile = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [navigate]);
+  }, [navigate, userId]);
 
   if (loading || !profile) {
     return null;
@@ -115,15 +130,17 @@ const Profile = () => {
                 <p className="text-muted-foreground mb-4">@{profile.username}</p>
                 {profile.bio && <p className="text-muted-foreground max-w-md mb-4">{profile.bio}</p>}
                 
-                {user?.id === profile.id && (
+                {isOwnProfile && (
                   <div className="mb-4">
                     <ProfileEditDialog profile={profile} onUpdate={handleProfileUpdate} />
                   </div>
                 )}
                 
-                <div className="flex gap-2 mb-4">
-                  <WalletConnect />
-                </div>
+                {isOwnProfile && (
+                  <div className="flex gap-2 mb-4">
+                    <WalletConnect />
+                  </div>
+                )}
                 
                 {profile.wallet_address && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
@@ -132,14 +149,16 @@ const Profile = () => {
                   </div>
                 )}
                 
-                <div className="flex gap-2">
-                  <FollowButton profileId={profile.id} currentUserId={user?.id} />
-                  <TipButton 
-                    recipientUserId={profile.id}
-                    recipientWalletAddress={profile.wallet_address}
-                    recipientUsername={profile.username}
-                  />
-                </div>
+                {!isOwnProfile && (
+                  <div className="flex gap-2">
+                    <FollowButton profileId={profile.id} currentUserId={user?.id} />
+                    <TipButton 
+                      recipientUserId={profile.id}
+                      recipientWalletAddress={profile.wallet_address}
+                      recipientUsername={profile.username}
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
