@@ -27,6 +27,7 @@ const Live = () => {
   const [streamMode, setStreamMode] = useState<"instant" | "software" | "pull">("instant");
   const [copied, setCopied] = useState(false);
   const [autoGoLivePending, setAutoGoLivePending] = useState(false);
+  const [hasAutoStarted, setHasAutoStarted] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -164,6 +165,7 @@ const Live = () => {
       setPlaybackId("");
       setTitle("");
       setDescription("");
+      setHasAutoStarted(false);
       toast({
         title: "Stream ended",
         description: "Your live stream has been ended.",
@@ -190,8 +192,9 @@ const Live = () => {
   };
 
   const handleCameraReady = async () => {
-    if (streamMode === 'instant' && !isLive && !loading && !autoGoLivePending) {
+    if (streamMode === 'instant' && !isLive && !loading && !autoGoLivePending && !hasAutoStarted) {
       console.log('📹 Camera ready, auto-starting stream...');
+      setHasAutoStarted(true);
       setAutoGoLivePending(true);
       // Small delay to ensure UI updates
       setTimeout(async () => {
