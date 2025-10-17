@@ -11,6 +11,8 @@ import { Video, StopCircle, Loader2, Copy, Check, ExternalLink } from "lucide-re
 import Navbar from "@/components/Navbar";
 import { LiveStreamPlayer } from "@/components/LiveStreamPlayer";
 import { InstantLiveStream } from "@/components/InstantLiveStream";
+import { InstantLiveStreamLiveKit } from "@/components/InstantLiveStreamLiveKit";
+import { LiveKitViewer } from "@/components/LiveKitViewer";
 import { PullStreamSetup } from "@/components/PullStreamSetup";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -28,6 +30,8 @@ const Live = () => {
   const [copied, setCopied] = useState(false);
   const [autoGoLivePending, setAutoGoLivePending] = useState(false);
   const [hasAutoStarted, setHasAutoStarted] = useState(false);
+  const [livekitToken, setLivekitToken] = useState<string>("");
+  const [roomName, setRoomName] = useState<string>("");
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -46,93 +50,149 @@ const Live = () => {
     setLoading(true);
 
     try {
-      console.log('Creating Livepeer stream...');
-      
-      let livepeerData, livepeerError;
-      
-      // Check if this is a pull stream
-      if (streamMode === 'pull' && pullUrl) {
-        // Create pull stream
-        const result = await supabase.functions.invoke('livepeer-pull-stream', {
-          body: { 
-            action: 'create',
-            pullUrl: pullUrl
+      // For instant streaming, use LiveKit instead of Livepeer
+      if (streamMode === 'instant') {
+        console.log('Creating LiveKit room for instant streaming...');
+        
+        // Generate unique room name
+        const roomId = `stream-${user.id}-${Date.now()}`;
+        setRoomName(roomId);
+
+        // First create stream record in database
+        const { data, error } = await supabase
+          .from("live_streams")
+          .insert({
+            user_id: user.id,
+            title: title.trim().substring(0, 200),
+            description: description?.trim().substring(0, 2000),
+            is_live: true,
+            started_at: new Date().toISOString(),
+            livepeer_stream_id: roomId, // Use room ID as identifier
+            livepeer_playback_id: roomId, // Use same for viewer access
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Database error:', error);
+          throw new Error(`Failed to save stream: ${error.message}`);
+        }
+
+        console.log('Stream record created:', data);
+        setStreamId(data.id);
+
+        // Get LiveKit token for broadcaster
+        const { data: tokenData, error: tokenError } = await supabase.functions.invoke('livekit-token', {
+          body: {
+            action: 'create_token',
+            roomName: roomId,
+            streamId: data.id,
           }
         });
-        livepeerData = result.data;
-        livepeerError = result.error;
-        console.log('Pull stream response:', { livepeerData, livepeerError });
+
+        if (tokenError || !tokenData?.token) {
+          console.error('Token error:', tokenError);
+          throw new Error('Failed to get streaming token');
+        }
+
+        console.log('LiveKit token obtained');
+        setLivekitToken(tokenData.token);
+        setIsLive(true);
+
+        toast({
+          title: "Stream created!",
+          description: "Your instant stream is ready to broadcast!",
+        });
       } else {
-        // Create regular stream (pass isInstant flag for instant streams)
-        const result = await supabase.functions.invoke('livepeer-stream', {
-          body: { 
-            action: 'create',
-            isInstant: streamMode === 'instant'
-          }
+        // For software/pull streaming, use existing Livepeer flow
+        console.log('Creating Livepeer stream...');
+        
+        let livepeerData, livepeerError;
+        
+        // Check if this is a pull stream
+        if (streamMode === 'pull' && pullUrl) {
+          // Create pull stream
+          const result = await supabase.functions.invoke('livepeer-pull-stream', {
+            body: { 
+              action: 'create',
+              pullUrl: pullUrl
+            }
+          });
+          livepeerData = result.data;
+          livepeerError = result.error;
+          console.log('Pull stream response:', { livepeerData, livepeerError });
+        } else {
+          // Create regular stream (pass isInstant flag for instant streams)
+          const result = await supabase.functions.invoke('livepeer-stream', {
+            body: { 
+              action: 'create',
+              isInstant: streamMode === 'instant'
+            }
+          });
+          livepeerData = result.data;
+          livepeerError = result.error;
+          console.log('Regular stream response:', { livepeerData, livepeerError });
+        }
+
+        if (livepeerError) {
+          console.error('Livepeer error:', livepeerError);
+          throw new Error(`Livepeer API error: ${livepeerError.message || 'Unknown error'}`);
+        }
+
+        if (!livepeerData || !livepeerData.streamId || !livepeerData.streamKey || !livepeerData.playbackId) {
+          console.error('Invalid Livepeer response:', livepeerData);
+          throw new Error('Invalid response from Livepeer API - missing required fields');
+        }
+
+        const { streamId: lpStreamId, streamKey: lpStreamKey, playbackId: lpPlaybackId } = livepeerData;
+
+        console.log('Storing stream in database...');
+        // Store stream in public table (without stream_key)
+        const { data, error } = await supabase
+          .from("live_streams")
+          .insert({
+            user_id: user.id,
+            title: title.trim().substring(0, 200),
+            description: description?.trim().substring(0, 2000),
+            is_live: true,
+            started_at: new Date().toISOString(),
+            livepeer_stream_id: lpStreamId,
+            livepeer_playback_id: lpPlaybackId,
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Database error:', error);
+          throw new Error(`Failed to save stream: ${error.message}`);
+        }
+
+        // Store stream key securely using database function
+        const { error: keyError } = await supabase.rpc('store_stream_key', {
+          p_stream_id: data.id,
+          p_stream_key: lpStreamKey,
         });
-        livepeerData = result.data;
-        livepeerError = result.error;
-        console.log('Regular stream response:', { livepeerData, livepeerError });
+
+        if (keyError) {
+          console.error('Stream key storage error:', keyError);
+          throw new Error(`Failed to save stream credentials: ${keyError.message}`);
+        }
+
+        console.log('Stream created successfully:', data);
+        setStreamId(data.id);
+        setStreamKey(lpStreamKey);
+        setPlaybackId(lpPlaybackId);
+        setIsLive(true);
+        
+        const streamTypeMessage = streamMode === 'pull' 
+          ? "Your pull stream is active and re-broadcasting!" 
+          : "Your stream is ready. Start broadcasting to go live!";
+        
+        toast({
+          title: "Stream created!",
+          description: streamTypeMessage,
+        });
       }
-
-      if (livepeerError) {
-        console.error('Livepeer error:', livepeerError);
-        throw new Error(`Livepeer API error: ${livepeerError.message || 'Unknown error'}`);
-      }
-
-      if (!livepeerData || !livepeerData.streamId || !livepeerData.streamKey || !livepeerData.playbackId) {
-        console.error('Invalid Livepeer response:', livepeerData);
-        throw new Error('Invalid response from Livepeer API - missing required fields');
-      }
-
-      const { streamId: lpStreamId, streamKey: lpStreamKey, playbackId: lpPlaybackId } = livepeerData;
-
-      console.log('Storing stream in database...');
-      // Store stream in public table (without stream_key)
-      const { data, error } = await supabase
-        .from("live_streams")
-        .insert({
-          user_id: user.id,
-          title: title.trim().substring(0, 200),
-          description: description?.trim().substring(0, 2000),
-          is_live: true,
-          started_at: new Date().toISOString(),
-          livepeer_stream_id: lpStreamId,
-          livepeer_playback_id: lpPlaybackId,
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Database error:', error);
-        throw new Error(`Failed to save stream: ${error.message}`);
-      }
-
-      // Store stream key securely using database function
-      const { error: keyError } = await supabase.rpc('store_stream_key', {
-        p_stream_id: data.id,
-        p_stream_key: lpStreamKey,
-      });
-
-      if (keyError) {
-        console.error('Stream key storage error:', keyError);
-        throw new Error(`Failed to save stream credentials: ${keyError.message}`);
-      }
-
-      console.log('Stream created successfully:', data);
-      setStreamId(data.id);
-      setStreamKey(lpStreamKey);
-      setPlaybackId(lpPlaybackId);
-      setIsLive(true);
-      
-      const streamTypeMessage = streamMode === 'pull' 
-        ? "Your pull stream is active and re-broadcasting!" 
-        : "Your stream is ready. Start broadcasting to go live!";
-      
-      toast({
-        title: "Stream created!",
-        description: streamTypeMessage,
-      });
     } catch (error: any) {
       console.error('Stream creation error:', error);
       toast({
@@ -176,6 +236,8 @@ const Live = () => {
       setPullUrl("");
       setHasAutoStarted(false);
       setAutoGoLivePending(false);
+      setLivekitToken("");
+      setRoomName("");
       
       toast({
         title: "Stream ended",
@@ -279,30 +341,49 @@ const Live = () => {
                         />
                       </div>
                       
-                      <InstantLiveStream
-                        onStreamStart={(key) => setStreamKey(key)}
-                        onStreamEnd={handleEndStream}
-                        onCameraReady={handleCameraReady}
-                        isLive={isLive}
-                        streamKey={streamKey}
-                        creatorId={user?.id}
-                      />
+                      {!isLive ? (
+                        <div className="text-center text-sm text-muted-foreground py-8">
+                          <p>Fill in stream details above and click to start</p>
+                        </div>
+                      ) : livekitToken ? (
+                        <InstantLiveStreamLiveKit
+                          roomToken={livekitToken}
+                          onStreamEnd={handleEndStream}
+                          onStreamConnected={() => {
+                            toast({
+                              title: "Connected!",
+                              description: "You're now live",
+                            });
+                          }}
+                          isLive={isLive}
+                          creatorId={user?.id}
+                        />
+                      ) : (
+                        <div className="text-center">
+                          <Loader2 className="w-8 h-8 mx-auto animate-spin text-primary mb-2" />
+                          <p className="text-sm text-muted-foreground">Setting up stream...</p>
+                        </div>
+                      )}
 
                       {!isLive && (
-                        <div className="text-center space-y-2">
-                          {loading || autoGoLivePending ? (
+                        <Button
+                          type="submit"
+                          size="lg"
+                          className="w-full bg-gradient-hero hover:opacity-90 text-lg"
+                          disabled={loading}
+                        >
+                          {loading ? (
                             <>
-                              <Loader2 className="w-8 h-8 mx-auto animate-spin text-primary" />
-                              <p className="text-sm text-muted-foreground">
-                                Setting up your broadcast...
-                              </p>
+                              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                              Creating Stream...
                             </>
                           ) : (
-                            <p className="text-sm text-muted-foreground">
-                              Allow camera access to start broadcasting
-                            </p>
+                            <>
+                              <Video className="mr-2 h-5 w-5" />
+                              Go Live Now
+                            </>
                           )}
-                        </div>
+                        </Button>
                       )}
                     </form>
                   </TabsContent>
@@ -417,14 +498,20 @@ const Live = () => {
             </Card>
           ) : (
             <div className="space-y-6 animate-fade-in">
-              {playbackId && (
+              {streamMode === 'instant' && livekitToken ? (
+                <LiveKitViewer
+                  roomToken={livekitToken}
+                  title={title}
+                  isLive={true}
+                />
+              ) : playbackId ? (
                 <LiveStreamPlayer 
                   playbackId={playbackId}
                   title={title}
                   isLive={true}
                   viewerId={user?.id}
                 />
-              )}
+              ) : null}
 
               <Card className="border-0 shadow-card">
                 <CardContent className="pt-6">

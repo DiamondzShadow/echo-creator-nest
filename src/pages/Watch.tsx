@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/Navbar";
 import { LiveStreamPlayer } from "@/components/LiveStreamPlayer";
+import { LiveKitViewer } from "@/components/LiveKitViewer";
 import { TipButton } from "@/components/TipButton";
 import FollowButton from "@/components/FollowButton";
 import { Eye, ArrowLeft } from "lucide-react";
@@ -18,6 +19,8 @@ const Watch = () => {
   const [profile, setProfile] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [livekitToken, setLivekitToken] = useState<string | null>(null);
+  const [isLiveKitStream, setIsLiveKitStream] = useState(false);
 
   useEffect(() => {
     fetchStream();
@@ -60,6 +63,25 @@ const Watch = () => {
 
     if (streamData) {
       setStream(streamData);
+      
+      // Check if this is a LiveKit stream (instant stream)
+      // LiveKit streams have room names starting with "stream-"
+      const isLiveKit = streamData.livepeer_playback_id?.startsWith('stream-');
+      setIsLiveKitStream(isLiveKit);
+
+      // If LiveKit stream, get viewer token
+      if (isLiveKit && streamData.is_live) {
+        const { data: tokenData } = await supabase.functions.invoke('livekit-token', {
+          body: {
+            action: 'create_viewer_token',
+            roomName: streamData.livepeer_playback_id,
+          }
+        });
+
+        if (tokenData?.token) {
+          setLivekitToken(tokenData.token);
+        }
+      }
       
       // Fetch profile
       const { data: profileData } = await supabase
@@ -118,7 +140,13 @@ const Watch = () => {
         <div className="max-w-6xl mx-auto">
           <div className="grid lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-4">
-              {stream.livepeer_playback_id ? (
+              {isLiveKitStream && livekitToken ? (
+                <LiveKitViewer
+                  roomToken={livekitToken}
+                  title={stream.title}
+                  isLive={stream.is_live}
+                />
+              ) : stream.livepeer_playback_id && !isLiveKitStream ? (
                 <LiveStreamPlayer
                   playbackId={stream.livepeer_playback_id}
                   title={stream.title}
