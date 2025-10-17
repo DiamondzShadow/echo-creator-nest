@@ -480,10 +480,14 @@ const Live = () => {
           ) : (
             <div className="space-y-6 animate-fade-in">
               {streamMode === 'instant' && livekitToken ? (
-                <LiveKitViewer
+                <InstantLiveStreamLiveKit
                   roomToken={livekitToken}
-                  title={title}
-                  isLive={true}
+                  onStreamEnd={handleEndStream}
+                  onStreamConnected={() => {
+                    toast({ title: 'Connected!', description: "You're now live" });
+                  }}
+                  isLive={isLive}
+                  creatorId={user?.id}
                 />
               ) : playbackId ? (
                 <LiveStreamPlayer 
@@ -494,51 +498,53 @@ const Live = () => {
                 />
               ) : null}
 
-              <Card className="border-0 shadow-card">
-                <CardContent className="pt-6">
-                  <h3 className="text-xl font-bold mb-4">Stream Configuration</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <Label className="text-sm font-medium mb-2 block">Stream Server</Label>
-                      <div className="bg-muted p-3 rounded-lg">
-                        <code className="text-sm">rtmp://rtmp.livepeer.com/live</code>
-                      </div>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium mb-2 block">Stream Key</Label>
-                      <div className="flex gap-2">
-                        <div className="bg-muted p-3 rounded-lg flex-1 overflow-x-auto">
-                          <code className="text-sm">{streamKey}</code>
+              {streamMode !== 'instant' && (
+                <Card className="border-0 shadow-card">
+                  <CardContent className="pt-6">
+                    <h3 className="text-xl font-bold mb-4">Stream Configuration</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-sm font-medium mb-2 block">Stream Server</Label>
+                        <div className="bg-muted p-3 rounded-lg">
+                          <code className="text-sm">rtmp://rtmp.livepeer.com/live</code>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={copyStreamKey}
-                        >
-                          {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                        </Button>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Use this with OBS, Streamlabs, or any RTMP-compatible streaming software
-                      </p>
-                    </div>
-                    <div className="pt-2">
-                      <p className="text-sm">
-                        <span className="font-medium">Title:</span> {title}
-                      </p>
-                      {description && (
-                        <p className="text-sm mt-2">
-                          <span className="font-medium">Description:</span> {description}
+                      <div>
+                        <Label className="text-sm font-medium mb-2 block">Stream Key</Label>
+                        <div className="flex gap-2">
+                          <div className="bg-muted p-3 rounded-lg flex-1 overflow-x-auto">
+                            <code className="text-sm">{streamKey}</code>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={copyStreamKey}
+                          >
+                            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Use this with OBS, Streamlabs, or any RTMP-compatible streaming software
                         </p>
-                      )}
-                      <p className="text-sm mt-2">
-                        <span className="font-medium">Status:</span>{" "}
-                        <span className="text-green-500 font-bold">● LIVE</span>
-                      </p>
+                      </div>
+                      <div className="pt-2">
+                        <p className="text-sm">
+                          <span className="font-medium">Title:</span> {title}
+                        </p>
+                        {description && (
+                          <p className="text-sm mt-2">
+                            <span className="font-medium">Description:</span> {description}
+                          </p>
+                        )}
+                        <p className="text-sm mt-2">
+                          <span className="font-medium">Status:</span>{" "}
+                          <span className="text-green-500 font-bold">● LIVE</span>
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
 
               <Button
                 onClick={handleEndStream}
