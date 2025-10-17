@@ -123,6 +123,7 @@ const Watch = () => {
                   playbackId={stream.livepeer_playback_id}
                   title={stream.title}
                   isLive={stream.is_live}
+                  viewerId={currentUser?.id}
                 />
               ) : (
                 <Card className="border-0 shadow-glow bg-gradient-card">
