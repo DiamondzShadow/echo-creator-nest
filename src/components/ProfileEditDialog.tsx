@@ -23,6 +23,8 @@ interface ProfileEditDialogProps {
     username: string;
     bio: string | null;
     avatar_url: string | null;
+    theme_color: string | null;
+    background_image: string | null;
   };
   onUpdate: () => void;
 }
@@ -34,6 +36,9 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
   const [displayName, setDisplayName] = useState(profile.display_name || '');
   const [bio, setBio] = useState(profile.bio || '');
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url || '');
+  const [themeColor, setThemeColor] = useState(profile.theme_color || '#9333ea');
+  const [backgroundImage, setBackgroundImage] = useState(profile.background_image || '');
+  const [uploadingBg, setUploadingBg] = useState(false);
   const { toast } = useToast();
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,6 +87,50 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
     }
   };
 
+  const handleBackgroundUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'File too large',
+        description: 'Background image must be less than 5MB',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setUploadingBg(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${profile.id}/bg-${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      setBackgroundImage(publicUrl);
+      toast({
+        title: '✅ Background uploaded',
+        description: 'Click "Save Changes" to apply!',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Upload failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setUploadingBg(false);
+    }
+  };
+
   const handleSave = async () => {
     setLoading(true);
     try {
@@ -91,6 +140,8 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
           display_name: displayName,
           bio: bio,
           avatar_url: avatarUrl,
+          theme_color: themeColor,
+          background_image: backgroundImage,
         })
         .eq('id', profile.id);
 
@@ -191,6 +242,69 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
               placeholder="Tell us about yourself..."
               rows={4}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="themeColor">Theme Color</Label>
+            <div className="flex gap-2">
+              <Input
+                id="themeColor"
+                type="color"
+                value={themeColor}
+                onChange={(e) => setThemeColor(e.target.value)}
+                className="w-20 h-10 cursor-pointer"
+              />
+              <Input
+                type="text"
+                value={themeColor}
+                onChange={(e) => setThemeColor(e.target.value)}
+                placeholder="#9333ea"
+                className="flex-1"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="background">Background Wallpaper</Label>
+            <div className="flex flex-col gap-2">
+              {backgroundImage && (
+                <div className="relative w-full h-24 rounded-md overflow-hidden border">
+                  <img src={backgroundImage} alt="Background preview" className="w-full h-full object-cover" />
+                </div>
+              )}
+              <Label htmlFor="background" className="cursor-pointer">
+                <div className="flex items-center justify-center gap-2 text-sm border rounded-md p-3 hover:bg-accent transition-colors">
+                  {uploadingBg ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4" />
+                      {backgroundImage ? 'Change Background' : 'Upload Background'}
+                    </>
+                  )}
+                </div>
+                <Input
+                  id="background"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleBackgroundUpload}
+                  disabled={uploadingBg}
+                />
+              </Label>
+              {backgroundImage && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setBackgroundImage('')}
+                >
+                  Remove Background
+                </Button>
+              )}
+            </div>
           </div>
 
           <Button

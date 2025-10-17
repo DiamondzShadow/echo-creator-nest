@@ -112,12 +112,14 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          background_image: string | null
           bio: string | null
           created_at: string
           display_name: string | null
           follower_count: number | null
           following_count: number | null
           id: string
+          theme_color: string | null
           tip_count: number | null
           total_tips_received: number | null
           updated_at: string
@@ -126,12 +128,14 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          background_image?: string | null
           bio?: string | null
           created_at?: string
           display_name?: string | null
           follower_count?: number | null
           following_count?: number | null
           id: string
+          theme_color?: string | null
           tip_count?: number | null
           total_tips_received?: number | null
           updated_at?: string
@@ -140,12 +144,14 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          background_image?: string | null
           bio?: string | null
           created_at?: string
           display_name?: string | null
           follower_count?: number | null
           following_count?: number | null
           id?: string
+          theme_color?: string | null
           tip_count?: number | null
           total_tips_received?: number | null
           updated_at?: string

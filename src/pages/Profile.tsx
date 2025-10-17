@@ -77,12 +77,37 @@ const Profile = () => {
       <Navbar />
       <div className="container px-4 pt-24 pb-16">
         <div className="max-w-4xl mx-auto">
-          <Card className="border-0 shadow-glow bg-gradient-card animate-scale-in">
-            <CardContent className="pt-8">
+          <Card 
+            className="border-0 shadow-glow bg-gradient-card animate-scale-in relative overflow-hidden"
+            style={{
+              backgroundColor: profile.background_image ? 'transparent' : undefined,
+            }}
+          >
+            {profile.background_image && (
+              <div 
+                className="absolute inset-0 opacity-20"
+                style={{
+                  backgroundImage: `url(${profile.background_image})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }}
+              />
+            )}
+            <CardContent className="pt-8 relative z-10">
               <div className="flex flex-col items-center text-center mb-8">
-                <Avatar className="w-24 h-24 mb-4 ring-4 ring-primary/20">
+                <Avatar 
+                  className="w-24 h-24 mb-4 ring-4"
+                  style={{
+                    borderColor: profile.theme_color || 'hsl(var(--primary))',
+                  }}
+                >
                   <AvatarImage src={profile.avatar_url || undefined} />
-                  <AvatarFallback className="text-2xl bg-gradient-hero text-primary-foreground">
+                  <AvatarFallback 
+                    className="text-2xl text-white"
+                    style={{
+                      backgroundColor: profile.theme_color || 'hsl(var(--primary))',
+                    }}
+                  >
                     {profile.display_name?.[0]?.toUpperCase() || "C"}
                   </AvatarFallback>
                 </Avatar>
