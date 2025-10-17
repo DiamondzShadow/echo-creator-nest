@@ -149,6 +149,8 @@ const Live = () => {
     setLoading(true);
 
     try {
+      console.log('🛑 Ending stream:', streamId);
+      
       const { error } = await supabase
         .from("live_streams")
         .update({
@@ -157,15 +159,24 @@ const Live = () => {
         })
         .eq("id", streamId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error ending stream:', error);
+        throw error;
+      }
 
+      console.log('✅ Stream ended successfully in database');
+
+      // Clean up all state
       setIsLive(false);
       setStreamId(null);
       setStreamKey("");
       setPlaybackId("");
       setTitle("");
       setDescription("");
+      setPullUrl("");
       setHasAutoStarted(false);
+      setAutoGoLivePending(false);
+      
       toast({
         title: "Stream ended",
         description: "Your live stream has been ended.",
