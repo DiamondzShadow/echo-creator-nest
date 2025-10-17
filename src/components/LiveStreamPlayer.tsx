@@ -55,10 +55,18 @@ export const LiveStreamPlayer = ({ playbackId, title, isLive = false, viewerId }
 
         console.log('Playback info:', data);
         
-        // Use getSrc to parse the playback sources
-        const sources = getSrc(data);
-        console.log('Parsed sources:', sources);
-        setSrc(sources);
+        // Use getSrc to parse the playback sources and prefer HLS
+        const allSources = getSrc(data);
+        const hlsSources = Array.isArray(allSources)
+          ? allSources.filter((s: any) => s?.type?.includes('application/vnd.apple.mpegurl'))
+          : null;
+        console.log('Parsed HLS sources:', hlsSources);
+        setSrc(hlsSources && hlsSources.length ? hlsSources : null);
+
+        // If not live yet, retry shortly
+        if (!hlsSources || hlsSources.length === 0) {
+          setTimeout(fetchPlaybackInfo, 5000);
+        }
       } catch (error) {
         console.error('Error fetching playback info:', error);
       } finally {

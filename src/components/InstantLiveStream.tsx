@@ -150,9 +150,9 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, onCameraReady, i
     };
   }, []);
 
-  // Enable broadcasting when streamKey is provided and isLive is true
-  const broadcastEnabled = isStreaming && streamKey && isLive;
-  const ingestUrl = broadcastEnabled ? getIngest(streamKey) : undefined;
+  // Enable broadcasting when we have a streamKey and camera is active
+  const broadcastEnabled = isStreaming && !!streamKey;
+  const ingestUrl = broadcastEnabled ? getIngest(streamKey as string) : undefined;
   
   // Use streamKey as key to force re-mount when it changes
   const broadcastKey = streamKey || 'preview';
