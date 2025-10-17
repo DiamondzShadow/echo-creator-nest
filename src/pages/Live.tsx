@@ -261,12 +261,17 @@ const Live = () => {
                         type="submit"
                         size="lg"
                         className="w-full bg-gradient-hero hover:opacity-90 text-lg"
-                        disabled={loading}
+                        disabled={loading || !streamKey}
                       >
                         {loading ? (
                           <>
                             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                             Going Live...
+                          </>
+                        ) : !streamKey ? (
+                          <>
+                            <Video className="mr-2 h-5 w-5" />
+                            Start Camera First
                           </>
                         ) : (
                           <>

@@ -20,6 +20,8 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, isLive, streamKe
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [audioLevel, setAudioLevel] = useState(0);
+  const [permissionsGranted, setPermissionsGranted] = useState(false);
+  const [requestingPermissions, setRequestingPermissions] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
@@ -101,7 +103,42 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, isLive, streamKe
     setIsStreaming(false);
   };
 
+  // Auto-request camera permissions on mount
   useEffect(() => {
+    const requestPermissions = async () => {
+      if (requestingPermissions || permissionsGranted) return;
+      
+      setRequestingPermissions(true);
+      try {
+        console.log('🎥 Requesting camera and microphone permissions...');
+        const media = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        
+        // Stop tracks immediately (Broadcast will manage its own)
+        media.getTracks().forEach((t) => t.stop());
+        
+        setPermissionsGranted(true);
+        setIsStreaming(true);
+        await setupAudioVisualization();
+        
+        toast({
+          title: 'Camera ready',
+          description: 'You can now start broadcasting by clicking "Go Live"',
+        });
+      } catch (err: unknown) {
+        console.error('❌ Media permissions error:', err);
+        setPermissionsGranted(false);
+        toast({
+          title: 'Camera access needed',
+          description: 'Please allow camera and microphone access to use instant streaming. Check your browser permissions.',
+          variant: 'destructive',
+        });
+      } finally {
+        setRequestingPermissions(false);
+      }
+    };
+
+    requestPermissions();
+
     return () => {
       stopStreaming();
     };
@@ -204,32 +241,46 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, isLive, streamKe
             {!isStreaming ? (
               <Button
                 onClick={async () => {
+                  setRequestingPermissions(true);
                   try {
-                    // Prompt for camera + mic permissions explicitly
+                    console.log('🎥 Requesting camera and microphone permissions...');
                     const media = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                    // Immediately stop tracks (Broadcast will manage its own)
                     media.getTracks().forEach((t) => t.stop());
 
+                    setPermissionsGranted(true);
                     setIsStreaming(true);
                     await setupAudioVisualization();
 
                     toast({
                       title: 'Camera ready',
-                      description: 'Permissions granted. Your camera and microphone are active.',
+                      description: 'You can now start broadcasting by clicking "Go Live"',
                     });
                   } catch (err: unknown) {
-                    console.error('Media permissions error:', err);
+                    console.error('❌ Media permissions error:', err);
+                    setPermissionsGranted(false);
                     toast({
-                      title: 'Permissions needed',
-                      description: 'Please allow camera and microphone access in your browser and try again.',
+                      title: 'Camera access needed',
+                      description: 'Please allow camera and microphone access. Check your browser permissions (lock icon in address bar).',
                       variant: 'destructive',
                     });
+                  } finally {
+                    setRequestingPermissions(false);
                   }
                 }}
+                disabled={requestingPermissions}
                 className="bg-gradient-hero hover:opacity-90"
               >
-                <Video className="w-4 h-4 mr-2" />
-                Start Camera
+                {requestingPermissions ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Requesting Permissions...
+                  </>
+                ) : (
+                  <>
+                    <Video className="w-4 h-4 mr-2" />
+                    Start Camera
+                  </>
+                )}
               </Button>
             ) : (
               <>
@@ -263,9 +314,25 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, isLive, streamKe
           </div>
 
           {isStreaming && !isLive && (
-            <p className="text-sm text-center text-muted-foreground">
-              Click "Go Live" at the top to start broadcasting
-            </p>
+            <div className="text-center space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Camera is ready! Click "Go Live" above to start broadcasting
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Your viewers will see your stream once you go live
+              </p>
+            </div>
+          )}
+          
+          {!isStreaming && !permissionsGranted && !requestingPermissions && (
+            <div className="text-center space-y-2">
+              <p className="text-sm text-destructive font-medium">
+                Camera access is required for instant streaming
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Click "Start Camera" and allow access when prompted
+              </p>
+            </div>
           )}
 
           {broadcastError && (
