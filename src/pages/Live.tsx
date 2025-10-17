@@ -10,7 +10,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Video, StopCircle, Loader2, Copy, Check, ExternalLink } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { LiveStreamPlayer } from "@/components/LiveStreamPlayer";
-import { InstantLiveStream } from "@/components/InstantLiveStream";
 import { InstantLiveStreamLiveKit } from "@/components/InstantLiveStreamLiveKit";
 import { LiveKitViewer } from "@/components/LiveKitViewer";
 import { PullStreamSetup } from "@/components/PullStreamSetup";
@@ -103,7 +102,7 @@ const Live = () => {
           title: "Stream created!",
           description: "Your instant stream is ready to broadcast!",
         });
-      } else {
+      } else if (streamMode === 'software' || streamMode === 'pull') {
         // For software/pull streaming, use existing Livepeer flow
         console.log('Creating Livepeer stream...');
         
@@ -122,11 +121,10 @@ const Live = () => {
           livepeerError = result.error;
           console.log('Pull stream response:', { livepeerData, livepeerError });
         } else {
-          // Create regular stream (pass isInstant flag for instant streams)
+          // Create regular stream
           const result = await supabase.functions.invoke('livepeer-stream', {
             body: { 
               action: 'create',
-              isInstant: streamMode === 'instant'
             }
           });
           livepeerData = result.data;
@@ -264,18 +262,6 @@ const Live = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleCameraReady = async () => {
-    if (streamMode === 'instant' && !isLive && !loading && !autoGoLivePending && !hasAutoStarted) {
-      console.log('📹 Camera ready, auto-starting stream...');
-      setHasAutoStarted(true);
-      setAutoGoLivePending(true);
-      // Small delay to ensure UI updates
-      setTimeout(async () => {
-        await handleStartStream({ preventDefault: () => {} } as React.FormEvent);
-        setAutoGoLivePending(false);
-      }, 500);
-    }
-  };
 
   if (!user) return null;
 
@@ -341,11 +327,7 @@ const Live = () => {
                         />
                       </div>
                       
-                      {!isLive ? (
-                        <div className="text-center text-sm text-muted-foreground py-8">
-                          <p>Fill in stream details above and click to start</p>
-                        </div>
-                      ) : livekitToken ? (
+                      {livekitToken ? (
                         <InstantLiveStreamLiveKit
                           roomToken={livekitToken}
                           onStreamEnd={handleEndStream}
@@ -359,9 +341,8 @@ const Live = () => {
                           creatorId={user?.id}
                         />
                       ) : (
-                        <div className="text-center">
-                          <Loader2 className="w-8 h-8 mx-auto animate-spin text-primary mb-2" />
-                          <p className="text-sm text-muted-foreground">Setting up stream...</p>
+                        <div className="text-center text-sm text-muted-foreground py-8">
+                          <p>Fill in stream details above and click "Go Live Now"</p>
                         </div>
                       )}
 

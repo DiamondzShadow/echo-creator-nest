@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { AccessToken } from 'https://deno.land/x/livekit_server_sdk@2.1.3/mod.ts';
+import { AccessToken } from 'https://esm.sh/livekit-server-sdk@2.6.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -136,11 +136,12 @@ serve(async (req) => {
     } else {
       throw new Error('Invalid action');
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('LiveKit token error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
     return new Response(
       JSON.stringify({
-        error: error.message || 'Internal server error',
+        error: errorMessage,
       }),
       {
         status: 400,
