@@ -26,18 +26,18 @@ const features = [
 
 const Features = () => {
   return (
-    <section className="py-24 px-4">
+    <section className="py-12 sm:py-16 lg:py-24 px-4 sm:px-6">
       <div className="container">
-        <div className="text-center mb-16 animate-fade-in">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-hero bg-clip-text text-transparent">
+        <div className="text-center mb-8 sm:mb-12 lg:mb-16 animate-fade-in">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4 bg-gradient-hero bg-clip-text text-transparent">
             Everything You Need to Succeed
           </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto px-4">
             Powerful features designed to help creators thrive in the digital age
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {features.map((feature, index) => {
             const Icon = feature.icon;
             return (
@@ -46,12 +46,12 @@ const Features = () => {
                 className="border-0 bg-gradient-card shadow-card hover:shadow-glow transition-all duration-300 animate-scale-in hover:scale-105"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
-                <CardContent className="p-6">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-hero flex items-center justify-center mb-4">
-                    <Icon className="w-7 h-7 text-primary-foreground" />
+                <CardContent className="p-4 sm:p-6">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-hero flex items-center justify-center mb-3 sm:mb-4">
+                    <Icon className="w-6 h-6 sm:w-7 sm:h-7 text-primary-foreground" />
                   </div>
-                  <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
-                  <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
+                  <h3 className="text-lg sm:text-xl font-bold mb-2">{feature.title}</h3>
+                  <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">{feature.description}</p>
                 </CardContent>
               </Card>
             );

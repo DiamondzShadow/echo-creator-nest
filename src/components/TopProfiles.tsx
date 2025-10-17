@@ -43,32 +43,32 @@ const TopProfiles = () => {
   }
 
   return (
-    <section className="py-20 px-4 bg-muted/30">
+    <section className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 bg-muted/30">
       <div className="container mx-auto">
-        <div className="text-center mb-12 animate-fade-in">
-          <h2 className="text-4xl font-bold mb-4 bg-gradient-hero bg-clip-text text-transparent">
+        <div className="text-center mb-8 sm:mb-12 animate-fade-in">
+          <h2 className="text-3xl sm:text-4xl font-bold mb-3 sm:mb-4 bg-gradient-hero bg-clip-text text-transparent">
             Featured Creators
           </h2>
-          <p className="text-muted-foreground text-lg">
+          <p className="text-muted-foreground text-base sm:text-lg px-4">
             Join our community of amazing content creators
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-6xl mx-auto">
           {profiles.map((profile) => (
             <Link key={profile.id} to={`/profile/${profile.id}`}>
               <Card className="border shadow-card hover:shadow-glow transition-all hover:scale-[1.03] cursor-pointer h-full">
-                <CardContent className="pt-6">
+                <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6 pb-4 sm:pb-6">
                   <div className="flex flex-col items-center text-center">
                     <Avatar 
-                      className="w-20 h-20 mb-4 ring-4"
+                      className="w-16 h-16 sm:w-20 sm:h-20 mb-3 sm:mb-4 ring-4"
                       style={{
                         borderColor: profile.theme_color || 'hsl(var(--primary))',
                       }}
                     >
                       <AvatarImage src={profile.avatar_url || undefined} />
                       <AvatarFallback 
-                        className="text-2xl text-white font-bold"
+                        className="text-xl sm:text-2xl text-white font-bold"
                         style={{
                           backgroundColor: profile.theme_color || 'hsl(var(--primary))',
                         }}
@@ -77,25 +77,25 @@ const TopProfiles = () => {
                       </AvatarFallback>
                     </Avatar>
 
-                    <h3 className="font-bold text-xl mb-1">
+                    <h3 className="font-bold text-lg sm:text-xl mb-1">
                       {profile.display_name || profile.username}
                     </h3>
-                    <p className="text-sm text-muted-foreground mb-3">
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-3">
                       @{profile.username}
                     </p>
 
                     {profile.bio && (
-                      <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                      <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4 line-clamp-2 px-2">
                         {profile.bio}
                       </p>
                     )}
 
-                    <div className="flex gap-4 mt-auto">
-                      <Badge variant="secondary" className="flex items-center gap-1">
+                    <div className="flex flex-wrap gap-2 sm:gap-4 mt-auto justify-center">
+                      <Badge variant="secondary" className="flex items-center gap-1 text-xs">
                         <Users className="w-3 h-3" />
                         {profile.follower_count} followers
                       </Badge>
-                      <Badge variant="secondary" className="flex items-center gap-1">
+                      <Badge variant="secondary" className="flex items-center gap-1 text-xs">
                         <UserPlus className="w-3 h-3" />
                         {profile.following_count}
                       </Badge>
