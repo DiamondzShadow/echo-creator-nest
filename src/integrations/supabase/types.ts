@@ -14,6 +14,65 @@ export type Database = {
   }
   public: {
     Tables: {
+      assets: {
+        Row: {
+          created_at: string
+          description: string | null
+          duration: number | null
+          id: string
+          livepeer_asset_id: string
+          livepeer_playback_id: string | null
+          ready_at: string | null
+          size: number | null
+          status: string
+          stream_id: string | null
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          duration?: number | null
+          id?: string
+          livepeer_asset_id: string
+          livepeer_playback_id?: string | null
+          ready_at?: string | null
+          size?: number | null
+          status: string
+          stream_id?: string | null
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          duration?: number | null
+          id?: string
+          livepeer_asset_id?: string
+          livepeer_playback_id?: string | null
+          ready_at?: string | null
+          size?: number | null
+          status?: string
+          stream_id?: string | null
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_stream_id_fkey"
+            columns: ["stream_id"]
+            isOneToOne: false
+            referencedRelation: "live_streams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       followers: {
         Row: {
           created_at: string
