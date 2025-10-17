@@ -51,13 +51,18 @@ const Discover = () => {
   }, []);
 
   const fetchStreams = async () => {
-    // Fetch live streams (only those with valid playback IDs)
-    const { data: live } = await supabase
+    // Fetch live streams (only those with valid playback IDs and ended_at is null)
+    const { data: live, error: liveError } = await supabase
       .from("live_streams")
       .select("*, profiles(username, display_name, avatar_url)")
       .eq("is_live", true)
+      .is("ended_at", null)
       .not("livepeer_playback_id", "is", null)
       .order("started_at", { ascending: false });
+
+    if (liveError) {
+      console.error('Error fetching live streams:', liveError);
+    }
 
     // Fetch ALL streams (including those without playback IDs for debugging)
     const { data: all } = await supabase
@@ -66,8 +71,27 @@ const Discover = () => {
       .order("created_at", { ascending: false })
       .limit(20);
 
-    console.log('Fetched streams:', { live, all });
-    setLiveStreams(live || []);
+    // Remove duplicates from live streams based on user_id
+    // Keep only the most recent live stream per user
+    const uniqueLiveStreams = live?.reduce((acc: any[], stream) => {
+      const existingStream = acc.find(s => s.user_id === stream.user_id);
+      if (!existingStream) {
+        acc.push(stream);
+      } else if (new Date(stream.started_at) > new Date(existingStream.started_at)) {
+        // Replace with newer stream
+        const index = acc.indexOf(existingStream);
+        acc[index] = stream;
+      }
+      return acc;
+    }, []) || [];
+
+    console.log('Fetched streams:', { 
+      live: live?.length, 
+      uniqueLive: uniqueLiveStreams.length,
+      all: all?.length 
+    });
+    
+    setLiveStreams(uniqueLiveStreams);
     setAllStreams(all || []);
     setRecordings([]);
     setLoading(false);

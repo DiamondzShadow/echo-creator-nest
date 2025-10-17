@@ -87,6 +87,8 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, onCameraReady, i
   };
 
   const stopStreaming = () => {
+    console.log('🛑 Stopping broadcast and cleaning up...');
+    
     // Stop animation frame
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
@@ -102,6 +104,10 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, onCameraReady, i
     analyserRef.current = null;
     setAudioLevel(0);
     setIsStreaming(false);
+    setPermissionsGranted(false);
+    setBroadcastError(null);
+    
+    console.log('✅ Broadcast stopped and cleaned up');
   };
 
   // Auto-request camera permissions on mount
@@ -146,21 +152,39 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, onCameraReady, i
     requestPermissions();
 
     return () => {
+      console.log('🧹 Component unmounting, cleaning up...');
       stopStreaming();
     };
   }, []);
+
+  // Watch for isLive prop changes to detect when parent ends the stream
+  useEffect(() => {
+    if (!isLive && isStreaming) {
+      console.log('⚠️ Stream ended by parent, stopping broadcast...');
+      stopStreaming();
+    }
+  }, [isLive]);
 
   // Enable broadcasting when we have a streamKey and camera is active
   const broadcastEnabled = isStreaming && !!streamKey;
   const ingestUrl = broadcastEnabled ? getIngest(streamKey as string) : undefined;
   
-  // Use streamKey as key to force re-mount when it changes
-  const broadcastKey = streamKey || 'preview';
+  // Use streamKey + timestamp as key to force re-mount when it changes
+  // This ensures Broadcast component fully reinitializes with new ingestUrl
+  const [broadcastKey, setBroadcastKey] = useState('preview');
+
+  useEffect(() => {
+    if (streamKey) {
+      // Force remount when streamKey becomes available
+      setBroadcastKey(`broadcast-${streamKey}-${Date.now()}`);
+      console.log('✅ Stream key received, forcing Broadcast remount');
+    }
+  }, [streamKey]);
 
   useEffect(() => {
     if (broadcastEnabled && ingestUrl) {
       console.log('🔴 Broadcasting enabled with ingestUrl:', ingestUrl);
-      console.log('🎥 Stream Key:', streamKey);
+      console.log('🎥 Stream Key:', streamKey?.substring(0, 20) + '...');
       console.log('📡 Broadcast should start in ~5-10 seconds');
     }
   }, [broadcastEnabled, ingestUrl, streamKey]);
