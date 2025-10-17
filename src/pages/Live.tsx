@@ -83,16 +83,15 @@ const Live = () => {
       const { streamId: lpStreamId, streamKey: lpStreamKey, playbackId: lpPlaybackId } = livepeerData;
 
       console.log('Storing stream in database...');
-      // Store stream in database
+      // Store stream in public table (without stream_key)
       const { data, error } = await supabase
         .from("live_streams")
         .insert({
           user_id: user.id,
-          title,
-          description,
+          title: title.trim().substring(0, 200),
+          description: description?.trim().substring(0, 2000),
           is_live: true,
           started_at: new Date().toISOString(),
-          stream_key: lpStreamKey,
           livepeer_stream_id: lpStreamId,
           livepeer_playback_id: lpPlaybackId,
         })
@@ -102,6 +101,17 @@ const Live = () => {
       if (error) {
         console.error('Database error:', error);
         throw new Error(`Failed to save stream: ${error.message}`);
+      }
+
+      // Store stream key securely using database function
+      const { error: keyError } = await supabase.rpc('store_stream_key', {
+        p_stream_id: data.id,
+        p_stream_key: lpStreamKey,
+      });
+
+      if (keyError) {
+        console.error('Stream key storage error:', keyError);
+        throw new Error(`Failed to save stream credentials: ${keyError.message}`);
       }
 
       console.log('Stream created successfully:', data);

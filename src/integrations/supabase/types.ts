@@ -60,7 +60,6 @@ export type Database = {
           livepeer_playback_id: string | null
           livepeer_stream_id: string | null
           started_at: string | null
-          stream_key: string | null
           thumbnail_url: string | null
           title: string
           updated_at: string
@@ -76,7 +75,6 @@ export type Database = {
           livepeer_playback_id?: string | null
           livepeer_stream_id?: string | null
           started_at?: string | null
-          stream_key?: string | null
           thumbnail_url?: string | null
           title: string
           updated_at?: string
@@ -92,7 +90,6 @@ export type Database = {
           livepeer_playback_id?: string | null
           livepeer_stream_id?: string | null
           started_at?: string | null
-          stream_key?: string | null
           thumbnail_url?: string | null
           title?: string
           updated_at?: string
@@ -213,7 +210,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_stream_key: {
+        Args: { p_stream_id: string }
+        Returns: string
+      }
+      store_stream_key: {
+        Args: { p_stream_id: string; p_stream_key: string }
+        Returns: undefined
+      }
     }
     Enums: {
       blockchain_network:

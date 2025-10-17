@@ -6,6 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { z } from "zod";
+
+const authSchema = z.object({
+  email: z.string().trim().email({ message: "Invalid email address" }).max(255),
+  password: z.string().min(6, { message: "Password must be at least 6 characters" }).max(100),
+  username: z.string().trim().min(3, { message: "Username must be at least 3 characters" }).max(50).optional(),
+  displayName: z.string().trim().max(100).optional(),
+});
 
 interface AuthFormProps {
   onSuccess: () => void;
@@ -25,6 +33,18 @@ const AuthForm = ({ onSuccess }: AuthFormProps) => {
     setLoading(true);
 
     try {
+      // Validate input
+      const validation = authSchema.safeParse({
+        email,
+        password,
+        username: !isLogin ? username : undefined,
+        displayName: !isLogin ? displayName : undefined,
+      });
+
+      if (!validation.success) {
+        throw new Error(validation.error.errors[0].message);
+      }
+
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({
           email,

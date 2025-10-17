@@ -15,6 +15,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Pencil, Upload, Loader2 } from 'lucide-react';
+import { z } from 'zod';
+
+const profileSchema = z.object({
+  displayName: z.string().trim().max(100, { message: "Display name must be less than 100 characters" }),
+  bio: z.string().trim().max(2000, { message: "Bio must be less than 2000 characters" }),
+  themeColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, { message: "Invalid color format" }),
+});
 
 interface ProfileEditDialogProps {
   profile: {
@@ -134,6 +141,17 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
   const handleSave = async () => {
     setLoading(true);
     try {
+      // Validate input
+      const validation = profileSchema.safeParse({
+        displayName,
+        bio,
+        themeColor,
+      });
+
+      if (!validation.success) {
+        throw new Error(validation.error.errors[0].message);
+      }
+
       const { error } = await supabase
         .from('profiles')
         .update({

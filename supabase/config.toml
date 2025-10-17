@@ -1,1 +1,19 @@
 project_id = "woucixqbnzmvlvnaaelb"
+
+[functions.livepeer-stream]
+verify_jwt = true
+
+[functions.livepeer-pull-stream]
+verify_jwt = true
+
+[functions.livepeer-transcode]
+verify_jwt = true
+
+[functions.storj-upload]
+verify_jwt = true
+
+[functions.livepeer-webhook]
+verify_jwt = false
+
+[functions.livepeer-playback]
+verify_jwt = false
