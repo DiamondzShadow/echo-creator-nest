@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,6 +12,30 @@ serve(async (req) => {
   }
 
   try {
+    // Verify user is authenticated
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized: Missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    // Get authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized: Invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const LIVEPEER_API_KEY = Deno.env.get('LIVEPEER_API_KEY');
     if (!LIVEPEER_API_KEY) {
       throw new Error('LIVEPEER_API_KEY is not configured');
@@ -80,7 +105,28 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     } else if (action === 'delete' && streamId) {
-      // Delete stream
+      // Verify user owns the stream before deleting
+      const { data: streamData, error: streamError } = await supabase
+        .from('live_streams')
+        .select('user_id, livepeer_stream_id')
+        .eq('livepeer_stream_id', streamId)
+        .single();
+
+      if (streamError || !streamData) {
+        return new Response(
+          JSON.stringify({ error: 'Stream not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (streamData.user_id !== user.id) {
+        return new Response(
+          JSON.stringify({ error: 'Forbidden: You do not own this stream' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Delete stream from Livepeer
       await fetch(`https://livepeer.studio/api/stream/${streamId}`, {
         method: 'DELETE',
         headers: {
@@ -93,7 +139,28 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     } else if (action === 'get' && streamId) {
-      // Get stream info
+      // Verify user owns the stream before getting details
+      const { data: streamData, error: streamError } = await supabase
+        .from('live_streams')
+        .select('user_id, livepeer_stream_id')
+        .eq('livepeer_stream_id', streamId)
+        .single();
+
+      if (streamError || !streamData) {
+        return new Response(
+          JSON.stringify({ error: 'Stream not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (streamData.user_id !== user.id) {
+        return new Response(
+          JSON.stringify({ error: 'Forbidden: You do not own this stream' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Get stream info from Livepeer
       const response = await fetch(`https://livepeer.studio/api/stream/${streamId}`, {
         headers: {
           'Authorization': `Bearer ${LIVEPEER_API_KEY}`,
