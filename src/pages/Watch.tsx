@@ -10,6 +10,7 @@ import { LiveStreamPlayer } from "@/components/LiveStreamPlayer";
 import { LiveKitViewer } from "@/components/LiveKitViewer";
 import { TipButton } from "@/components/TipButton";
 import FollowButton from "@/components/FollowButton";
+import { StreamChat } from "@/components/StreamChat";
 import { Eye, ArrowLeft } from "lucide-react";
 
 const Watch = () => {
@@ -137,9 +138,9 @@ const Watch = () => {
           Back
         </Button>
 
-        <div className="max-w-6xl mx-auto">
-          <div className="grid lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid lg:grid-cols-4 gap-6">
+            <div className="lg:col-span-3 space-y-4">
               {isLiveKitStream && livekitToken ? (
                 <LiveKitViewer
                   roomToken={livekitToken}
@@ -196,9 +197,21 @@ const Watch = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Live Chat */}
+              {stream.is_live && (
+                <div className="lg:hidden">
+                  <StreamChat 
+                    streamId={stream.id}
+                    currentUserId={currentUser?.id}
+                    currentUsername={profile?.username}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="space-y-4">
+              {/* Creator Profile */}
               <Card className="border-0 shadow-card">
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-3 mb-4">
@@ -244,6 +257,17 @@ const Watch = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Live Chat - Desktop */}
+              {stream.is_live && (
+                <div className="hidden lg:block h-[600px]">
+                  <StreamChat 
+                    streamId={stream.id}
+                    currentUserId={currentUser?.id}
+                    currentUsername={profile?.username}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>

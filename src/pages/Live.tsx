@@ -13,6 +13,7 @@ import { LiveStreamPlayer } from "@/components/LiveStreamPlayer";
 import { InstantLiveStreamLiveKit } from "@/components/InstantLiveStreamLiveKit";
 import { LiveKitViewer } from "@/components/LiveKitViewer";
 import { PullStreamSetup } from "@/components/PullStreamSetup";
+import { StreamChat } from "@/components/StreamChat";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Live = () => {
@@ -479,92 +480,70 @@ const Live = () => {
             </Card>
           ) : (
             <div className="space-y-6 animate-fade-in">
-              {streamMode === 'instant' && livekitToken ? (
-                <InstantLiveStreamLiveKit
-                  roomToken={livekitToken}
-                  onStreamEnd={handleEndStream}
-                  onStreamConnected={() => {
-                    toast({ title: 'Connected!', description: "You're now live" });
-                  }}
-                  isLive={isLive}
-                  creatorId={user?.id}
-                />
-              ) : playbackId ? (
-                <LiveStreamPlayer 
-                  playbackId={playbackId}
-                  title={title}
-                  isLive={true}
-                  viewerId={user?.id}
-                />
-              ) : null}
+              <div className="grid lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 space-y-6">
+                  {streamMode === 'instant' && livekitToken ? (
+                    <InstantLiveStreamLiveKit
+                      roomToken={livekitToken}
+                      onStreamEnd={handleEndStream}
+                      onStreamConnected={() => {
+                        toast({ title: 'Connected!', description: "You're now live" });
+                      }}
+                      isLive={isLive}
+                      creatorId={user?.id}
+                    />
+                  ) : playbackId ? (
+                    <LiveStreamPlayer 
+                      playbackId={playbackId}
+                      title={title}
+                      isLive={true}
+                      viewerId={user?.id}
+                    />
+                  ) : null}
 
-              {streamMode !== 'instant' && (
-                <Card className="border-0 shadow-card">
-                  <CardContent className="pt-6">
-                    <h3 className="text-xl font-bold mb-4">Stream Configuration</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <Label className="text-sm font-medium mb-2 block">Stream Server</Label>
-                        <div className="bg-muted p-3 rounded-lg">
-                          <code className="text-sm">rtmp://rtmp.livepeer.com/live</code>
-                        </div>
-                      </div>
-                      <div>
-                        <Label className="text-sm font-medium mb-2 block">Stream Key</Label>
-                        <div className="flex gap-2">
-                          <div className="bg-muted p-3 rounded-lg flex-1 overflow-x-auto">
-                            <code className="text-sm">{streamKey}</code>
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={copyStreamKey}
-                          >
-                            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                          </Button>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Use this with OBS, Streamlabs, or any RTMP-compatible streaming software
-                        </p>
-                      </div>
-                      <div className="pt-2">
-                        <p className="text-sm">
-                          <span className="font-medium">Title:</span> {title}
-                        </p>
-                        {description && (
-                          <p className="text-sm mt-2">
-                            <span className="font-medium">Description:</span> {description}
-                          </p>
-                        )}
-                        <p className="text-sm mt-2">
-                          <span className="font-medium">Status:</span>{" "}
-                          <span className="text-green-500 font-bold">● LIVE</span>
-                        </p>
-                      </div>
+                  {streamMode !== 'instant' && (
+                    <Card className="border-0 shadow-card">
+                      <CardContent className="pt-6">
+                        <h3 className="text-xl font-bold mb-4">Stream Configuration</h3>
+...
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  <Button
+                    onClick={handleEndStream}
+                    size="lg"
+                    variant="destructive"
+                    className="w-full text-lg"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Ending...
+                      </>
+                    ) : (
+                      <>
+                        <StopCircle className="mr-2 h-5 w-5" />
+                        End Stream
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                {/* Live Chat for Creator */}
+                {streamId && (
+                  <div className="lg:col-span-1">
+                    <div className="h-[calc(100vh-12rem)] sticky top-24">
+                      <StreamChat 
+                        streamId={streamId}
+                        currentUserId={user?.id}
+                        currentUsername={user?.email?.split('@')[0] || 'Creator'}
+                      />
                     </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              <Button
-                onClick={handleEndStream}
-                size="lg"
-                variant="destructive"
-                className="w-full text-lg"
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Ending...
-                  </>
-                ) : (
-                  <>
-                    <StopCircle className="mr-2 h-5 w-5" />
-                    End Stream
-                  </>
+                  </div>
                 )}
-              </Button>
+              </div>
             </div>
           )}
         </div>

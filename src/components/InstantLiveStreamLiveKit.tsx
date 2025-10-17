@@ -2,10 +2,11 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Video, VideoOff, Mic, MicOff, Loader2 } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, Loader2, Monitor, Users } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
-import { Room, RoomEvent, Track, LocalVideoTrack } from 'livekit-client';
+import { Room, RoomEvent, Track, LocalVideoTrack, RemoteParticipant } from 'livekit-client';
 import { createLiveKitRoom, toggleCamera, toggleMicrophone, disconnectFromRoom } from '@/lib/livekit-config';
+import { Badge } from '@/components/ui/badge';
 
 interface InstantLiveStreamLiveKitProps {
   roomToken: string;
@@ -29,6 +30,8 @@ export const InstantLiveStreamLiveKit = ({
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [audioLevel, setAudioLevel] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [viewerCount, setViewerCount] = useState(0);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -107,6 +110,22 @@ export const InstantLiveStreamLiveKit = ({
         newRoom.on(RoomEvent.Disconnected, () => {
           console.log('🔌 Room disconnected');
           setIsConnected(false);
+        });
+
+        // Track participant joins/leaves for viewer notifications
+        newRoom.on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
+          console.log('👤 Viewer joined:', participant.identity);
+          const viewerName = participant.name || participant.identity;
+          toast({
+            title: '👋 New Viewer',
+            description: `${viewerName} joined your stream`,
+          });
+          setViewerCount(newRoom.remoteParticipants.size);
+        });
+
+        newRoom.on(RoomEvent.ParticipantDisconnected, (participant: RemoteParticipant) => {
+          console.log('👤 Viewer left:', participant.identity);
+          setViewerCount(newRoom.remoteParticipants.size);
         });
 
         newRoom.on(RoomEvent.LocalTrackPublished, (publication) => {
@@ -199,6 +218,37 @@ export const InstantLiveStreamLiveKit = ({
     }
   };
 
+  // Handle screen share toggle
+  const handleScreenShareToggle = async () => {
+    if (!room) return;
+    
+    try {
+      if (isScreenSharing) {
+        // Stop screen sharing
+        await room.localParticipant.setScreenShareEnabled(false);
+        setIsScreenSharing(false);
+        toast({
+          title: 'Screen sharing stopped',
+        });
+      } else {
+        // Start screen sharing
+        await room.localParticipant.setScreenShareEnabled(true);
+        setIsScreenSharing(true);
+        toast({
+          title: 'Screen sharing started',
+          description: 'Your screen is now visible to viewers',
+        });
+      }
+    } catch (err) {
+      console.error('Failed to toggle screen share:', err);
+      toast({
+        title: 'Screen share failed',
+        description: err instanceof Error ? err.message : 'Could not share screen',
+        variant: 'destructive',
+      });
+    }
+  };
+
   // Handle stop streaming
   const handleStop = async () => {
     if (!room) return;
@@ -271,11 +321,25 @@ export const InstantLiveStreamLiveKit = ({
                   </div>
                 )}
 
-                {/* Live indicator */}
-                {isLive && (
-                  <div className="absolute top-4 left-4 bg-destructive text-destructive-foreground px-3 py-1 rounded-full text-sm font-bold flex items-center gap-2 shadow-glow animate-pulse z-10">
-                    <span className="w-2 h-2 bg-destructive-foreground rounded-full animate-pulse"></span>
-                    LIVE
+                {/* Live indicator & viewer count */}
+                <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
+                  {isLive && (
+                    <Badge className="bg-destructive text-destructive-foreground px-3 py-1 text-sm font-bold shadow-glow">
+                      <span className="w-2 h-2 bg-destructive-foreground rounded-full animate-pulse mr-2"></span>
+                      LIVE
+                    </Badge>
+                  )}
+                  <Badge className="bg-background/80 backdrop-blur-sm ml-auto">
+                    <Users className="w-3 h-3 mr-1" />
+                    {viewerCount} watching
+                  </Badge>
+                </div>
+
+                {/* Screen sharing indicator */}
+                {isScreenSharing && (
+                  <div className="absolute top-16 left-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-xs font-semibold z-10">
+                    <Monitor className="w-3 h-3 inline mr-1" />
+                    Sharing Screen
                   </div>
                 )}
               </div>
@@ -305,6 +369,15 @@ export const InstantLiveStreamLiveKit = ({
                 disabled={!isConnected}
               >
                 {isAudioEnabled ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
+              </Button>
+
+              <Button
+                variant={isScreenSharing ? "default" : "outline"}
+                size="icon"
+                onClick={handleScreenShareToggle}
+                disabled={!isConnected}
+              >
+                <Monitor className="w-4 h-4" />
               </Button>
               
               <Button
