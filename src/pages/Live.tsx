@@ -7,10 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Video, StopCircle, Loader2, Copy, Check } from "lucide-react";
+import { Video, StopCircle, Loader2, Copy, Check, ExternalLink } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { LiveStreamPlayer } from "@/components/LiveStreamPlayer";
 import { InstantLiveStream } from "@/components/InstantLiveStream";
+import { PullStreamSetup } from "@/components/PullStreamSetup";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Live = () => {
@@ -22,6 +23,8 @@ const Live = () => {
   const [streamId, setStreamId] = useState<string | null>(null);
   const [streamKey, setStreamKey] = useState<string>("");
   const [playbackId, setPlaybackId] = useState<string>("");
+  const [pullUrl, setPullUrl] = useState<string>("");
+  const [streamMode, setStreamMode] = useState<"instant" | "software" | "pull">("instant");
   const [copied, setCopied] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -42,12 +45,30 @@ const Live = () => {
 
     try {
       console.log('Creating Livepeer stream...');
-      // Create Livepeer stream
-      const { data: livepeerData, error: livepeerError } = await supabase.functions.invoke('livepeer-stream', {
-        body: { action: 'create' }
-      });
-
-      console.log('Livepeer response:', { livepeerData, livepeerError });
+      
+      let livepeerData, livepeerError;
+      
+      // Check if this is a pull stream
+      if (streamMode === 'pull' && pullUrl) {
+        // Create pull stream
+        const result = await supabase.functions.invoke('livepeer-pull-stream', {
+          body: { 
+            action: 'create',
+            pullUrl: pullUrl
+          }
+        });
+        livepeerData = result.data;
+        livepeerError = result.error;
+        console.log('Pull stream response:', { livepeerData, livepeerError });
+      } else {
+        // Create regular stream
+        const result = await supabase.functions.invoke('livepeer-stream', {
+          body: { action: 'create' }
+        });
+        livepeerData = result.data;
+        livepeerError = result.error;
+        console.log('Regular stream response:', { livepeerData, livepeerError });
+      }
 
       if (livepeerError) {
         console.error('Livepeer error:', livepeerError);
@@ -88,9 +109,14 @@ const Live = () => {
       setStreamKey(lpStreamKey);
       setPlaybackId(lpPlaybackId);
       setIsLive(true);
+      
+      const streamTypeMessage = streamMode === 'pull' 
+        ? "Your pull stream is active and re-broadcasting!" 
+        : "Your stream is ready. Start broadcasting to go live!";
+      
       toast({
         title: "Stream created!",
-        description: "Your stream is ready. Start broadcasting to go live!",
+        description: streamTypeMessage,
       });
     } catch (error: any) {
       console.error('Stream creation error:', error);
@@ -167,8 +193,8 @@ const Live = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="instant" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 mb-6">
+                <Tabs defaultValue="instant" className="w-full" onValueChange={(value) => setStreamMode(value as any)}>
+                  <TabsList className="grid w-full grid-cols-3 mb-6">
                     <TabsTrigger value="instant">
                       <Video className="w-4 h-4 mr-2" />
                       Instant Stream
@@ -176,6 +202,10 @@ const Live = () => {
                     <TabsTrigger value="software">
                       <Video className="w-4 h-4 mr-2" />
                       Streaming Software
+                    </TabsTrigger>
+                    <TabsTrigger value="pull">
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Pull Stream
                     </TabsTrigger>
                   </TabsList>
 
@@ -281,6 +311,62 @@ const Live = () => {
                           <>
                             <Video className="mr-2 h-5 w-5" />
                             Create Stream
+                          </>
+                        )}
+                      </Button>
+                    </form>
+                  </TabsContent>
+
+                  <TabsContent value="pull" className="space-y-6">
+                    <div className="text-center mb-4">
+                      <h3 className="text-xl font-bold mb-2">Pull External Stream</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Re-stream from YouTube, Twitch, TikTok, or any RTMP/HLS source
+                      </p>
+                    </div>
+
+                    <form onSubmit={handleStartStream} className="space-y-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="title-pull">Stream Title</Label>
+                        <Input
+                          id="title-pull"
+                          placeholder="What are you streaming today?"
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="description-pull">Description</Label>
+                        <Textarea
+                          id="description-pull"
+                          placeholder="Tell viewers what to expect..."
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
+                          rows={4}
+                        />
+                      </div>
+                      
+                      <PullStreamSetup 
+                        pullUrl={pullUrl}
+                        onPullUrlChange={setPullUrl}
+                      />
+
+                      <Button
+                        type="submit"
+                        size="lg"
+                        className="w-full bg-gradient-hero hover:opacity-90 text-lg"
+                        disabled={loading || !pullUrl}
+                      >
+                        {loading ? (
+                          <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            Creating Pull Stream...
+                          </>
+                        ) : (
+                          <>
+                            <ExternalLink className="mr-2 h-5 w-5" />
+                            Start Pull Stream
                           </>
                         )}
                       </Button>
