@@ -62,9 +62,12 @@ const Live = () => {
         livepeerError = result.error;
         console.log('Pull stream response:', { livepeerData, livepeerError });
       } else {
-        // Create regular stream
+        // Create regular stream (pass isInstant flag for instant streams)
         const result = await supabase.functions.invoke('livepeer-stream', {
-          body: { action: 'create' }
+          body: { 
+            action: 'create',
+            isInstant: streamMode === 'instant'
+          }
         });
         livepeerData = result.data;
         livepeerError = result.error;

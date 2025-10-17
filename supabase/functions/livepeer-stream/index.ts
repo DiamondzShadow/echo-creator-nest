@@ -41,9 +41,79 @@ serve(async (req) => {
       throw new Error('LIVEPEER_API_KEY is not configured');
     }
 
-    const { action, streamId } = await req.json();
+    const STORJ_ACCESS_KEY_ID = Deno.env.get('STORJ_ACCESS_KEY_ID');
+    const STORJ_SECRET_ACCESS_KEY = Deno.env.get('STORJ_SECRET_ACCESS_KEY');
+    const STORJ_BUCKET = Deno.env.get('STORJ_BUCKET') || 'livepeer-videos';
+    const STORJ_ENDPOINT = Deno.env.get('STORJ_ENDPOINT') || 'https://gateway.storjshare.io';
+
+    const { action, streamId, isInstant } = await req.json();
 
     if (action === 'create') {
+      // Build stream configuration
+      const streamConfig: any = {
+        name: `Stream ${Date.now()}`,
+        // Optimized profiles for low latency WebRTC playback
+        profiles: [
+          {
+            name: '1080p',
+            bitrate: 6000000,
+            fps: 30,
+            width: 1920,
+            height: 1080,
+            gop: '2.0',
+          },
+          {
+            name: '720p',
+            bitrate: 3000000,
+            fps: 30,
+            width: 1280,
+            height: 720,
+            gop: '2.0',
+          },
+          {
+            name: '480p',
+            bitrate: 1500000,
+            fps: 30,
+            width: 854,
+            height: 480,
+            gop: '2.0',
+          },
+          {
+            name: '360p',
+            bitrate: 800000,
+            fps: 30,
+            width: 640,
+            height: 360,
+            gop: '2.0',
+          },
+        ],
+        record: true,
+      };
+
+      // If this is an instant stream and Storj is configured, record to Storj
+      if (isInstant && STORJ_ACCESS_KEY_ID && STORJ_SECRET_ACCESS_KEY) {
+        streamConfig.recordingSpec = {
+          profiles: [
+            {
+              name: 'source',
+              bitrate: 6000000,
+              fps: 0,
+              width: 0,
+              height: 0,
+            }
+          ]
+        };
+        streamConfig.storage = {
+          type: 's3',
+          endpoint: STORJ_ENDPOINT,
+          credentials: {
+            accessKeyId: STORJ_ACCESS_KEY_ID,
+            secretAccessKey: STORJ_SECRET_ACCESS_KEY,
+          },
+          bucket: STORJ_BUCKET,
+        };
+      }
+
       // Create a new stream
       const response = await fetch('https://livepeer.studio/api/stream', {
         method: 'POST',
@@ -51,46 +121,7 @@ serve(async (req) => {
           'Authorization': `Bearer ${LIVEPEER_API_KEY}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          name: `Stream ${Date.now()}`,
-          // Optimized profiles for low latency WebRTC playback
-          profiles: [
-            {
-              name: '1080p',
-              bitrate: 6000000,
-              fps: 30,
-              width: 1920,
-              height: 1080,
-              gop: '2.0', // 2 second keyframe interval for low latency
-            },
-            {
-              name: '720p',
-              bitrate: 3000000,
-              fps: 30,
-              width: 1280,
-              height: 720,
-              gop: '2.0',
-            },
-            {
-              name: '480p',
-              bitrate: 1500000,
-              fps: 30,
-              width: 854,
-              height: 480,
-              gop: '2.0',
-            },
-            {
-              name: '360p',
-              bitrate: 800000,
-              fps: 30,
-              width: 640,
-              height: 360,
-              gop: '2.0',
-            },
-          ],
-          // Enable recording for clips/VOD
-          record: true,
-        }),
+        body: JSON.stringify(streamConfig),
       });
 
       const stream = await response.json();
