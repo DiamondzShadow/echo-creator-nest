@@ -14,7 +14,7 @@ interface LiveStreamPlayerProps {
 }
 
 export const LiveStreamPlayer = ({ playbackId, title, isLive = false, viewerId }: LiveStreamPlayerProps) => {
-  const [src, setSrc] = useState<unknown[] | null>(null);
+  const [src, setSrc] = useState<any[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
   const { toast } = useToast();
