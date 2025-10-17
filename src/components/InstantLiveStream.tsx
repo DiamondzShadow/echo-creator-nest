@@ -161,6 +161,7 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, onCameraReady, i
     if (broadcastEnabled && ingestUrl) {
       console.log('🔴 Broadcasting enabled with ingestUrl:', ingestUrl);
       console.log('🎥 Stream Key:', streamKey);
+      console.log('📡 Broadcast should start in ~5-10 seconds');
     }
   }, [broadcastEnabled, ingestUrl, streamKey]);
 
@@ -183,14 +184,12 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, onCameraReady, i
                     ideal: 1080,
                     max: 1080,
                   },
-                  frameRate: {
-                    ideal: 30,
-                    max: 30,
-                  },
+                  frameRate: 30,
                 } : false}
                 audio={isAudioEnabled}
-                creatorId={creatorId}
-                onError={handleBroadcastError}
+                onError={(error) => {
+                  console.error('❌ Broadcast error:', error);
+                }}
                 timeout={15000}
                 hotkeys={true}
               >
