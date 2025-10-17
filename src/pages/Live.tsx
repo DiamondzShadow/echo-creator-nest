@@ -254,6 +254,7 @@ const Live = () => {
                         onStreamEnd={handleEndStream}
                         isLive={isLive}
                         streamKey={streamKey}
+                        creatorId={user?.id}
                       />
 
                       <Button
@@ -392,6 +393,7 @@ const Live = () => {
                   playbackId={playbackId}
                   title={title}
                   isLive={true}
+                  viewerId={user?.id}
                 />
               )}
 

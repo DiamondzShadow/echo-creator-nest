@@ -2,18 +2,41 @@ import { Card } from '@/components/ui/card';
 import * as Player from '@livepeer/react/player';
 import { getSrc } from '@livepeer/react/external';
 import { useEffect, useState } from 'react';
-import { Loader2, Play, Pause, Volume2, VolumeX, Maximize } from 'lucide-react';
+import { Loader2, Play, Pause, Volume2, VolumeX, Maximize, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface LiveStreamPlayerProps {
   playbackId: string;
   title?: string;
   isLive?: boolean;
+  viewerId?: string;
 }
 
-export const LiveStreamPlayer = ({ playbackId, title, isLive = false }: LiveStreamPlayerProps) => {
-  const [src, setSrc] = useState<any[] | null>(null);
+export const LiveStreamPlayer = ({ playbackId, title, isLive = false, viewerId }: LiveStreamPlayerProps) => {
+  const [src, setSrc] = useState<unknown[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [playbackError, setPlaybackError] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  // Handle playback errors
+  const handlePlaybackError = (error: { type: string; message: string } | null) => {
+    if (error) {
+      console.error('🚨 Playback error:', error);
+      setPlaybackError(error.message);
+      toast({
+        title: 'Playback Error',
+        description: error.message || 'An error occurred during playback',
+        variant: 'destructive',
+      });
+    } else {
+      // Error resolved
+      if (playbackError) {
+        console.log('✅ Playback error resolved');
+        setPlaybackError(null);
+      }
+    }
+  };
 
   useEffect(() => {
     const fetchPlaybackInfo = async () => {
@@ -57,7 +80,16 @@ export const LiveStreamPlayer = ({ playbackId, title, isLive = false }: LiveStre
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
           ) : src && src.length > 0 ? (
-            <Player.Root src={src} autoPlay={isLive} lowLatency={isLive}>
+            <Player.Root 
+              src={src} 
+              autoPlay={isLive} 
+              volume={isLive ? 0 : 1}
+              lowLatency={isLive ? true : false}
+              viewerId={viewerId}
+              onError={handlePlaybackError}
+              timeout={15000}
+              hotkeys={true}
+            >
               <Player.Container className="w-full h-full">
                 <Player.Video 
                   title={title || 'Live stream'}
@@ -113,6 +145,12 @@ export const LiveStreamPlayer = ({ playbackId, title, isLive = false }: LiveStre
                 </Player.Controls>
               </Player.Container>
             </Player.Root>
+          ) : playbackError ? (
+            <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center">
+              <AlertCircle className="w-12 h-12 text-destructive mb-4" />
+              <p className="text-destructive font-medium mb-2">Playback Error</p>
+              <p className="text-sm text-muted-foreground">{playbackError}</p>
+            </div>
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               <p className="text-muted-foreground">Unable to load stream</p>

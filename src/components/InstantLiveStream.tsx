@@ -12,9 +12,10 @@ interface InstantLiveStreamProps {
   onStreamEnd: () => void;
   isLive: boolean;
   streamKey?: string;
+  creatorId?: string;
 }
 
-export const InstantLiveStream = ({ onStreamStart, onStreamEnd, isLive, streamKey }: InstantLiveStreamProps) => {
+export const InstantLiveStream = ({ onStreamStart, onStreamEnd, isLive, streamKey, creatorId }: InstantLiveStreamProps) => {
   const [isStreaming, setIsStreaming] = useState(false);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
@@ -23,6 +24,26 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, isLive, streamKe
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const { toast } = useToast();
+  const [broadcastError, setBroadcastError] = useState<string | null>(null);
+
+  // Handle broadcast errors
+  const handleBroadcastError = (error: { type: string; message: string } | null) => {
+    if (error) {
+      console.error('🚨 Broadcast error:', error);
+      setBroadcastError(error.message);
+      toast({
+        title: 'Broadcast Error',
+        description: error.message || 'An error occurred while broadcasting',
+        variant: 'destructive',
+      });
+    } else {
+      // Error resolved
+      if (broadcastError) {
+        console.log('✅ Broadcast error resolved');
+        setBroadcastError(null);
+      }
+    }
+  };
 
   const setupAudioVisualization = async () => {
     try {
@@ -110,8 +131,25 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, isLive, streamKe
                 key={broadcastKey}
                 ingestUrl={ingestUrl}
                 aspectRatio={16/9}
-                video={isVideoEnabled}
+                video={isVideoEnabled ? {
+                  width: {
+                    ideal: 1920,
+                    max: 1920,
+                  },
+                  height: {
+                    ideal: 1080,
+                    max: 1080,
+                  },
+                  frameRate: {
+                    ideal: 30,
+                    max: 30,
+                  },
+                } : false}
                 audio={isAudioEnabled}
+                creatorId={creatorId}
+                onError={handleBroadcastError}
+                timeout={15000}
+                hotkeys={true}
               >
                 <Broadcast.Container className="w-full h-full">
                   <Broadcast.Video 
@@ -179,7 +217,7 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, isLive, streamKe
                       title: 'Camera ready',
                       description: 'Permissions granted. Your camera and microphone are active.',
                     });
-                  } catch (err: any) {
+                  } catch (err: unknown) {
                     console.error('Media permissions error:', err);
                     toast({
                       title: 'Permissions needed',
@@ -228,6 +266,14 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, isLive, streamKe
             <p className="text-sm text-center text-muted-foreground">
               Click "Go Live" at the top to start broadcasting
             </p>
+          )}
+
+          {broadcastError && (
+            <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3">
+              <p className="text-sm text-destructive font-medium">
+                ⚠️ {broadcastError}
+              </p>
+            </div>
           )}
         </div>
       </CardContent>
