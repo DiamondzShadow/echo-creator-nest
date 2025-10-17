@@ -17,7 +17,7 @@ interface LiveStreamCardProps {
       username: string;
       display_name: string | null;
       avatar_url: string | null;
-    };
+    } | null;
   };
   isRecording?: boolean;
 }
@@ -67,15 +67,15 @@ const LiveStreamCard = ({ stream, isRecording = false }: LiveStreamCardProps) =>
         <div className="p-4">
           <div className="flex items-start gap-3">
             <Avatar className="w-10 h-10">
-              <AvatarImage src={stream.profiles.avatar_url || undefined} />
+              <AvatarImage src={stream.profiles?.avatar_url || undefined} />
               <AvatarFallback className="bg-gradient-hero text-primary-foreground">
-                {stream.profiles.display_name?.[0]?.toUpperCase() || "C"}
+                {stream.profiles?.display_name?.[0]?.toUpperCase() || "C"}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
               <h3 className="font-bold text-sm line-clamp-2 mb-1">{stream.title}</h3>
               <p className="text-sm text-muted-foreground">
-                @{stream.profiles.username}
+                @{stream.profiles?.username || "Unknown"}
               </p>
             </div>
           </div>
