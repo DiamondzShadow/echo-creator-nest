@@ -10,12 +10,13 @@ import { getIngest } from '@livepeer/react/external';
 interface InstantLiveStreamProps {
   onStreamStart: (streamKey: string) => void;
   onStreamEnd: () => void;
+  onCameraReady?: () => void;
   isLive: boolean;
   streamKey?: string;
   creatorId?: string;
 }
 
-export const InstantLiveStream = ({ onStreamStart, onStreamEnd, isLive, streamKey, creatorId }: InstantLiveStreamProps) => {
+export const InstantLiveStream = ({ onStreamStart, onStreamEnd, onCameraReady, isLive, streamKey, creatorId }: InstantLiveStreamProps) => {
   const [isStreaming, setIsStreaming] = useState(false);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
@@ -122,8 +123,13 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, isLive, streamKe
         
         toast({
           title: 'Camera ready',
-          description: 'You can now start broadcasting by clicking "Go Live"',
+          description: 'Creating your stream and going live...',
         });
+        
+        // Notify parent that camera is ready - this will trigger auto Go Live
+        if (onCameraReady) {
+          onCameraReady();
+        }
       } catch (err: unknown) {
         console.error('❌ Media permissions error:', err);
         setPermissionsGranted(false);
@@ -253,8 +259,13 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, isLive, streamKe
 
                     toast({
                       title: 'Camera ready',
-                      description: 'You can now start broadcasting by clicking "Go Live"',
+                      description: 'Creating your stream and going live...',
                     });
+                    
+                    // Notify parent that camera is ready
+                    if (onCameraReady) {
+                      onCameraReady();
+                    }
                   } catch (err: unknown) {
                     console.error('❌ Media permissions error:', err);
                     setPermissionsGranted(false);
@@ -315,11 +326,9 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, isLive, streamKe
 
           {isStreaming && !isLive && (
             <div className="text-center space-y-2">
+              <Loader2 className="w-6 h-6 mx-auto animate-spin text-primary" />
               <p className="text-sm text-muted-foreground">
-                Camera is ready! Click "Go Live" above to start broadcasting
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Your viewers will see your stream once you go live
+                Preparing your broadcast...
               </p>
             </div>
           )}

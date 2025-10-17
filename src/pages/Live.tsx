@@ -26,6 +26,7 @@ const Live = () => {
   const [pullUrl, setPullUrl] = useState<string>("");
   const [streamMode, setStreamMode] = useState<"instant" | "software" | "pull">("instant");
   const [copied, setCopied] = useState(false);
+  const [autoGoLivePending, setAutoGoLivePending] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -185,6 +186,18 @@ const Live = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleCameraReady = async () => {
+    if (streamMode === 'instant' && !isLive && !loading && !autoGoLivePending) {
+      console.log('📹 Camera ready, auto-starting stream...');
+      setAutoGoLivePending(true);
+      // Small delay to ensure UI updates
+      setTimeout(async () => {
+        await handleStartStream({ preventDefault: () => {} } as React.FormEvent);
+        setAutoGoLivePending(false);
+      }, 500);
+    }
+  };
+
   if (!user) return null;
 
   return (
@@ -252,34 +265,28 @@ const Live = () => {
                       <InstantLiveStream
                         onStreamStart={(key) => setStreamKey(key)}
                         onStreamEnd={handleEndStream}
+                        onCameraReady={handleCameraReady}
                         isLive={isLive}
                         streamKey={streamKey}
                         creatorId={user?.id}
                       />
 
-                      <Button
-                        type="submit"
-                        size="lg"
-                        className="w-full bg-gradient-hero hover:opacity-90 text-lg"
-                        disabled={loading || !streamKey}
-                      >
-                        {loading ? (
-                          <>
-                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                            Going Live...
-                          </>
-                        ) : !streamKey ? (
-                          <>
-                            <Video className="mr-2 h-5 w-5" />
-                            Start Camera First
-                          </>
-                        ) : (
-                          <>
-                            <Video className="mr-2 h-5 w-5" />
-                            Go Live
-                          </>
-                        )}
-                      </Button>
+                      {!isLive && (
+                        <div className="text-center space-y-2">
+                          {loading || autoGoLivePending ? (
+                            <>
+                              <Loader2 className="w-8 h-8 mx-auto animate-spin text-primary" />
+                              <p className="text-sm text-muted-foreground">
+                                Setting up your broadcast...
+                              </p>
+                            </>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">
+                              Allow camera access to start broadcasting
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </form>
                   </TabsContent>
 
