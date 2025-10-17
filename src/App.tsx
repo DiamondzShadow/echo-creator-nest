@@ -12,6 +12,7 @@ import Discover from "./pages/Discover";
 import Creators from "./pages/Creators";
 import Watch from "./pages/Watch";
 import StorjTranscode from "./pages/StorjTranscode";
+import About from "./pages/About";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/creators" element={<Creators />} />
             <Route path="/watch/:streamId" element={<Watch />} />
             <Route path="/storj-transcode" element={<StorjTranscode />} />
+            <Route path="/about" element={<About />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

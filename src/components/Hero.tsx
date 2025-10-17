@@ -1,7 +1,10 @@
 import { Button } from "@/components/ui/button";
 import heroImage from "@/assets/hero-image.jpg";
+import { useNavigate } from "react-router-dom";
 
 const Hero = () => {
+  const navigate = useNavigate();
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Gradient glow background */}
@@ -19,10 +22,19 @@ const Hero = () => {
               The ultimate streaming platform for creators. Go live instantly, connect with your audience, and get tipped with crypto.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button size="lg" className="text-lg px-8 bg-gradient-hero hover:opacity-90 transition-all shadow-glow">
+              <Button 
+                size="lg" 
+                className="text-lg px-8 bg-gradient-hero hover:opacity-90 transition-all shadow-glow"
+                onClick={() => navigate('/auth')}
+              >
                 Start Creating
               </Button>
-              <Button size="lg" variant="outline" className="text-lg px-8 border-2">
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="text-lg px-8 border-2"
+                onClick={() => navigate('/about')}
+              >
                 Learn More
               </Button>
             </div>

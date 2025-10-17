@@ -1,6 +1,9 @@
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 const CTA = () => {
+  const navigate = useNavigate();
+
   return (
     <section className="py-24 px-4">
       <div className="container">
@@ -18,6 +21,7 @@ const CTA = () => {
               size="lg" 
               variant="secondary"
               className="text-lg px-8 animate-scale-in hover:scale-105 transition-all"
+              onClick={() => navigate('/auth')}
             >
               Get Started Free
             </Button>
