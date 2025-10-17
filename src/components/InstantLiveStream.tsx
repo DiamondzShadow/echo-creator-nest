@@ -89,6 +89,16 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, isLive, streamKe
   // Enable broadcasting when streamKey is provided and isLive is true
   const broadcastEnabled = isStreaming && streamKey && isLive;
   const ingestUrl = broadcastEnabled ? getIngest(streamKey) : undefined;
+  
+  // Use streamKey as key to force re-mount when it changes
+  const broadcastKey = streamKey || 'preview';
+
+  useEffect(() => {
+    if (broadcastEnabled && ingestUrl) {
+      console.log('🔴 Broadcasting enabled with ingestUrl:', ingestUrl);
+      console.log('🎥 Stream Key:', streamKey);
+    }
+  }, [broadcastEnabled, ingestUrl, streamKey]);
 
   return (
     <Card className="border-0 shadow-glow bg-gradient-card">
@@ -97,6 +107,7 @@ export const InstantLiveStream = ({ onStreamStart, onStreamEnd, isLive, streamKe
           <div className="aspect-video bg-muted rounded-lg overflow-hidden relative">
             {isStreaming ? (
               <Broadcast.Root
+                key={broadcastKey}
                 ingestUrl={ingestUrl}
                 aspectRatio={16/9}
                 video={isVideoEnabled}
