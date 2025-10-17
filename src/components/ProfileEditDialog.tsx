@@ -172,14 +172,14 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
           Edit Profile
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Edit Profile</DialogTitle>
           <DialogDescription>
             Customize your creator profile
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4">
+        <div className="space-y-4 overflow-y-auto flex-1 pr-2">
           <div className="flex flex-col items-center gap-4">
             <Avatar className="w-24 h-24 ring-4 ring-primary/20">
               <AvatarImage src={avatarUrl} />
