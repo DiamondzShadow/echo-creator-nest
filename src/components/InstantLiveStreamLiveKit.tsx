@@ -128,9 +128,9 @@ export const InstantLiveStreamLiveKit = ({
         await newRoom.localParticipant.setMicrophoneEnabled(true);
 
         // Attach video track to video element
-        const videoTrack = newRoom.localParticipant.videoTracks.values().next().value?.track;
-        if (videoTrack && videoRef.current) {
-          videoTrack.attach(videoRef.current);
+        const videoPublication = Array.from(newRoom.localParticipant.videoTrackPublications.values())[0];
+        if (videoPublication?.track && videoRef.current) {
+          (videoPublication.track as LocalVideoTrack).attach(videoRef.current);
         }
 
         // Setup audio visualization

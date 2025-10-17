@@ -81,8 +81,8 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
         });
 
         // Check for existing tracks from remote participants
-        newRoom.participants.forEach((participant) => {
-          participant.tracks.forEach((publication) => {
+        newRoom.remoteParticipants.forEach((participant) => {
+          participant.trackPublications.forEach((publication) => {
             if (publication.track) {
               if (publication.track.kind === Track.Kind.Video && videoRef.current) {
                 (publication.track as RemoteVideoTrack).attach(videoRef.current);

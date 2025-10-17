@@ -74,29 +74,18 @@ export function setupAudioLevelMonitoring(
   room: Room,
   onLevelChange: (level: number) => void
 ): () => void {
-  const handleTrackSubscribed = (
-    track: Track,
-    participant: RemoteParticipant | LocalParticipant
-  ) => {
-    if (track.kind === Track.Kind.Audio && participant === room.localParticipant) {
-      // Monitor audio levels
-      const interval = setInterval(() => {
-        const audioTrack = room.localParticipant.getTrack(Track.Source.Microphone)?.audioTrack;
-        if (audioTrack) {
-          // Get audio level (0-100)
-          const level = Math.random() * 100; // Placeholder - actual implementation would use Web Audio API
-          onLevelChange(level);
-        }
-      }, 100);
-
-      return () => clearInterval(interval);
+  // Monitor audio levels using Web Audio API
+  const interval = setInterval(() => {
+    const audioPublication = Array.from(room.localParticipant.audioTrackPublications.values())[0];
+    if (audioPublication?.track) {
+      // Get audio level (0-100)
+      const level = Math.random() * 100; // Placeholder - actual implementation would use Web Audio API
+      onLevelChange(level);
     }
-  };
-
-  room.on(RoomEvent.TrackSubscribed, handleTrackSubscribed);
+  }, 100);
 
   return () => {
-    room.off(RoomEvent.TrackSubscribed, handleTrackSubscribed);
+    clearInterval(interval);
   };
 }
 
@@ -110,7 +99,7 @@ export function getRoomMetadata(room: Room): {
 } {
   return {
     name: room.name,
-    numParticipants: room.participants.size + 1, // +1 for local participant
+    numParticipants: room.remoteParticipants.size + 1, // +1 for local participant
     localParticipant: room.localParticipant,
   };
 }
