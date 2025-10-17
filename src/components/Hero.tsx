@@ -13,10 +13,10 @@ const Hero = () => {
           {/* Text content */}
           <div className="animate-fade-in">
             <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-hero bg-clip-text text-transparent leading-tight">
-              Create. Share. Grow.
+              Welcome to CrabbyTV 🦀
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground mb-8 leading-relaxed">
-              The ultimate platform for creators to showcase their talent, connect with fans, and monetize their content.
+              The ultimate streaming platform for creators. Go live instantly, connect with your audience, and get tipped with crypto.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Button size="lg" className="text-lg px-8 bg-gradient-hero hover:opacity-90 transition-all shadow-glow">

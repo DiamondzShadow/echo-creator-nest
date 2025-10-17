@@ -41,7 +41,7 @@ const Navbar = () => {
           onClick={() => navigate("/")}
           className="text-2xl font-bold bg-gradient-hero bg-clip-text text-transparent"
         >
-          CreatorHub
+          🦀 CrabbyTV
         </button>
 
         <div className="flex items-center gap-4">
