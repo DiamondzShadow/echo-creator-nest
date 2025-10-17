@@ -41,13 +41,84 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const livepeerWebhookSecret = Deno.env.get('LIVEPEER_WEBHOOK_SECRET');
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get webhook signature for verification (optional but recommended)
+    // Get request body as text for signature validation
+    const rawBody = await req.text();
+    
+    // Verify webhook signature to prevent unauthorized requests
     const signature = req.headers.get('livepeer-signature');
-    console.log('Received webhook with signature:', signature);
+    
+    if (!signature) {
+      console.error('Missing livepeer-signature header');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized: Missing signature' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-    const webhookData: AssetWebhookPayload = await req.json();
+    // If webhook secret is configured, validate the signature
+    if (livepeerWebhookSecret) {
+      // Livepeer uses HMAC-SHA256 for webhook signatures
+      // Format: t=<timestamp>,v1=<signature>
+      const signatureParts = signature.split(',');
+      const timestamp = signatureParts.find(part => part.startsWith('t='))?.split('=')[1];
+      const signatureHash = signatureParts.find(part => part.startsWith('v1='))?.split('=')[1];
+
+      if (!timestamp || !signatureHash) {
+        console.error('Invalid signature format');
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized: Invalid signature format' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Verify signature is not too old (5 minute tolerance)
+      const currentTime = Math.floor(Date.now() / 1000);
+      const signatureAge = currentTime - parseInt(timestamp);
+      if (signatureAge > 300) {
+        console.error('Signature too old:', signatureAge);
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized: Signature expired' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Compute expected signature
+      const signedPayload = `${timestamp}.${rawBody}`;
+      const encoder = new TextEncoder();
+      const key = await crypto.subtle.importKey(
+        'raw',
+        encoder.encode(livepeerWebhookSecret),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+      );
+      const signatureBytes = await crypto.subtle.sign(
+        'HMAC',
+        key,
+        encoder.encode(signedPayload)
+      );
+      const expectedSignature = Array.from(new Uint8Array(signatureBytes))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+
+      // Compare signatures using constant-time comparison to prevent timing attacks
+      if (expectedSignature !== signatureHash) {
+        console.error('Invalid signature');
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized: Invalid signature' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log('Webhook signature verified successfully');
+    } else {
+      console.warn('LIVEPEER_WEBHOOK_SECRET not configured - signature validation skipped (not recommended for production)');
+    }
+
+    const webhookData: AssetWebhookPayload = JSON.parse(rawBody);
     console.log('Webhook event:', webhookData.event);
     console.log('Webhook payload:', JSON.stringify(webhookData.payload, null, 2));
 

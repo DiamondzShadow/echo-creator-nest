@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -20,10 +20,75 @@ export const TipButton = ({ recipientUserId, recipientWalletAddress, recipientUs
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState('');
   const [token, setToken] = useState<'ETH' | 'MATIC' | 'custom'>('ETH');
+  const [isRecording, setIsRecording] = useState(false);
   const { address, isConnected, chain } = useAccount();
   const { sendTransaction, data: hash } = useSendTransaction();
-  const { isLoading: isConfirming } = useWaitForTransactionReceipt({ hash });
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
   const { toast } = useToast();
+
+  // Record tip after transaction is confirmed
+  useEffect(() => {
+    const recordTip = async () => {
+      if (isSuccess && hash && !isRecording) {
+        setIsRecording(true);
+        
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) {
+            toast({
+              title: "Authentication Error",
+              description: "Please sign in to record your tip",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          // Call edge function to verify and record tip
+          const { data, error } = await supabase.functions.invoke('record-tip', {
+            body: {
+              to_user_id: recipientUserId,
+              to_wallet_address: recipientWalletAddress,
+              from_wallet_address: address,
+              amount: parseEther(amount).toString(),
+              token_symbol: token,
+              network: chain?.name?.toLowerCase() || 'ethereum',
+              transaction_hash: hash,
+              metadata: {
+                amount_display: amount,
+              },
+            },
+          });
+
+          if (error) {
+            console.error('Error recording tip:', error);
+            toast({
+              title: "Recording Failed",
+              description: error.message || "Failed to verify and record tip",
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: "Tip Sent! 🎉",
+              description: `Successfully sent ${amount} ${token} to ${recipientUsername}`,
+            });
+            setOpen(false);
+            setAmount('');
+          }
+        } catch (error: any) {
+          console.error('Error recording tip:', error);
+          toast({
+            title: "Recording Failed",
+            description: error.message || "Failed to verify and record tip",
+            variant: "destructive",
+          });
+        } finally {
+          setIsRecording(false);
+        }
+      }
+    };
+
+    recordTip();
+  }, [isSuccess, hash, amount, token, chain, address, recipientUserId, recipientWalletAddress, recipientUsername, toast, isRecording]);
 
   const handleTip = async () => {
     if (!isConnected || !address) {
@@ -54,39 +119,16 @@ export const TipButton = ({ recipientUserId, recipientWalletAddress, recipientUs
     }
 
     try {
+      // Send transaction
       sendTransaction({
         to: recipientWalletAddress as `0x${string}`,
         value: parseEther(amount),
       });
 
-      // Wait for hash to be available and record tip in database
-      if (hash) {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (user) {
-          await supabase.from('tips').insert({
-            from_user_id: user.id,
-            to_user_id: recipientUserId,
-            from_wallet_address: address,
-            to_wallet_address: recipientWalletAddress,
-            amount: parseEther(amount).toString(),
-            token_symbol: token,
-            network: (chain?.name?.toLowerCase() || 'ethereum') as any,
-            transaction_hash: hash,
-            metadata: {
-              amount_display: amount,
-            },
-          });
-
-          toast({
-            title: "Tip Sent! 🎉",
-            description: `Successfully sent ${amount} ${token} to ${recipientUsername}`,
-          });
-
-          setOpen(false);
-          setAmount('');
-        }
-      }
+      toast({
+        title: "Transaction Sent",
+        description: "Waiting for confirmation...",
+      });
     } catch (error: any) {
       console.error('Tip error:', error);
       toast({
@@ -155,13 +197,18 @@ export const TipButton = ({ recipientUserId, recipientWalletAddress, recipientUs
 
               <Button 
                 onClick={handleTip} 
-                disabled={isConfirming}
+                disabled={isConfirming || isRecording}
                 className="w-full"
               >
                 {isConfirming ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     Confirming...
+                  </>
+                ) : isRecording ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Recording...
                   </>
                 ) : (
                   `Send ${amount || '0'} ${token}`
