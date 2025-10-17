@@ -89,7 +89,7 @@ serve(async (req) => {
         canSubscribe: true,
       });
 
-      const token = at.toJwt();
+      const token = await at.toJwt();
 
       return new Response(
         JSON.stringify({
@@ -121,7 +121,7 @@ serve(async (req) => {
         canSubscribe: true,
       });
 
-      const token = at.toJwt();
+      const token = await at.toJwt();
 
       return new Response(
         JSON.stringify({
