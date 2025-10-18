@@ -36,6 +36,7 @@ const Live = () => {
   const [roomName, setRoomName] = useState<string>("");
   const [enableRecording, setEnableRecording] = useState(true);
   const [saveToStorj, setSaveToStorj] = useState(false);
+  const [recordingStarted, setRecordingStarted] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -385,27 +386,28 @@ const Live = () => {
                             });
                             
                             // Start recording if enabled
-                            if (enableRecording && roomName) {
+                            if (enableRecording && roomName && !recordingStarted) {
                               try {
-                                const { error: egressError } = await supabase.functions.invoke('livekit-egress', {
+                                const { data: egressData, error: egressError } = await supabase.functions.invoke('livekit-egress', {
                                   body: {
                                     roomName,
                                     streamId,
                                   }
                                 });
                                 
-                                if (egressError) {
-                                  console.error('Failed to start recording:', egressError);
+                                if (egressError || !egressData?.success) {
+                                  console.error('Failed to start recording:', egressError || egressData);
                                   toast({
                                     title: "Recording Warning",
                                     description: "Stream is live but recording may not have started",
                                     variant: "destructive",
                                   });
                                 } else {
+                                  setRecordingStarted(true);
                                   const storageLocation = saveToStorj ? "Storj (decentralized)" : "cloud storage";
                                   toast({
                                     title: "Recording Started",
-                                    description: `Your stream is being recorded to ${storageLocation}`,
+                                    description: `Recording ID: ${egressData.egressId || 'N/A'} → ${storageLocation}`,
                                   });
                                 }
                               } catch (error) {
@@ -416,9 +418,39 @@ const Live = () => {
                           isLive={isLive}
                           creatorId={user?.id}
                         />
-                      ) : (
+) : (
                         <div className="text-center text-sm text-muted-foreground py-8">
                           <p>Fill in stream details above and click "Go Live Now"</p>
+                        </div>
+                      )}
+
+                      {isLive && enableRecording && !recordingStarted && roomName && (
+                              try {
+                                const { data: egressData, error } = await supabase.functions.invoke('livekit-egress', {
+                                  body: { roomName, streamId }
+                                });
+                                if (error || !egressData?.success) {
+                                  console.error('Manual recording start failed:', error || egressData);
+                                  toast({
+                                    title: 'Could not start recording',
+                                    description: 'Please try again or continue streaming without recording',
+                                    variant: 'destructive',
+                                  });
+                                } else {
+                                  setRecordingStarted(true);
+                                  toast({
+                                    title: 'Recording Started',
+                                    description: `Recording ID: ${egressData.egressId || 'N/A'}`,
+                                  });
+                                }
+                              } catch (e) {
+                                console.error(e);
+                              }
+                            }}
+                          >
+                            Start Recording
+                          </Button>
+                          <p className="text-xs text-muted-foreground mt-2">If recording doesn’t start automatically, click here.</p>
                         </div>
                       )}
 

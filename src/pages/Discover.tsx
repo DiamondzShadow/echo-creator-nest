@@ -52,12 +52,16 @@ const Discover = () => {
   }, []);
 
   const fetchStreams = async () => {
+    // Filter out stale lives older than 30 minutes
+    const threshold = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+
     // Fetch live streams (only those with valid playback IDs and ended_at is null)
     const { data: live, error: liveError } = await supabase
       .from("live_streams")
       .select("*, profiles(username, display_name, avatar_url)")
       .eq("is_live", true)
       .is("ended_at", null)
+      .gt("started_at", threshold)
       .not("livepeer_playback_id", "is", null)
       .order("started_at", { ascending: false });
 
