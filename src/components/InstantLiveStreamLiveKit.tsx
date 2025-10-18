@@ -2,11 +2,14 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Video, VideoOff, Mic, MicOff, Loader2, Monitor, Users } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, Loader2, Monitor, Users, Music } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Room, RoomEvent, Track, LocalVideoTrack, RemoteParticipant } from 'livekit-client';
 import { createLiveKitRoom, toggleCamera, toggleMicrophone, disconnectFromRoom } from '@/lib/livekit-config';
 import { Badge } from '@/components/ui/badge';
+import SoundCloudWidget from './SoundCloudWidget';
 
 interface InstantLiveStreamLiveKitProps {
   roomToken: string;
@@ -32,6 +35,10 @@ export const InstantLiveStreamLiveKit = ({
   const [error, setError] = useState<string | null>(null);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [viewerCount, setViewerCount] = useState(0);
+  const [soundcloudUrl, setSoundcloudUrl] = useState('');
+  const [showMusicPlayer, setShowMusicPlayer] = useState(false);
+  const [musicVolume, setMusicVolume] = useState(70);
+  const [voiceVolume, setVoiceVolume] = useState(100);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -388,6 +395,102 @@ export const InstantLiveStreamLiveKit = ({
                 Stop
               </Button>
             </div>
+          )}
+
+          {/* Music Player Section */}
+          {isConnected && (
+            <Card className="border-0 shadow-card mt-4">
+              <CardContent className="pt-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold flex items-center gap-2 text-lg">
+                    <Music className="w-5 h-5 text-primary" />
+                    Music Player
+                  </h3>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowMusicPlayer(!showMusicPlayer)}
+                  >
+                    {showMusicPlayer ? 'Hide' : 'Show'} Player
+                  </Button>
+                </div>
+                
+                <p className="text-sm text-muted-foreground">
+                  Play music during your stream - viewers will hear it when you enable "Share Tab Audio" in screen sharing
+                </p>
+
+                {showMusicPlayer && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="soundcloud-url">SoundCloud Track/Playlist URL</Label>
+                      <Input
+                        id="soundcloud-url"
+                        placeholder="https://soundcloud.com/artist/track"
+                        value={soundcloudUrl}
+                        onChange={(e) => setSoundcloudUrl(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Paste any public SoundCloud track or playlist URL
+                      </p>
+                    </div>
+
+                    {soundcloudUrl && (
+                      <div className="space-y-4">
+                        <SoundCloudWidget 
+                          url={soundcloudUrl} 
+                          visual={false}
+                          autoPlay={false}
+                        />
+                        
+                        <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
+                          <div className="text-sm font-semibold mb-2">Audio Mix Guide</div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="music-volume" className="flex items-center justify-between text-sm">
+                              <span>🎵 Music Volume (for you)</span>
+                              <span className="text-muted-foreground font-mono">{musicVolume}%</span>
+                            </Label>
+                            <input
+                              id="music-volume"
+                              type="range"
+                              min={0}
+                              max={100}
+                              value={musicVolume}
+                              onChange={(e) => setMusicVolume(parseInt(e.target.value))}
+                              className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="voice-volume" className="flex items-center justify-between text-sm">
+                              <span>🎤 Your Volume (for balance)</span>
+                              <span className="text-muted-foreground font-mono">{voiceVolume}%</span>
+                            </Label>
+                            <input
+                              id="voice-volume"
+                              type="range"
+                              min={0}
+                              max={100}
+                              value={voiceVolume}
+                              onChange={(e) => setVoiceVolume(parseInt(e.target.value))}
+                              className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                            />
+                          </div>
+
+                          <div className="bg-primary/10 border border-primary/20 rounded-lg p-3 text-xs">
+                            <p className="font-semibold mb-1">💡 Pro Tip:</p>
+                            <p className="text-muted-foreground">
+                              To share music with viewers, click "Share Screen" above and select the browser tab with this music player. 
+                              Make sure to check "Share tab audio" in the screen share dialog!
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </CardContent>
+            </Card>
           )}
 
           {/* Status message */}
