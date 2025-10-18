@@ -42,7 +42,7 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const { roomName, action, streamId } = await req.json();
+    const { roomName, action, streamId, enableRecording, saveToStorj } = await req.json();
 
     // Get LiveKit credentials from environment
     const LIVEKIT_API_KEY = Deno.env.get('LIVEKIT_API_KEY');
@@ -91,11 +91,36 @@ serve(async (req) => {
 
       const token = await at.toJwt();
 
+      // Store recording preferences in database
+      if (enableRecording && streamId) {
+        try {
+          const recordingConfig = {
+            enabled: enableRecording,
+            saveToStorj: saveToStorj || false,
+          };
+          
+          await supabase
+            .from('live_streams')
+            .update({
+              description: streamId 
+                ? `Recording: ${enableRecording ? 'enabled' : 'disabled'}${saveToStorj ? ' (Storj)' : ''}`
+                : null,
+            })
+            .eq('id', streamId);
+          
+          console.log('Recording settings stored:', recordingConfig);
+        } catch (updateError) {
+          console.error('Failed to update recording settings:', updateError);
+        }
+      }
+
       return new Response(
         JSON.stringify({
           token,
           roomName,
           identity: user.id,
+          recordingEnabled: enableRecording,
+          saveToStorj: saveToStorj,
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

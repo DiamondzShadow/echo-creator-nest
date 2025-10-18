@@ -91,6 +91,8 @@ const Live = () => {
             action: 'create_token',
             roomName: roomId,
             streamId: data.id,
+            enableRecording,
+            saveToStorj,
           }
         });
 
@@ -376,11 +378,39 @@ const Live = () => {
                         <InstantLiveStreamLiveKit
                           roomToken={livekitToken}
                           onStreamEnd={handleEndStream}
-                          onStreamConnected={() => {
+                          onStreamConnected={async () => {
                             toast({
                               title: "Connected!",
                               description: "You're now live",
                             });
+                            
+                            // Start recording if enabled
+                            if (enableRecording && saveToStorj && roomName) {
+                              try {
+                                const { error: egressError } = await supabase.functions.invoke('livekit-egress', {
+                                  body: {
+                                    roomName,
+                                    streamId,
+                                  }
+                                });
+                                
+                                if (egressError) {
+                                  console.error('Failed to start recording:', egressError);
+                                  toast({
+                                    title: "Recording Warning",
+                                    description: "Stream is live but recording may not have started",
+                                    variant: "destructive",
+                                  });
+                                } else {
+                                  toast({
+                                    title: "Recording Started",
+                                    description: "Your stream is being recorded to Storj",
+                                  });
+                                }
+                              } catch (error) {
+                                console.error('Error starting recording:', error);
+                              }
+                            }
                           }}
                           isLive={isLive}
                           creatorId={user?.id}
