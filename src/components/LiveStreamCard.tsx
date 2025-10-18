@@ -1,8 +1,12 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Eye, Clock, Cloud, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface LiveStreamCardProps {
   stream: {
@@ -24,12 +28,41 @@ interface LiveStreamCardProps {
 
 const LiveStreamCard = ({ stream, isRecording = false }: LiveStreamCardProps) => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [isSaving, setIsSaving] = useState(false);
 
   const formatDuration = (seconds?: number) => {
     if (!seconds) return "0:00";
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleSaveToStorj = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent navigation
+    
+    setIsSaving(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('save-to-storj', {
+        body: { assetId: stream.id }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Saving to Storj",
+        description: "Your recording is being saved to decentralized storage. This may take a few minutes.",
+      });
+    } catch (error: any) {
+      console.error('Save to Storj error:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save recording to Storj",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const thumbnailStyle = stream.thumbnail_url 
@@ -79,6 +112,34 @@ const LiveStreamCard = ({ stream, isRecording = false }: LiveStreamCardProps) =>
               </p>
             </div>
           </div>
+          
+          {/* Save to Storj button for recordings */}
+          {isRecording && (
+            <div className="mt-3 pt-3 border-t">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={handleSaveToStorj}
+                disabled={isSaving}
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Cloud className="w-4 h-4 mr-2" />
+                    Save to Storj
+                  </>
+                )}
+              </Button>
+              <p className="text-xs text-muted-foreground text-center mt-1">
+                Permanently store on decentralized storage
+              </p>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

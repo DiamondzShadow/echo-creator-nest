@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Video, StopCircle, Loader2, Copy, Check, ExternalLink } from "lucide-react";
 import Navbar from "@/components/Navbar";
@@ -33,6 +34,8 @@ const Live = () => {
   const [hasAutoStarted, setHasAutoStarted] = useState(false);
   const [livekitToken, setLivekitToken] = useState<string>("");
   const [roomName, setRoomName] = useState<string>("");
+  const [enableRecording, setEnableRecording] = useState(true);
+  const [saveToStorj, setSaveToStorj] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -329,6 +332,45 @@ const Live = () => {
                           rows={4}
                         />
                       </div>
+
+                      {/* Recording Options */}
+                      <Card className="border-muted bg-muted/20">
+                        <CardContent className="pt-6 space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                              <Label htmlFor="enable-recording" className="text-base">
+                                Record Stream
+                              </Label>
+                              <p className="text-sm text-muted-foreground">
+                                Save your stream for viewers to watch later
+                              </p>
+                            </div>
+                            <Switch
+                              id="enable-recording"
+                              checked={enableRecording}
+                              onCheckedChange={setEnableRecording}
+                            />
+                          </div>
+
+                          {enableRecording && (
+                            <div className="flex items-center justify-between pl-4 border-l-2 border-primary/30">
+                              <div className="space-y-0.5">
+                                <Label htmlFor="save-to-storj" className="text-sm">
+                                  Save to Storj (Decentralized)
+                                </Label>
+                                <p className="text-xs text-muted-foreground">
+                                  Permanently store on decentralized storage
+                                </p>
+                              </div>
+                              <Switch
+                                id="save-to-storj"
+                                checked={saveToStorj}
+                                onCheckedChange={setSaveToStorj}
+                              />
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
                       
                       {livekitToken ? (
                         <InstantLiveStreamLiveKit
@@ -401,6 +443,46 @@ const Live = () => {
                           rows={4}
                         />
                       </div>
+
+                      {/* Recording Options */}
+                      <Card className="border-muted bg-muted/20">
+                        <CardContent className="pt-6 space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                              <Label htmlFor="enable-recording-sw" className="text-base">
+                                Record Stream
+                              </Label>
+                              <p className="text-sm text-muted-foreground">
+                                Save your stream for viewers to watch later
+                              </p>
+                            </div>
+                            <Switch
+                              id="enable-recording-sw"
+                              checked={enableRecording}
+                              onCheckedChange={setEnableRecording}
+                            />
+                          </div>
+
+                          {enableRecording && (
+                            <div className="flex items-center justify-between pl-4 border-l-2 border-primary/30">
+                              <div className="space-y-0.5">
+                                <Label htmlFor="save-to-storj-sw" className="text-sm">
+                                  Save to Storj (Decentralized)
+                                </Label>
+                                <p className="text-xs text-muted-foreground">
+                                  Permanently store on decentralized storage
+                                </p>
+                              </div>
+                              <Switch
+                                id="save-to-storj-sw"
+                                checked={saveToStorj}
+                                onCheckedChange={setSaveToStorj}
+                              />
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+
                       <Button
                         type="submit"
                         size="lg"
@@ -456,6 +538,45 @@ const Live = () => {
                         pullUrl={pullUrl}
                         onPullUrlChange={setPullUrl}
                       />
+
+                      {/* Recording Options */}
+                      <Card className="border-muted bg-muted/20">
+                        <CardContent className="pt-6 space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                              <Label htmlFor="enable-recording-pull" className="text-base">
+                                Record Stream
+                              </Label>
+                              <p className="text-sm text-muted-foreground">
+                                Save your stream for viewers to watch later
+                              </p>
+                            </div>
+                            <Switch
+                              id="enable-recording-pull"
+                              checked={enableRecording}
+                              onCheckedChange={setEnableRecording}
+                            />
+                          </div>
+
+                          {enableRecording && (
+                            <div className="flex items-center justify-between pl-4 border-l-2 border-primary/30">
+                              <div className="space-y-0.5">
+                                <Label htmlFor="save-to-storj-pull" className="text-sm">
+                                  Save to Storj (Decentralized)
+                                </Label>
+                                <p className="text-xs text-muted-foreground">
+                                  Permanently store on decentralized storage
+                                </p>
+                              </div>
+                              <Switch
+                                id="save-to-storj-pull"
+                                checked={saveToStorj}
+                                onCheckedChange={setSaveToStorj}
+                              />
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
 
                       <Button
                         type="submit"
