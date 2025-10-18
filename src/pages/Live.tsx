@@ -380,6 +380,8 @@ const Live = () => {
                           roomToken={livekitToken}
                           onStreamEnd={handleEndStream}
                           onStreamConnected={async () => {
+                            console.log('🔴 Stream connected! Recording:', enableRecording, 'Room:', roomName, 'Already started:', recordingStarted);
+                            
                             toast({
                               title: "Connected!",
                               description: "You're now live",
@@ -387,6 +389,7 @@ const Live = () => {
                             
                             // Start recording if enabled
                             if (enableRecording && roomName && !recordingStarted) {
+                              console.log('📹 Attempting to start recording...');
                               try {
                                 const { data: egressData, error: egressError } = await supabase.functions.invoke('livekit-egress', {
                                   body: {
@@ -395,24 +398,34 @@ const Live = () => {
                                   }
                                 });
                                 
+                                console.log('📹 Egress response:', { egressData, egressError });
+                                
                                 if (egressError || !egressData?.success) {
-                                  console.error('Failed to start recording:', egressError || egressData);
+                                  console.error('❌ Failed to start recording:', egressError || egressData);
                                   toast({
-                                    title: "Recording Warning",
-                                    description: "Stream is live but recording may not have started",
+                                    title: "Recording Failed",
+                                    description: `Error: ${egressError?.message || egressData?.error || 'Unknown'}`,
                                     variant: "destructive",
                                   });
                                 } else {
                                   setRecordingStarted(true);
                                   const storageLocation = saveToStorj ? "Storj (decentralized)" : "cloud storage";
+                                  console.log('✅ Recording started:', egressData.egressId);
                                   toast({
                                     title: "Recording Started",
-                                    description: `Recording ID: ${egressData.egressId || 'N/A'} → ${storageLocation}`,
+                                    description: `ID: ${egressData.egressId} → ${storageLocation}`,
                                   });
                                 }
                               } catch (error) {
-                                console.error('Error starting recording:', error);
+                                console.error('❌ Exception starting recording:', error);
+                                toast({
+                                  title: "Recording Error",
+                                  description: error instanceof Error ? error.message : 'Failed to start',
+                                  variant: "destructive",
+                                });
                               }
+                            } else {
+                              console.log('⚠️ Recording skipped:', { enableRecording, roomName, recordingStarted });
                             }
                           }}
                           isLive={isLive}
