@@ -69,14 +69,15 @@ const Discover = () => {
       console.error('Error fetching live streams:', liveError);
     }
 
-    // Fetch ALL streams (including those without playback IDs for debugging)
+    // Fetch all streams with valid playback IDs
     const { data: all } = await supabase
       .from("live_streams")
       .select("*, profiles(username, display_name, avatar_url)")
+      .not("livepeer_playback_id", "is", null)
       .order("created_at", { ascending: false })
       .limit(20);
 
-    // Fetch ready recordings from assets table
+    // Fetch ready recordings from assets table with valid playback IDs
     const { data: assets, error: assetsError } = await supabase
       .from("assets")
       .select(`
@@ -85,6 +86,7 @@ const Discover = () => {
         live_streams:stream_id(title, description)
       `)
       .eq("status", "ready")
+      .not("livepeer_playback_id", "is", null)
       .order("created_at", { ascending: false })
       .limit(20);
 
@@ -131,7 +133,6 @@ const Discover = () => {
         <p className="text-muted-foreground">
           Watch live streams and explore amazing content
         </p>
-        <p className="text-xs text-muted-foreground mt-2">Note: Showing all streams for debugging, including ones without playback IDs.</p>
       </div>
 
         <Tabs defaultValue="live" className="w-full">
