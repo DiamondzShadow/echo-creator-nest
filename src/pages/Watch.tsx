@@ -14,6 +14,7 @@ import FollowButton from "@/components/FollowButton";
 import { StreamChat } from "@/components/StreamChat";
 import { Eye, ArrowLeft, Loader2 } from "lucide-react";
 import { BrandBanner } from "@/components/BrandBanner";
+import StreamReactions, { ReactionType } from "@/components/StreamReactions";
 
 const Watch = () => {
   const { streamId } = useParams();
@@ -26,6 +27,12 @@ const Watch = () => {
   const [isLiveKitStream, setIsLiveKitStream] = useState(false);
   const [hasRecording, setHasRecording] = useState(false);
   const [checkingRecording, setCheckingRecording] = useState(false);
+  const [reactionTargetId, setReactionTargetId] = useState<string | null>(null);
+  const handleEmitOverlay = (reaction: ReactionType) => {
+    // Fire a DOM event that overlay components listen for
+    const event = new CustomEvent('reaction:add', { detail: { reaction } });
+    window.dispatchEvent(event);
+  };
 
   useEffect(() => {
     fetchStream();
@@ -93,6 +100,8 @@ const Watch = () => {
         setProfile(assetData.profiles);
         setHasRecording(true);
         setIsLiveKitStream(false);
+        // Use original stream id for reactions if available (FK constraint)
+        setReactionTargetId(assetData.stream_id || null);
         setLoading(false);
         return;
       }
@@ -100,6 +109,7 @@ const Watch = () => {
 
     if (streamData) {
       setStream(streamData);
+      setReactionTargetId(streamData.id);
       
       // Check if this is a LiveKit stream (instant stream)
       // LiveKit streams have room names starting with "stream-"
@@ -273,6 +283,17 @@ const Watch = () => {
                       </span>
                     )}
                   </div>
+
+                  {/* Reactions */}
+                  {reactionTargetId && (
+                    <div className="mt-4">
+                      <StreamReactions
+                        streamId={reactionTargetId}
+                        currentUserId={currentUser?.id}
+                        onReact={handleEmitOverlay}
+                      />
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 

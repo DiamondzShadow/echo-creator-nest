@@ -1,4 +1,5 @@
 import { Card } from '@/components/ui/card';
+import ReactionOverlay from '@/components/ReactionOverlay';
 import * as Player from '@livepeer/react/player';
 import { getSrc } from '@livepeer/react/external';
 import { useEffect, useState } from 'react';
@@ -114,6 +115,9 @@ export const LiveStreamPlayer = ({ playbackId, title, isLive = false, viewerId }
                   title={title || 'Live stream'}
                   className="w-full h-full object-cover"
                 />
+
+                {/* Reactions overlay */}
+                <ReactionOverlay />
 
                 <Player.LoadingIndicator className="absolute inset-0 flex items-center justify-center bg-background/80">
                   <Loader2 className="w-8 h-8 animate-spin" />
