@@ -17,6 +17,7 @@ export const LiveStreamPlayer = ({ playbackId, title, isLive = false, viewerId }
   const [src, setSrc] = useState<any[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
+  const [isDirectUrl, setIsDirectUrl] = useState(false);
   const { toast } = useToast();
 
   // Handle playback errors
@@ -42,7 +43,17 @@ export const LiveStreamPlayer = ({ playbackId, title, isLive = false, viewerId }
     const fetchPlaybackInfo = async () => {
       try {
         setIsLoading(true);
-        // Fetch playback info through our backend function
+        
+        // Check if playbackId is a direct URL (Storj recording)
+        if (playbackId.startsWith('http')) {
+          console.log('Direct video URL detected:', playbackId);
+          setIsDirectUrl(true);
+          setSrc([{ src: playbackId, type: 'video/mp4' }]);
+          setIsLoading(false);
+          return;
+        }
+
+        // Fetch playback info through our backend function for Livepeer
         const { data, error } = await supabase.functions.invoke('livepeer-playback', {
           body: { playbackId }
         });

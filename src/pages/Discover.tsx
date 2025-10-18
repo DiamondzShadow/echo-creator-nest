@@ -72,6 +72,22 @@ const Discover = () => {
       .order("created_at", { ascending: false })
       .limit(20);
 
+    // Fetch ready recordings from assets table
+    const { data: assets, error: assetsError } = await supabase
+      .from("assets")
+      .select(`
+        *,
+        profiles:user_id(username, display_name, avatar_url),
+        live_streams:stream_id(title, description)
+      `)
+      .eq("status", "ready")
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    if (assetsError) {
+      console.error('Error fetching assets:', assetsError);
+    }
+
     // Remove duplicates from live streams based on user_id
     // Keep only the most recent live stream per user
     const uniqueLiveStreams = live?.reduce((acc: any[], stream) => {
@@ -89,12 +105,13 @@ const Discover = () => {
     console.log('Fetched streams:', { 
       live: live?.length, 
       uniqueLive: uniqueLiveStreams.length,
-      all: all?.length 
+      all: all?.length,
+      recordings: assets?.length
     });
     
     setLiveStreams(uniqueLiveStreams);
     setAllStreams(all || []);
-    setRecordings([]);
+    setRecordings(assets || []);
     setLoading(false);
   };
 

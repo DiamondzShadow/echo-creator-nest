@@ -103,15 +103,19 @@ serve(async (req) => {
           }
 
           // Create asset record for the recording
+          const storjUrl = fileResult.filename 
+            ? `${Deno.env.get('STORJ_ENDPOINT') || 'https://gateway.storjshare.io'}/${Deno.env.get('STORJ_BUCKET') || 'livepeer-videos'}/${fileResult.filename}`
+            : null;
+
           const { data: asset, error: assetError } = await supabase
             .from('assets')
             .insert({
               user_id: streamData.user_id,
               stream_id: streamData.id,
               title: streamData.title || 'Untitled Recording',
-              description: `LiveKit recording\nFile: ${fileResult.filename}`,
+              description: `LiveKit recording${storjUrl ? `\nStorj URL: ${storjUrl}` : ''}\nFile: ${fileResult.filename}`,
               livepeer_asset_id: egressInfo.egressId,
-              livepeer_playback_id: egressInfo.egressId, // Use egress ID as playback reference
+              livepeer_playback_id: storjUrl || egressInfo.egressId, // Store Storj URL as playback ID
               status: 'ready',
               duration: fileResult.duration ? fileResult.duration / 1000 : null, // Convert ms to seconds
               size: fileResult.size,
@@ -124,6 +128,7 @@ serve(async (req) => {
             console.error('Error creating asset:', assetError);
           } else {
             console.log('Asset created:', asset);
+            console.log('Playback URL:', storjUrl);
           }
         }
       }

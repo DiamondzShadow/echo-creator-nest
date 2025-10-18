@@ -66,6 +66,38 @@ const Watch = () => {
       .eq("id", streamId)
       .maybeSingle();
 
+    // If not found in live_streams, try assets (recordings)
+    if (!streamData) {
+      const { data: assetData } = await supabase
+        .from("assets")
+        .select("*, profiles:user_id(*), live_streams:stream_id(*)")
+        .eq("id", streamId)
+        .maybeSingle();
+
+      if (assetData) {
+        // Transform asset to stream format
+        const mockStream = {
+          id: assetData.id,
+          title: assetData.title,
+          description: assetData.description,
+          user_id: assetData.user_id,
+          is_live: false,
+          viewer_count: 0,
+          livepeer_playback_id: assetData.livepeer_playback_id,
+          livepeer_stream_id: null,
+          started_at: assetData.created_at,
+          ended_at: assetData.ready_at,
+        };
+        
+        setStream(mockStream as any);
+        setProfile(assetData.profiles);
+        setHasRecording(true);
+        setIsLiveKitStream(false);
+        setLoading(false);
+        return;
+      }
+    }
+
     if (streamData) {
       setStream(streamData);
       

@@ -385,7 +385,7 @@ const Live = () => {
                             });
                             
                             // Start recording if enabled
-                            if (enableRecording && saveToStorj && roomName) {
+                            if (enableRecording && roomName) {
                               try {
                                 const { error: egressError } = await supabase.functions.invoke('livekit-egress', {
                                   body: {
@@ -402,9 +402,10 @@ const Live = () => {
                                     variant: "destructive",
                                   });
                                 } else {
+                                  const storageLocation = saveToStorj ? "Storj (decentralized)" : "cloud storage";
                                   toast({
                                     title: "Recording Started",
-                                    description: "Your stream is being recorded to Storj",
+                                    description: `Your stream is being recorded to ${storageLocation}`,
                                   });
                                 }
                               } catch (error) {
