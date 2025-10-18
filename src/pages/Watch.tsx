@@ -78,7 +78,7 @@ const Watch = () => {
     if (!streamData) {
       const { data: assetData } = await supabase
         .from("assets")
-        .select("*, profiles:user_id(*), live_streams:stream_id(*)")
+        .select("*")
         .eq("id", streamId)
         .maybeSingle();
 
@@ -98,7 +98,6 @@ const Watch = () => {
         };
         
         setStream(mockStream as any);
-        setProfile(assetData.profiles);
         setHasRecording(true);
         setIsLiveKitStream(false);
         // Use original stream id for reactions if available (FK constraint)
@@ -110,14 +109,14 @@ const Watch = () => {
           setAssetPlaybackUrl(val);
         }
 
-        // If profile wasn't embedded, fetch it
-        if (!assetData.profiles && assetData.user_id) {
+        // Fetch profile for this asset
+        if (assetData.user_id) {
           const { data: prof } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', assetData.user_id)
             .maybeSingle();
-          setProfile((prev: any) => prev || prof);
+          setProfile(prof);
         }
 
         setLoading(false);

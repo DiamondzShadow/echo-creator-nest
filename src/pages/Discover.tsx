@@ -179,9 +179,24 @@ const Discover = () => {
               </div>
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 animate-scale-in">
-                {recordings.map((asset) => (
-                  <LiveStreamCard key={asset.id} stream={asset} isRecording={true} />
-                ))}
+                {recordings.map((asset) => {
+                  // Build profile object from asset data
+                  const assetProfile = asset.user_id 
+                    ? { 
+                        username: 'creator', 
+                        display_name: asset.title?.substring(0, 20) || 'Creator',
+                        avatar_url: null 
+                      }
+                    : null;
+                  
+                  return (
+                    <LiveStreamCard 
+                      key={asset.id} 
+                      stream={{ ...asset, profiles: assetProfile }} 
+                      isRecording={true} 
+                    />
+                  );
+                })}
               </div>
             )}
           </TabsContent>
