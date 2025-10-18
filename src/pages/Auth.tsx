@@ -20,9 +20,7 @@ const Auth = () => {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <BrandBanner />
-      <div className="flex-1 flex items-center justify-center px-4 pt-16 relative">
+    <div className="min-h-screen flex items-center justify-center px-4 pt-16 relative">
         <div 
           className="absolute inset-0 opacity-10"
           style={{
@@ -43,7 +41,6 @@ const Auth = () => {
         <div className="relative z-10 animate-scale-in">
           <AuthForm onSuccess={() => navigate("/")} />
         </div>
-      </div>
     </div>
   );
 };
