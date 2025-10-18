@@ -30,9 +30,9 @@ export const PullStreamSetup = ({ onPullUrlChange, pullUrl }: PullStreamSetupPro
         return false;
       }
       
-      if (url.includes('youtube.com/watch') || url.includes('youtu.be/')) {
+      if (url.includes('youtube.com/watch') || url.includes('youtube.com/live') || url.includes('youtu.be/')) {
         // Extract video ID
-        const videoIdMatch = url.match(/(?:watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
+        const videoIdMatch = url.match(/(?:watch\?v=|youtu\.be\/|\/live\/)([a-zA-Z0-9_-]+)/);
         if (videoIdMatch) {
           toast({
             title: 'YouTube URL Detected',
