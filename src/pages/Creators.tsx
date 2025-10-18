@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trophy, Users, DollarSign, Video, Search, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
 import { BrandBanner } from "@/components/BrandBanner";
+import crabRoyaltyBg from "@/assets/crab-royalty-bg.jpg";
 
 interface Creator {
   id: string;
@@ -105,13 +106,24 @@ const Creators = () => {
       <Navbar />
       <BrandBanner />
       <div className="container px-4 pt-24 pb-16">
-        <div className="mb-8 animate-fade-in text-center">
-          <h1 className="text-5xl font-bold mb-4 bg-gradient-hero bg-clip-text text-transparent">
-            Creator Wall
-          </h1>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Discover amazing creators, explore leaderboards, and find your next favorite streamer
-          </p>
+        <div className="mb-8 animate-fade-in text-center relative py-16">
+          <div 
+            className="absolute inset-0 -mx-4 opacity-20"
+            style={{
+              backgroundImage: `url(${crabRoyaltyBg})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+            }}
+          />
+          <div className="relative z-10">
+            <h1 className="text-5xl font-bold mb-4 bg-gradient-hero bg-clip-text text-transparent">
+              Featured Creators
+            </h1>
+            <p className="text-foreground text-lg max-w-2xl mx-auto font-semibold drop-shadow-lg">
+              Discover amazing creators, explore leaderboards, and find your next favorite streamer
+            </p>
+          </div>
         </div>
 
         <Tabs defaultValue="wall" className="w-full">
