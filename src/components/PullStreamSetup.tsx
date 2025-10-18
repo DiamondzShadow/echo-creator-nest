@@ -19,6 +19,28 @@ export const PullStreamSetup = ({ onPullUrlChange, pullUrl }: PullStreamSetupPro
   const validateUrl = (url: string) => {
     try {
       new URL(url);
+      
+      // Check for common invalid patterns
+      if (url.includes('studio.youtube.com')) {
+        toast({
+          title: 'Invalid URL',
+          description: 'YouTube Studio URLs don\'t work. Use the public watch URL instead: https://www.youtube.com/watch?v=VIDEO_ID',
+          variant: 'destructive',
+        });
+        return false;
+      }
+      
+      if (url.includes('youtube.com/watch') || url.includes('youtu.be/')) {
+        // Extract video ID
+        const videoIdMatch = url.match(/(?:watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
+        if (videoIdMatch) {
+          toast({
+            title: 'YouTube URL Detected',
+            description: 'Make sure your stream is currently LIVE. We\'ll convert this to the stream URL automatically.',
+          });
+        }
+      }
+      
       return true;
     } catch {
       return false;
@@ -75,9 +97,9 @@ export const PullStreamSetup = ({ onPullUrlChange, pullUrl }: PullStreamSetupPro
                 <strong className="text-purple-400">YouTube Live:</strong>
                 <ol className="list-decimal list-inside ml-2 mt-1 space-y-1">
                   <li>Start a live stream on YouTube</li>
-                  <li>In YouTube Studio, go to stream settings</li>
-                  <li>Copy the "Stream URL" (rtmp://...) OR</li>
-                  <li>Use the public HLS URL: https://www.youtube.com/watch?v=VIDEO_ID</li>
+                  <li>Use the public watch URL: <code className="text-xs bg-muted px-1 rounded">https://www.youtube.com/watch?v=VIDEO_ID</code></li>
+                  <li>❌ DON'T use Studio URLs (studio.youtube.com)</li>
+                  <li>✅ Your stream must be LIVE when you start pulling</li>
                 </ol>
               </div>
 
