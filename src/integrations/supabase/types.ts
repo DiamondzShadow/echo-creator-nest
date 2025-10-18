@@ -165,6 +165,51 @@ export type Database = {
           },
         ]
       }
+      platform_connections: {
+        Row: {
+          access_token: string
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          platform: Database["public"]["Enums"]["platform_type"]
+          platform_email: string | null
+          platform_user_id: string
+          platform_username: string | null
+          refresh_token: string | null
+          token_expires_at: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          platform: Database["public"]["Enums"]["platform_type"]
+          platform_email?: string | null
+          platform_user_id: string
+          platform_username?: string | null
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          platform?: Database["public"]["Enums"]["platform_type"]
+          platform_email?: string | null
+          platform_user_id?: string
+          platform_username?: string | null
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -256,24 +301,27 @@ export type Database = {
       }
       stream_reactions: {
         Row: {
-          created_at: string
+          created_at: string | null
           id: string
-          reaction: string
+          reaction: Database["public"]["Enums"]["reaction_type"]
           stream_id: string
+          updated_at: string | null
           user_id: string
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           id?: string
-          reaction: string
+          reaction: Database["public"]["Enums"]["reaction_type"]
           stream_id: string
+          updated_at?: string | null
           user_id: string
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           id?: string
-          reaction?: string
+          reaction?: Database["public"]["Enums"]["reaction_type"]
           stream_id?: string
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: [
@@ -282,13 +330,6 @@ export type Database = {
             columns: ["stream_id"]
             isOneToOne: false
             referencedRelation: "live_streams"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "stream_reactions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -362,6 +403,8 @@ export type Database = {
         | "base"
         | "arbitrum"
         | "optimism"
+      platform_type: "youtube" | "twitch" | "tiktok"
+      reaction_type: "like" | "unlike" | "love" | "what" | "lmao"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -496,6 +539,8 @@ export const Constants = {
         "arbitrum",
         "optimism",
       ],
+      platform_type: ["youtube", "twitch", "tiktok"],
+      reaction_type: ["like", "unlike", "love", "what", "lmao"],
     },
   },
 } as const
