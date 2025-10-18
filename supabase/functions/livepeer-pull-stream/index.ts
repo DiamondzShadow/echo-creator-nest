@@ -22,16 +22,17 @@ serve(async (req) => {
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
-    });
+    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const token = authHeader.replace('Bearer ', '');
+
+    // Get authenticated user using service role verification
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
+      console.error('Auth verification failed:', authError);
       return new Response(
-        JSON.stringify({ error: 'Unauthorized: Invalid token' }),
+        JSON.stringify({ error: 'Unauthorized: Invalid or expired token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -42,6 +43,30 @@ serve(async (req) => {
     }
 
     const { action, streamId, pullUrl, pullUrlHeaders } = await req.json();
+
+    // Basic server-side validation for input security
+    if (action === 'create') {
+      if (typeof pullUrl !== 'string' || pullUrl.length > 2000) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid pullUrl: must be a string under 2000 characters' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const lower = pullUrl.toLowerCase();
+      const allowed = lower.startsWith('http://') || lower.startsWith('https://') || lower.startsWith('rtmp://') || lower.startsWith('rtmps://');
+      if (!allowed) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid URL scheme: use http(s) or rtmp(s)' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (lower.includes('studio.youtube.com')) {
+        return new Response(
+          JSON.stringify({ error: 'YouTube Studio URLs are not supported. Use https://www.youtube.com/watch?v=VIDEO_ID or https://youtube.com/live/ID' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
 
     if (action === 'create') {
       // Create a new pull stream
