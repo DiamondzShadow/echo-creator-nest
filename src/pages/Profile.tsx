@@ -9,6 +9,7 @@ import { WalletConnect } from "@/components/WalletConnect";
 import { TipButton } from "@/components/TipButton";
 import { ProfileEditDialog } from "@/components/ProfileEditDialog";
 import { Users, UserPlus, Wallet, Coins } from "lucide-react";
+import SoundCloudWidget from "@/components/SoundCloudWidget";
 
 const Profile = () => {
   const { userId } = useParams();
@@ -191,6 +192,13 @@ const Profile = () => {
                   </CardContent>
                 </Card>
               </div>
+
+              {profile.soundcloud_url && (
+                <div className="max-w-3xl mx-auto mt-8">
+                  <h2 className="text-xl font-semibold mb-2">SoundCloud</h2>
+                  <SoundCloudWidget url={profile.soundcloud_url} visual={false} />
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
