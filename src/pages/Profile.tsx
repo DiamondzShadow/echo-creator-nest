@@ -11,13 +11,15 @@ import { ProfileEditDialog } from "@/components/ProfileEditDialog";
 import { Users, UserPlus, Wallet, Coins } from "lucide-react";
 import SoundCloudWidget from "@/components/SoundCloudWidget";
 import { BrandBanner } from "@/components/BrandBanner";
-
+import LiveStreamCard from "@/components/LiveStreamCard";
+ 
 const Profile = () => {
   const { userId } = useParams();
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isOwnProfile, setIsOwnProfile] = useState(false);
+  const [recordings, setRecordings] = useState<any[]>([]);
   const navigate = useNavigate();
 
   const fetchProfile = async () => {
@@ -49,6 +51,18 @@ const Profile = () => {
       .single();
 
     setProfile(profileData);
+
+    // Fetch ready recordings for this profile
+    const { data: assets } = await supabase
+      .from('assets')
+      .select('*')
+      .eq('user_id', profileId)
+      .eq('status', 'ready')
+      .not('livepeer_playback_id', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(30);
+
+    setRecordings(assets || []);
     setLoading(false);
   };
 
@@ -194,6 +208,28 @@ const Profile = () => {
                   </CardContent>
                 </Card>
               </div>
+
+              {recordings.length > 0 && (
+                <div className="max-w-3xl mx-auto mt-10">
+                  <h2 className="text-xl font-semibold mb-4">Recordings</h2>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {recordings.map((asset) => (
+                      <LiveStreamCard
+                        key={asset.id}
+                        stream={{
+                          ...asset,
+                          profiles: {
+                            username: profile.username,
+                            display_name: profile.display_name,
+                            avatar_url: profile.avatar_url,
+                          },
+                        }}
+                        isRecording
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {profile.soundcloud_url && (
                 <div className="max-w-3xl mx-auto mt-8">
