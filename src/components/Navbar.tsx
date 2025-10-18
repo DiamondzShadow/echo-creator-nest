@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
+import crabbyLogo from "@/assets/crabby-logo.jpg";
 
 const Navbar = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -49,9 +50,16 @@ const Navbar = () => {
       <div className="container flex items-center justify-between h-16 px-4">
         <button
           onClick={() => navigate("/")}
-          className="text-2xl font-bold bg-gradient-hero bg-clip-text text-transparent"
+          className="flex items-center gap-2"
         >
-          🦀 CrabbyTV
+          <img 
+            src={crabbyLogo} 
+            alt="CrabbyTV Logo" 
+            className="h-10 w-10 sm:h-12 sm:w-12 rounded-full object-cover"
+          />
+          <span className="text-xl sm:text-2xl font-bold bg-gradient-hero bg-clip-text text-transparent">
+            CrabbyTV
+          </span>
         </button>
 
         <div className="flex items-center gap-4">
