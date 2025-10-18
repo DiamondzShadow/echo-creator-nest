@@ -12,7 +12,7 @@ import { LiveKitViewer } from "@/components/LiveKitViewer";
 import { TipButton } from "@/components/TipButton";
 import FollowButton from "@/components/FollowButton";
 import { StreamChat } from "@/components/StreamChat";
-import { Eye, ArrowLeft } from "lucide-react";
+import { Eye, ArrowLeft, Loader2 } from "lucide-react";
 import { BrandBanner } from "@/components/BrandBanner";
 
 const Watch = () => {
@@ -24,6 +24,8 @@ const Watch = () => {
   const [loading, setLoading] = useState(true);
   const [livekitToken, setLivekitToken] = useState<string | null>(null);
   const [isLiveKitStream, setIsLiveKitStream] = useState(false);
+  const [hasRecording, setHasRecording] = useState(false);
+  const [checkingRecording, setCheckingRecording] = useState(false);
 
   useEffect(() => {
     fetchStream();
@@ -94,6 +96,20 @@ const Watch = () => {
         .single();
       
       setProfile(profileData);
+
+      // Check for recordings if stream has ended
+      if (!streamData.is_live) {
+        setCheckingRecording(true);
+        const { data: assets } = await supabase
+          .from('assets')
+          .select('*')
+          .eq('stream_id', streamData.id)
+          .eq('status', 'ready')
+          .limit(1);
+        
+        setHasRecording(assets && assets.length > 0);
+        setCheckingRecording(false);
+      }
     }
     
     setLoading(false);
@@ -104,7 +120,7 @@ const Watch = () => {
       <div className="min-h-screen bg-background">
         <Navbar />
         <div className="container px-4 pt-24 flex items-center justify-center">
-          <p className="text-muted-foreground">Loading stream...</p>
+          <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       </div>
     );
@@ -117,6 +133,33 @@ const Watch = () => {
         <div className="container px-4 pt-24 flex items-center justify-center">
           <div className="text-center">
             <p className="text-muted-foreground mb-4">Stream not found</p>
+            <Button onClick={() => navigate("/discover")}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Discover
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show proper message if stream ended and no recording available
+  if (!stream.is_live && !hasRecording && !checkingRecording && !isLiveKitStream) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container px-4 pt-24 flex items-center justify-center">
+          <div className="text-center max-w-md">
+            <div className="mb-4 text-6xl">📹</div>
+            <h2 className="text-2xl font-bold mb-2">Stream Has Ended</h2>
+            <p className="text-muted-foreground mb-4">
+              This stream has finished and no recording is available yet.
+            </p>
+            <p className="text-sm text-muted-foreground mb-6">
+              {stream.description?.includes('Recording: enabled') 
+                ? 'Recordings may take a few minutes to process. Please check back shortly.'
+                : 'Recording was not enabled for this stream.'}
+            </p>
             <Button onClick={() => navigate("/discover")}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Discover
