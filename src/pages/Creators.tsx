@@ -106,9 +106,9 @@ const Creators = () => {
       <Navbar />
       <BrandBanner />
       <div className="container px-4 pt-24 pb-16">
-        <div className="mb-8 animate-fade-in text-center relative py-16">
+        <div className="mb-8 animate-fade-in text-center relative py-24 -mx-4 px-4">
           <div 
-            className="absolute inset-0 -mx-4 opacity-20"
+            className="absolute inset-0 opacity-60"
             style={{
               backgroundImage: `url(${crabRoyaltyBg})`,
               backgroundSize: 'cover',
@@ -116,11 +116,12 @@ const Creators = () => {
               backgroundRepeat: 'no-repeat',
             }}
           />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/40 to-background" />
           <div className="relative z-10">
-            <h1 className="text-5xl font-bold mb-4 bg-gradient-hero bg-clip-text text-transparent">
+            <h1 className="text-6xl font-bold mb-6 text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
               Featured Creators
             </h1>
-            <p className="text-foreground text-lg max-w-2xl mx-auto font-semibold drop-shadow-lg">
+            <p className="text-white text-xl max-w-2xl mx-auto font-semibold drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
               Discover amazing creators, explore leaderboards, and find your next favorite streamer
             </p>
           </div>
