@@ -69,13 +69,20 @@ const Discover = () => {
       console.error('Error fetching live streams:', liveError);
     }
 
-    // Fetch all streams with valid playback IDs
-    const { data: all } = await supabase
+    // Fetch all streams - exclude ended LiveKit instant streams (they're not playable recordings)
+    const { data: allData } = await supabase
       .from("live_streams")
       .select("*, profiles(username, display_name, avatar_url)")
       .not("livepeer_playback_id", "is", null)
       .order("created_at", { ascending: false })
-      .limit(20);
+      .limit(50);
+
+    // Filter out ended instant streams (LiveKit rooms that can't be replayed)
+    const all = allData?.filter(stream => {
+      const isInstantStream = stream.livepeer_playback_id?.startsWith('stream-');
+      // Keep live instant streams, but exclude ended ones (no recordings)
+      return stream.is_live || !isInstantStream;
+    }).slice(0, 20) || [];
 
     // Fetch ready recordings from assets table with valid playback IDs
     const { data: assets, error: assetsError } = await supabase
