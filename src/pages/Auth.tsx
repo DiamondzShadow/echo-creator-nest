@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { BrandBanner } from "@/components/BrandBanner";
+import authBg from "@/assets/brand-banner-1.jpg";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -21,7 +22,15 @@ const Auth = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <BrandBanner />
-      <div className="flex-1 flex items-center justify-center px-4 pt-16">
+      <div className="flex-1 flex items-center justify-center px-4 pt-16 relative">
+        <div 
+          className="absolute inset-0 opacity-10"
+          style={{
+            backgroundImage: `url(${authBg})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        />
         <div className="absolute inset-0 bg-gradient-glow opacity-30" />
         <Button
           variant="ghost"

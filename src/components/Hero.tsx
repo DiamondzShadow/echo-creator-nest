@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import heroImage from "@/assets/hero-image.jpg";
+import heroImage from "@/assets/brand-banner-3.jpg";
 import { useNavigate } from "react-router-dom";
 
 const Hero = () => {
@@ -45,7 +45,7 @@ const Hero = () => {
             <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-glow">
               <img 
                 src={heroImage} 
-                alt="Creators collaborating in a modern studio" 
+                alt="B More Crabby - We Climb Different" 
                 className="w-full h-auto"
               />
               <div className="absolute inset-0 bg-gradient-hero opacity-20" />
