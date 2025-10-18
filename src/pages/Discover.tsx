@@ -84,14 +84,10 @@ const Discover = () => {
       return stream.is_live || !isInstantStream;
     }).slice(0, 20) || [];
 
-    // Fetch ready recordings from assets table with valid playback IDs
+    // Fetch ready recordings from assets table (no embeddings due to missing FKs)
     const { data: assets, error: assetsError } = await supabase
       .from("assets")
-      .select(`
-        *,
-        profiles:user_id(username, display_name, avatar_url),
-        live_streams:stream_id(title, description)
-      `)
+      .select("*")
       .eq("status", "ready")
       .not("livepeer_playback_id", "is", null)
       .order("created_at", { ascending: false })

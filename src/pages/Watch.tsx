@@ -28,6 +28,7 @@ const Watch = () => {
   const [hasRecording, setHasRecording] = useState(false);
   const [checkingRecording, setCheckingRecording] = useState(false);
   const [reactionTargetId, setReactionTargetId] = useState<string | null>(null);
+  const [assetPlaybackUrl, setAssetPlaybackUrl] = useState<string | null>(null);
   const handleEmitOverlay = (reaction: ReactionType) => {
     // Fire a DOM event that overlay components listen for
     const event = new CustomEvent('reaction:add', { detail: { reaction } });
@@ -102,6 +103,23 @@ const Watch = () => {
         setIsLiveKitStream(false);
         // Use original stream id for reactions if available (FK constraint)
         setReactionTargetId(assetData.stream_id || null);
+
+        // If webhook stored a direct URL in livepeer_playback_id, use it for playback
+        const val = assetData.livepeer_playback_id as string | null;
+        if (val && (val.startsWith('http://') || val.startsWith('https://'))) {
+          setAssetPlaybackUrl(val);
+        }
+
+        // If profile wasn't embedded, fetch it
+        if (!assetData.profiles && assetData.user_id) {
+          const { data: prof } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', assetData.user_id)
+            .maybeSingle();
+          setProfile((prev: any) => prev || prof);
+        }
+
         setLoading(false);
         return;
       }
@@ -186,7 +204,7 @@ const Watch = () => {
   }
 
   // Show proper message if stream ended and no recording available
-  if (!stream.is_live && !hasRecording && !checkingRecording && !isLiveKitStream) {
+  if (!stream.is_live && !hasRecording && !checkingRecording && !isLiveKitStream && !assetPlaybackUrl) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
@@ -235,6 +253,19 @@ const Watch = () => {
                   title={stream.title}
                   isLive={stream.is_live}
                 />
+              ) : assetPlaybackUrl ? (
+                <Card className="border-0 shadow-glow bg-gradient-card">
+                  <CardContent className="pt-6">
+                    <div className="aspect-video rounded-lg overflow-hidden bg-black">
+                      <video
+                        controls
+                        playsInline
+                        className="w-full h-full"
+                        src={assetPlaybackUrl}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
               ) : stream.livepeer_playback_id && !isLiveKitStream ? (
                 <LiveStreamPlayer
                   playbackId={stream.livepeer_playback_id}
