@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/Navbar";
 import { LiveStreamPlayer } from "@/components/LiveStreamPlayer";
+import SoundCloudWidget from "@/components/SoundCloudWidget";
 import { LiveKitViewer } from "@/components/LiveKitViewer";
 import { TipButton } from "@/components/TipButton";
 import FollowButton from "@/components/FollowButton";
@@ -257,6 +258,16 @@ const Watch = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Creator SoundCloud (if provided) */}
+              {profile.soundcloud_url && (
+                <Card className="border-0 shadow-card">
+                  <CardContent className="pt-6">
+                    <h4 className="font-semibold mb-2">SoundCloud</h4>
+                    <SoundCloudWidget url={profile.soundcloud_url} visual={false} />
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Live Chat - Desktop */}
               {stream.is_live && (
