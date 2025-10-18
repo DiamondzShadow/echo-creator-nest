@@ -13,6 +13,7 @@ import { TipButton } from "@/components/TipButton";
 import FollowButton from "@/components/FollowButton";
 import { StreamChat } from "@/components/StreamChat";
 import { Eye, ArrowLeft } from "lucide-react";
+import { BrandBanner } from "@/components/BrandBanner";
 
 const Watch = () => {
   const { streamId } = useParams();
@@ -129,6 +130,7 @@ const Watch = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
+      <BrandBanner />
       <div className="container px-4 pt-24 pb-16">
         <Button
           variant="ghost"

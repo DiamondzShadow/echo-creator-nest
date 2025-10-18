@@ -15,6 +15,7 @@ import { LiveKitViewer } from "@/components/LiveKitViewer";
 import { PullStreamSetup } from "@/components/PullStreamSetup";
 import { StreamChat } from "@/components/StreamChat";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BrandBanner } from "@/components/BrandBanner";
 
 const Live = () => {
   const [user, setUser] = useState<any>(null);
@@ -269,6 +270,7 @@ const Live = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
+      <BrandBanner />
       <div className="container px-4 pt-24 pb-16">
         <div className="max-w-4xl mx-auto">
           {!isLive ? (

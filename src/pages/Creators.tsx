@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trophy, Users, DollarSign, Video, Search, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
+import { BrandBanner } from "@/components/BrandBanner";
 
 interface Creator {
   id: string;
@@ -102,6 +103,7 @@ const Creators = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
+      <BrandBanner />
       <div className="container px-4 pt-24 pb-16">
         <div className="mb-8 animate-fade-in text-center">
           <h1 className="text-5xl font-bold mb-4 bg-gradient-hero bg-clip-text text-transparent">

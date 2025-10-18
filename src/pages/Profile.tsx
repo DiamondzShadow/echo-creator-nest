@@ -10,6 +10,7 @@ import { TipButton } from "@/components/TipButton";
 import { ProfileEditDialog } from "@/components/ProfileEditDialog";
 import { Users, UserPlus, Wallet, Coins } from "lucide-react";
 import SoundCloudWidget from "@/components/SoundCloudWidget";
+import { BrandBanner } from "@/components/BrandBanner";
 
 const Profile = () => {
   const { userId } = useParams();
@@ -91,6 +92,7 @@ const Profile = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
+      <BrandBanner />
       <div className="container px-4 pt-24 pb-16">
         <div className="max-w-4xl mx-auto">
           <Card 

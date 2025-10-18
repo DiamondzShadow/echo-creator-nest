@@ -3,11 +3,13 @@ import Navbar from '@/components/Navbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, FileVideo, Cloud, Zap, Shield } from 'lucide-react';
+import { BrandBanner } from '@/components/BrandBanner';
 
 const StorjTranscode = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       <Navbar />
+      <BrandBanner />
       
       <div className="container mx-auto px-4 py-8">
         {/* Hero Section */}

@@ -4,6 +4,7 @@ import AuthForm from "@/components/AuthForm";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import { BrandBanner } from "@/components/BrandBanner";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -18,18 +19,21 @@ const Auth = () => {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 pt-16">
-      <div className="absolute inset-0 bg-gradient-glow opacity-30" />
-      <Button
-        variant="ghost"
-        onClick={() => navigate("/")}
-        className="absolute top-4 left-4 z-20"
-      >
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back
-      </Button>
-      <div className="relative z-10 animate-scale-in">
-        <AuthForm onSuccess={() => navigate("/")} />
+    <div className="min-h-screen flex flex-col">
+      <BrandBanner />
+      <div className="flex-1 flex items-center justify-center px-4 pt-16">
+        <div className="absolute inset-0 bg-gradient-glow opacity-30" />
+        <Button
+          variant="ghost"
+          onClick={() => navigate("/")}
+          className="absolute top-4 left-4 z-20"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back
+        </Button>
+        <div className="relative z-10 animate-scale-in">
+          <AuthForm onSuccess={() => navigate("/")} />
+        </div>
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import LiveStreamCard from "@/components/LiveStreamCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BrandBanner } from "@/components/BrandBanner";
 
 const Discover = () => {
   const [liveStreams, setLiveStreams] = useState<any[]>([]);
@@ -100,6 +101,7 @@ const Discover = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
+      <BrandBanner />
       <div className="container px-4 pt-24 pb-16">
       <div className="mb-8 animate-fade-in">
         <h1 className="text-4xl font-bold mb-2 bg-gradient-hero bg-clip-text text-transparent">

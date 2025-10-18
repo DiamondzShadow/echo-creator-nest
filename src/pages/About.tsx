@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import Navbar from "@/components/Navbar";
 import { Video, Users, Wallet, Shield, Zap, Globe } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { BrandBanner } from "@/components/BrandBanner";
 
 const About = () => {
   const navigate = useNavigate();
@@ -43,6 +44,7 @@ const About = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
+      <BrandBanner />
       
       <main className="container px-4 py-20">
         {/* Hero Section */}
