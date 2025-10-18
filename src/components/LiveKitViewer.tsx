@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
+import ReactionOverlay from '@/components/ReactionOverlay';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Volume2, VolumeX, Maximize, AlertCircle } from 'lucide-react';
 import { Room, RoomEvent, Track, RemoteParticipant, RemoteVideoTrack, RemoteAudioTrack } from 'livekit-client';
@@ -159,6 +160,9 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
                 className="w-full h-full object-cover"
               />
               <audio ref={audioRef} autoPlay />
+
+              {/* Reactions overlay */}
+              <ReactionOverlay />
 
               {/* Live indicator */}
               {isLive && (
