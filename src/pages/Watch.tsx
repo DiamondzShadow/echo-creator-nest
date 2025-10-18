@@ -12,13 +12,15 @@ import { LiveKitViewer } from "@/components/LiveKitViewer";
 import { TipButton } from "@/components/TipButton";
 import FollowButton from "@/components/FollowButton";
 import { StreamChat } from "@/components/StreamChat";
-import { Eye, ArrowLeft, Loader2 } from "lucide-react";
+import { Eye, ArrowLeft, Loader2, Share2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { BrandBanner } from "@/components/BrandBanner";
 import StreamReactions, { ReactionType } from "@/components/StreamReactions";
 
 const Watch = () => {
   const { streamId } = useParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [stream, setStream] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -29,10 +31,20 @@ const Watch = () => {
   const [checkingRecording, setCheckingRecording] = useState(false);
   const [reactionTargetId, setReactionTargetId] = useState<string | null>(null);
   const [assetPlaybackUrl, setAssetPlaybackUrl] = useState<string | null>(null);
+  
   const handleEmitOverlay = (reaction: ReactionType) => {
     // Fire a DOM event that overlay components listen for
     const event = new CustomEvent('reaction:add', { detail: { reaction } });
     window.dispatchEvent(event);
+  };
+
+  const handleShareStream = () => {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url);
+    toast({
+      title: "Link copied!",
+      description: "Stream link copied to clipboard",
+    });
   };
 
   useEffect(() => {
@@ -300,6 +312,14 @@ const Watch = () => {
                         <p className="text-muted-foreground">{stream.description}</p>
                       )}
                     </div>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={handleShareStream}
+                      className="shrink-0"
+                    >
+                      <Share2 className="h-4 w-4" />
+                    </Button>
                   </div>
 
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
