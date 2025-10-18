@@ -425,10 +425,16 @@ const Live = () => {
                       )}
 
                       {isLive && enableRecording && !recordingStarted && roomName && (
+                        <div className="text-center">
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={async () => {
                               try {
                                 const { data: egressData, error } = await supabase.functions.invoke('livekit-egress', {
-                                  body: { roomName, streamId }
+                                  body: { roomName, streamId },
                                 });
+
                                 if (error || !egressData?.success) {
                                   console.error('Manual recording start failed:', error || egressData);
                                   toast({
@@ -450,7 +456,9 @@ const Live = () => {
                           >
                             Start Recording
                           </Button>
-                          <p className="text-xs text-muted-foreground mt-2">If recording doesn’t start automatically, click here.</p>
+                          <p className="text-xs text-muted-foreground mt-2">
+                            If recording doesn’t start automatically, click here.
+                          </p>
                         </div>
                       )}
 
