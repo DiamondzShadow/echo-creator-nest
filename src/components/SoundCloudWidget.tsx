@@ -84,7 +84,7 @@ export function SoundCloudWidget({ url, autoPlay = false, visual = false, height
   const src = `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&auto_play=${autoPlay}&show_comments=false&visual=${visual}`;
 
   return (
-    <div className="w-full">
+    <div className="w-full space-y-3">
       <iframe
         ref={iframeRef}
         id="sc-player"
@@ -94,18 +94,33 @@ export function SoundCloudWidget({ url, autoPlay = false, visual = false, height
         frameBorder={0}
         allow="autoplay"
         src={src}
+        className="rounded-lg"
       />
-      <div className="flex items-center gap-2 mt-2">
-        <button onClick={handlePlay} className="px-3 py-1 text-sm border rounded">Play</button>
-        <button onClick={handlePause} className="px-3 py-1 text-sm border rounded">Pause</button>
-        <label className="ml-2 text-sm">Volume</label>
-        <input
-          type="range"
-          min={0}
-          max={100}
-          value={volume}
-          onChange={(e) => handleVolume(parseInt(e.target.value, 10))}
-        />
+      <div className="flex items-center gap-2 bg-muted/50 p-3 rounded-lg">
+        <button 
+          onClick={handlePlay} 
+          className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 rounded-md transition-colors"
+        >
+          Play
+        </button>
+        <button 
+          onClick={handlePause} 
+          className="px-4 py-2 text-sm font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md transition-colors"
+        >
+          Pause
+        </button>
+        <div className="flex items-center gap-2 ml-auto flex-1 max-w-xs">
+          <label className="text-sm font-medium text-foreground whitespace-nowrap">Volume</label>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={volume}
+            onChange={(e) => handleVolume(parseInt(e.target.value, 10))}
+            className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+          />
+          <span className="text-sm font-medium text-muted-foreground min-w-[3ch]">{volume}</span>
+        </div>
       </div>
     </div>
   );

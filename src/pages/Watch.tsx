@@ -265,8 +265,11 @@ const Watch = () => {
               {profile.soundcloud_url && (
                 <Card className="border-0 shadow-card">
                   <CardContent className="pt-6">
-                    <h4 className="font-semibold mb-2">SoundCloud</h4>
-                    <SoundCloudWidget url={profile.soundcloud_url} visual={false} />
+                    <h4 className="font-semibold mb-3 text-lg">🎵 Creator's Music</h4>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Listen to the creator's tracks while watching
+                    </p>
+                    <SoundCloudWidget url={profile.soundcloud_url} visual={false} autoPlay={false} />
                   </CardContent>
                 </Card>
               )}
