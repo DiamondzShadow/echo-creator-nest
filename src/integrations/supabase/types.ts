@@ -175,6 +175,7 @@ export type Database = {
           follower_count: number | null
           following_count: number | null
           id: string
+          soundcloud_url: string | null
           theme_color: string | null
           tip_count: number | null
           total_tips_received: number | null
@@ -191,6 +192,7 @@ export type Database = {
           follower_count?: number | null
           following_count?: number | null
           id: string
+          soundcloud_url?: string | null
           theme_color?: string | null
           tip_count?: number | null
           total_tips_received?: number | null
@@ -207,6 +209,7 @@ export type Database = {
           follower_count?: number | null
           following_count?: number | null
           id?: string
+          soundcloud_url?: string | null
           theme_color?: string | null
           tip_count?: number | null
           total_tips_received?: number | null

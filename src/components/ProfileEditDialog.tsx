@@ -18,9 +18,27 @@ import { Pencil, Upload, Loader2 } from 'lucide-react';
 import { z } from 'zod';
 
 const profileSchema = z.object({
-  displayName: z.string().trim().max(100, { message: "Display name must be less than 100 characters" }),
-  bio: z.string().trim().max(2000, { message: "Bio must be less than 2000 characters" }),
+  displayName: z
+    .string()
+    .trim()
+    .max(100, { message: "Display name must be less than 100 characters" }),
+  bio: z
+    .string()
+    .trim()
+    .max(2000, { message: "Bio must be less than 2000 characters" }),
   themeColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, { message: "Invalid color format" }),
+  soundcloudUrl: z
+    .string()
+    .trim()
+    .max(500, { message: "SoundCloud URL must be less than 500 characters" })
+    .refine(
+      (val) =>
+        val === '' ||
+        /^(https?:\/\/)?([\w.-]+\.)?soundcloud\.com\//i.test(val) ||
+        /^(https?:\/\/)?on\.soundcloud\.com\//i.test(val) ||
+        /^(https?:\/\/)?w\.soundcloud\.com\//i.test(val),
+      { message: "Enter a valid SoundCloud track or playlist URL" }
+    ),
 });
 
 interface ProfileEditDialogProps {
@@ -32,6 +50,7 @@ interface ProfileEditDialogProps {
     avatar_url: string | null;
     theme_color: string | null;
     background_image: string | null;
+    soundcloud_url?: string | null;
   };
   onUpdate: () => void;
 }
@@ -45,6 +64,7 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url || '');
   const [themeColor, setThemeColor] = useState(profile.theme_color || '#9333ea');
   const [backgroundImage, setBackgroundImage] = useState(profile.background_image || '');
+  const [soundCloudUrl, setSoundCloudUrl] = useState(profile.soundcloud_url || '');
   const [uploadingBg, setUploadingBg] = useState(false);
   const { toast } = useToast();
 
@@ -146,6 +166,7 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
         displayName,
         bio,
         themeColor,
+        soundcloudUrl: soundCloudUrl,
       });
 
       if (!validation.success) {
@@ -160,6 +181,7 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
           avatar_url: avatarUrl,
           theme_color: themeColor,
           background_image: backgroundImage,
+          soundcloud_url: soundCloudUrl || null,
         })
         .eq('id', profile.id);
 
@@ -239,6 +261,19 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
               placeholder="Your display name"
             />
           </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="soundcloudUrl">SoundCloud URL</Label>
+          <Input
+            id="soundcloudUrl"
+            value={soundCloudUrl}
+            onChange={(e) => setSoundCloudUrl(e.target.value)}
+            placeholder="https://soundcloud.com/artist/track-or-playlist"
+          />
+          <p className="text-xs text-muted-foreground">
+            Paste a public track or playlist link to show a player on your profile.
+          </p>
+        </div>
 
           <div className="space-y-2">
             <Label htmlFor="username">Username</Label>
