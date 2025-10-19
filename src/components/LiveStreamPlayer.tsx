@@ -25,12 +25,19 @@ export const LiveStreamPlayer = ({ playbackId, title, isLive = false, viewerId }
   const handlePlaybackError = useCallback((error: { type: string; message: string } | null) => {
     if (error) {
       console.error('🚨 Playback error:', error);
-      setPlaybackError(error.message);
-      toast({
-        title: 'Playback Error',
-        description: error.message || 'Unable to play stream. Trying fallback...',
-        variant: 'destructive',
-      });
+      
+      // Special handling for "Stream open failed" - this is normal when broadcast hasn't started
+      if (error.message?.includes('Stream open failed') || error.type === 'offline') {
+        setPlaybackError('Waiting for broadcast to start...');
+        // Don't show toast for expected "not live yet" errors
+      } else {
+        setPlaybackError(error.message);
+        toast({
+          title: 'Playback Error',
+          description: error.message || 'Unable to play stream. Trying fallback...',
+          variant: 'destructive',
+        });
+      }
     } else {
       // Error resolved
       if (playbackError) {
@@ -195,9 +202,20 @@ export const LiveStreamPlayer = ({ playbackId, title, isLive = false, viewerId }
             </Player.Root>
           ) : playbackError ? (
             <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center">
-              <AlertCircle className="w-12 h-12 text-destructive mb-4" />
-              <p className="text-destructive font-medium mb-2">Playback Error</p>
-              <p className="text-sm text-muted-foreground">{playbackError}</p>
+              {playbackError.includes('Waiting for broadcast') ? (
+                <>
+                  <Loader2 className="w-12 h-12 text-primary mb-4 animate-spin" />
+                  <p className="text-primary font-medium mb-2">Stream Ready</p>
+                  <p className="text-sm text-muted-foreground">{playbackError}</p>
+                  <p className="text-xs text-muted-foreground mt-2">Start broadcasting to begin the stream</p>
+                </>
+              ) : (
+                <>
+                  <AlertCircle className="w-12 h-12 text-destructive mb-4" />
+                  <p className="text-destructive font-medium mb-2">Playback Error</p>
+                  <p className="text-sm text-muted-foreground">{playbackError}</p>
+                </>
+              )}
             </div>
           ) : (
             <div className="w-full h-full flex items-center justify-center">

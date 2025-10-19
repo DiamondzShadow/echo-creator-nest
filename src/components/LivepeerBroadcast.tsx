@@ -18,12 +18,16 @@ export const LivepeerBroadcast = ({ streamKey, onBroadcastStateChange }: Livepee
 
   // Compute ingest URL and force a remount when streamKey changes
   const ingestUrl = useMemo(() => {
-    if (!streamKey) return undefined;
+    if (!streamKey) {
+      console.log("⚠️ No stream key provided");
+      return undefined;
+    }
     try {
-      return getIngest(streamKey, { baseUrl: "https://playback.livepeer.studio/webrtc" });
+      const url = getIngest(streamKey);
+      console.log("✅ Ingest URL computed:", url);
+      return url;
     } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error("Failed to compute ingest URL", e);
+      console.error("❌ Failed to compute ingest URL:", e);
       return undefined;
     }
   }, [streamKey]);
