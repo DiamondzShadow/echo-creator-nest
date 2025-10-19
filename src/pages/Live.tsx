@@ -14,6 +14,7 @@ import { LiveStreamPlayer } from "@/components/LiveStreamPlayer";
 import { InstantLiveStreamLiveKit } from "@/components/InstantLiveStreamLiveKit";
 import { LiveKitViewer } from "@/components/LiveKitViewer";
 import { PullStreamSetup } from "@/components/PullStreamSetup";
+import { YouTubeConnect } from "@/components/YouTubeConnect";
 import { StreamChat } from "@/components/StreamChat";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BrandBanner } from "@/components/BrandBanner";
@@ -618,6 +619,21 @@ const Live = () => {
                         />
                       </div>
                       
+                      <YouTubeConnect 
+                        onSelectStream={setPullUrl}
+                      />
+
+                      <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                          <span className="w-full border-t" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                          <span className="bg-background px-2 text-muted-foreground">
+                            Or enter manually
+                          </span>
+                        </div>
+                      </div>
+
                       <PullStreamSetup 
                         pullUrl={pullUrl}
                         onPullUrlChange={setPullUrl}
