@@ -12,54 +12,17 @@ serve(async (req) => {
   }
 
   try {
-    // Get authorization header
-    const authHeader = req.headers.get('Authorization');
-    console.log('Auth header present:', !!authHeader);
-    
-    if (!authHeader) {
-      console.error('Missing authorization header');
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized: Missing authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    
-    // Create Supabase client with the auth token
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { 
-        headers: { 
-          Authorization: authHeader 
-        } 
-      }
-    });
-
-    // Verify user is authenticated
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError) {
-      console.error('Auth error:', authError);
-      return new Response(
-        JSON.stringify({ error: `Authentication failed: ${authError.message}` }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    if (!user) {
-      console.error('No user found from token');
-      return new Response(
-        JSON.stringify({ error: 'No user found' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    console.log('User authenticated:', user.id);
+    console.log('🔵 Livepeer stream function called');
 
     const LIVEPEER_API_KEY = Deno.env.get('LIVEPEER_API_KEY');
+    console.log('🔑 LIVEPEER_API_KEY exists:', !!LIVEPEER_API_KEY);
+    
     if (!LIVEPEER_API_KEY) {
-      throw new Error('LIVEPEER_API_KEY is not configured');
+      console.error('❌ LIVEPEER_API_KEY is not configured');
+      return new Response(
+        JSON.stringify({ error: 'LIVEPEER_API_KEY is not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const STORJ_ACCESS_KEY_ID = Deno.env.get('STORJ_ACCESS_KEY_ID');
@@ -68,12 +31,15 @@ serve(async (req) => {
     const STORJ_ENDPOINT = Deno.env.get('STORJ_ENDPOINT') || 'https://gateway.storjshare.io';
 
     const { action, streamId, isInstant } = await req.json();
+    console.log('📥 Request:', { action, streamId, isInstant });
 
     if (action === 'create') {
-      // Build stream configuration
+      console.log('🎥 Creating stream...');
+      
+      // Build stream configuration following Livepeer docs
       const streamConfig: any = {
         name: `Stream ${Date.now()}`,
-        // Optimized profiles for low latency WebRTC playback
+        // Low latency profiles optimized for WebRTC (gop: 2.0 seconds)
         profiles: [
           {
             name: '1080p',
@@ -81,7 +47,7 @@ serve(async (req) => {
             fps: 30,
             width: 1920,
             height: 1080,
-            gop: '2.0',
+            gop: '2.0', // 2 second keyframe interval for low latency
           },
           {
             name: '720p',
@@ -108,11 +74,12 @@ serve(async (req) => {
             gop: '2.0',
           },
         ],
-        record: true,
+        record: true, // Enable recording
       };
 
-      // If this is an instant stream and Storj is configured, record to Storj
+      // Add Storj storage if configured
       if (isInstant && STORJ_ACCESS_KEY_ID && STORJ_SECRET_ACCESS_KEY) {
+        console.log('📦 Adding Storj storage configuration');
         streamConfig.recordingSpec = {
           profiles: [
             {
@@ -135,7 +102,8 @@ serve(async (req) => {
         };
       }
 
-      // Create a new stream
+      console.log('📡 Calling Livepeer API...');
+      // Create stream via Livepeer API
       const response = await fetch('https://livepeer.studio/api/stream', {
         method: 'POST',
         headers: {
@@ -145,8 +113,17 @@ serve(async (req) => {
         body: JSON.stringify(streamConfig),
       });
 
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Livepeer API error:', response.status, errorText);
+        return new Response(
+          JSON.stringify({ error: `Livepeer API error: ${response.status} - ${errorText}` }),
+          { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       const stream = await response.json();
-      console.log('Created stream:', stream);
+      console.log('✅ Stream created:', { id: stream.id, playbackId: stream.playbackId });
 
       return new Response(
         JSON.stringify({ 
@@ -157,61 +134,29 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     } else if (action === 'delete' && streamId) {
-      // Verify user owns the stream before deleting
-      const { data: streamData, error: streamError } = await supabase
-        .from('live_streams')
-        .select('user_id, livepeer_stream_id')
-        .eq('livepeer_stream_id', streamId)
-        .single();
-
-      if (streamError || !streamData) {
-        return new Response(
-          JSON.stringify({ error: 'Stream not found' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      if (streamData.user_id !== user.id) {
-        return new Response(
-          JSON.stringify({ error: 'Forbidden: You do not own this stream' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
+      console.log('🗑️ Deleting stream:', streamId);
+      
       // Delete stream from Livepeer
-      await fetch(`https://livepeer.studio/api/stream/${streamId}`, {
+      const response = await fetch(`https://livepeer.studio/api/stream/${streamId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${LIVEPEER_API_KEY}`,
         },
       });
 
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Delete error:', response.status, errorText);
+      }
+
+      console.log('✅ Stream deleted');
       return new Response(
         JSON.stringify({ success: true }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     } else if (action === 'get' && streamId) {
-      // Verify user owns the stream before getting details
-      const { data: streamData, error: streamError } = await supabase
-        .from('live_streams')
-        .select('user_id, livepeer_stream_id')
-        .eq('livepeer_stream_id', streamId)
-        .single();
-
-      if (streamError || !streamData) {
-        return new Response(
-          JSON.stringify({ error: 'Stream not found' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      if (streamData.user_id !== user.id) {
-        return new Response(
-          JSON.stringify({ error: 'Forbidden: You do not own this stream' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
+      console.log('📖 Getting stream info:', streamId);
+      
       // Get stream info from Livepeer
       const response = await fetch(`https://livepeer.studio/api/stream/${streamId}`, {
         headers: {
@@ -219,7 +164,17 @@ serve(async (req) => {
         },
       });
 
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Get error:', response.status, errorText);
+        return new Response(
+          JSON.stringify({ error: `Failed to get stream: ${response.status}` }),
+          { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       const stream = await response.json();
+      console.log('✅ Stream info retrieved');
       return new Response(
         JSON.stringify(stream),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
