@@ -70,8 +70,23 @@ export const YouTubeConnect = ({ onSelectStream }: YouTubeConnectProps) => {
   const handleConnect = async () => {
     try {
       setLoading(true);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        toast({
+          title: 'Please sign in',
+          description: 'Log in to connect your YouTube account.',
+          variant: 'destructive',
+        });
+        setLoading(false);
+        // Redirect to auth
+        window.location.href = '/auth';
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('youtube-oauth', {
         body: { action: 'authorize' },
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
 
       if (error) throw error;
@@ -93,8 +108,22 @@ export const YouTubeConnect = ({ onSelectStream }: YouTubeConnectProps) => {
   const handleDisconnect = async () => {
     try {
       setLoading(true);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        toast({
+          title: 'Not signed in',
+          description: 'Log in to disconnect your YouTube account.',
+          variant: 'destructive',
+        });
+        setLoading(false);
+        window.location.href = '/auth';
+        return;
+      }
+
       const { error } = await supabase.functions.invoke('youtube-oauth', {
         body: { action: 'disconnect' },
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
 
       if (error) throw error;
@@ -120,8 +149,21 @@ export const YouTubeConnect = ({ onSelectStream }: YouTubeConnectProps) => {
   const fetchStreams = async () => {
     try {
       setFetchingStreams(true);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        toast({
+          title: 'Please sign in',
+          description: 'Log in to view your YouTube live streams.',
+          variant: 'destructive',
+        });
+        setFetchingStreams(false);
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('youtube-streams', {
         body: {},
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
 
       if (error) throw error;
