@@ -84,13 +84,19 @@ export const LivepeerBroadcast = ({ streamKey, onBroadcastStateChange }: Livepee
           aspectRatio={16/9}
           timeout={15000}
           hotkeys={true}
-          // Constrain camera for stability and bandwidth predictability
+          // Constrain camera to avoid B-frames (not supported in WebRTC)
           video={{
             width: { ideal: 1280, max: 1920 },
             height: { ideal: 720, max: 1080 },
             frameRate: { ideal: 30, max: 30 },
+            // Force baseline profile to prevent B-frames
+            advanced: [{ googCpuOveruseDetection: true }] as any,
           }}
-          audio={true}
+          audio={{
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          }}
           onError={handleBroadcastError}
         >
           <Broadcast.Container className="aspect-video bg-gradient-to-br from-background to-muted relative">
