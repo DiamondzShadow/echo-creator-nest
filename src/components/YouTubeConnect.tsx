@@ -14,6 +14,7 @@ interface YouTubeStream {
   status: string;
   watchUrl: string;
   liveUrl: string;
+  rtmpUrl: string | null;
 }
 
 interface YouTubeConnectProps {
@@ -284,9 +285,20 @@ export const YouTubeConnect = ({ onSelectStream }: YouTubeConnectProps) => {
               )}
               <div className="flex gap-2">
                 <Button
-                  onClick={() => onSelectStream?.(stream.liveUrl)}
+                  onClick={() => {
+                    if (!stream.rtmpUrl) {
+                      toast({
+                        title: 'RTMP URL not available',
+                        description: 'Could not find RTMP URL for this stream. Try refreshing.',
+                        variant: 'destructive',
+                      });
+                      return;
+                    }
+                    onSelectStream?.(stream.rtmpUrl);
+                  }}
                   className="flex-1"
                   size="sm"
+                  disabled={!stream.rtmpUrl}
                 >
                   Use This Stream
                 </Button>
