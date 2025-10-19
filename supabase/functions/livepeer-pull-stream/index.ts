@@ -95,6 +95,7 @@ serve(async (req) => {
               width: 1920,
               height: 1080,
               gop: '2.0',
+              profile: 'H264Baseline',
             },
             {
               name: '720p',
@@ -103,6 +104,7 @@ serve(async (req) => {
               width: 1280,
               height: 720,
               gop: '2.0',
+              profile: 'H264Baseline',
             },
             {
               name: '480p',
@@ -111,6 +113,7 @@ serve(async (req) => {
               width: 854,
               height: 480,
               gop: '2.0',
+              profile: 'H264Baseline',
             },
             {
               name: '360p',
@@ -119,6 +122,7 @@ serve(async (req) => {
               width: 640,
               height: 360,
               gop: '2.0',
+              profile: 'H264Baseline',
             },
           ],
           // Enable recording
