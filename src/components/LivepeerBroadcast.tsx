@@ -3,7 +3,7 @@ import * as Broadcast from "@livepeer/react/broadcast";
 import { getIngest } from "@livepeer/react/external";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Radio, Signal, Video, VideoOff, Mic, MicOff } from "lucide-react";
 
 interface LivepeerBroadcastProps {
@@ -14,6 +14,11 @@ interface LivepeerBroadcastProps {
 export const LivepeerBroadcast = ({ streamKey, onBroadcastStateChange }: LivepeerBroadcastProps) => {
   const [permissionError, setPermissionError] = useState<string | null>(null);
   const [permissionReady, setPermissionReady] = useState(false);
+  const [broadcastError, setBroadcastError] = useState<string | null>(null);
+
+  // Compute ingest URL and force a remount when streamKey changes
+  const ingestUrl = useMemo(() => (streamKey ? getIngest(streamKey) : undefined), [streamKey]);
+  const [broadcastKey, setBroadcastKey] = useState<string>("preview");
 
   const requestPermissions = async () => {
     try {
@@ -32,9 +37,48 @@ export const LivepeerBroadcast = ({ streamKey, onBroadcastStateChange }: Livepee
     requestPermissions();
   }, []);
 
+  useEffect(() => {
+    if (streamKey) {
+      // Force a remount so Broadcast.Root fully re-initializes with the new ingestUrl
+      setBroadcastKey(`broadcast-${streamKey}-${Date.now()}`);
+    }
+  }, [streamKey]);
+
+  useEffect(() => {
+    if (ingestUrl) {
+      // Helpful debug logs when connecting
+      // eslint-disable-next-line no-console
+      console.log("🔴 Broadcast ingestUrl:", ingestUrl);
+    }
+  }, [ingestUrl]);
+
+  const handleBroadcastError = (error: { type: string; message: string } | null) => {
+    if (error) {
+      // eslint-disable-next-line no-console
+      console.error('❌ Broadcast error:', error);
+      setBroadcastError(error.message || 'Broadcast error');
+    } else if (broadcastError) {
+      setBroadcastError(null);
+    }
+  };
+
   return (
     <Card className="border-0 shadow-glow bg-gradient-card overflow-hidden">
-      <Broadcast.Root ingestUrl={getIngest(streamKey)}>
+      <Broadcast.Root
+        key={broadcastKey}
+        ingestUrl={ingestUrl}
+        aspectRatio={16/9}
+        timeout={15000}
+        hotkeys={true}
+        // Constrain camera for stability and bandwidth predictability
+        video={{
+          width: { ideal: 1280, max: 1920 },
+          height: { ideal: 720, max: 1080 },
+          frameRate: { ideal: 30, max: 30 },
+        }}
+        audio={true}
+        onError={handleBroadcastError}
+      >
         <Broadcast.Container className="aspect-video bg-gradient-to-br from-background to-muted relative">
           {/* Video preview with mirror effect for selfie cam */}
           <Broadcast.Video 
@@ -146,6 +190,15 @@ export const LivepeerBroadcast = ({ streamKey, onBroadcastStateChange }: Livepee
                   </div>
                 </Broadcast.StatusIndicator>
               </div>
+
+              {/* Inline error message */}
+              {broadcastError && (
+                <div className="text-center">
+                  <div className="inline-block rounded bg-destructive/10 border border-destructive/30 px-3 py-2">
+                    <p className="text-sm text-destructive">{broadcastError}</p>
+                  </div>
+                </div>
+              )}
             </div>
           </Broadcast.Controls>
         </Broadcast.Container>
