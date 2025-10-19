@@ -122,7 +122,7 @@ serve(async (req) => {
           try {
             // Fetch the stream details which contain the RTMP ingestion info
             const streamResponse = await fetch(
-              `https://www.googleapis.com/youtube/v3/liveStreams?part=cdn&id=${boundStreamId}`,
+              `https://www.googleapis.com/youtube/v3/liveStreams?part=cdn,snippet&id=${boundStreamId}`,
               {
                 headers: { Authorization: `Bearer ${accessToken}` },
               }
@@ -132,10 +132,20 @@ serve(async (req) => {
               const streamData = await streamResponse.json();
               const stream = streamData.items?.[0];
               
+              console.log('Stream CDN data:', JSON.stringify(stream?.cdn, null, 2));
+              
               if (stream?.cdn?.ingestionInfo) {
-                const ingestionAddress = stream.cdn.ingestionInfo.ingestionAddress;
-                const streamName = stream.cdn.ingestionInfo.streamName;
-                rtmpUrl = `${ingestionAddress}/${streamName}`;
+                const ingestionInfo = stream.cdn.ingestionInfo;
+                
+                // Check for traditional RTMP first
+                if (ingestionInfo.ingestionAddress && ingestionInfo.streamName) {
+                  // Only use RTMP URLs, not WebRTC
+                  if (ingestionInfo.ingestionAddress.startsWith('rtmp://')) {
+                    rtmpUrl = `${ingestionInfo.ingestionAddress}/${ingestionInfo.streamName}`;
+                  } else {
+                    console.log('Stream uses WebRTC, no RTMP URL available');
+                  }
+                }
               }
             }
           } catch (error) {

@@ -283,32 +283,39 @@ export const YouTubeConnect = ({ onSelectStream }: YouTubeConnectProps) => {
               {stream.description && (
                 <p className="text-sm text-muted-foreground line-clamp-2">{stream.description}</p>
               )}
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => {
-                    if (!stream.rtmpUrl) {
-                      toast({
-                        title: 'RTMP URL not available',
-                        description: 'Could not find RTMP URL for this stream. Try refreshing.',
-                        variant: 'destructive',
-                      });
-                      return;
-                    }
-                    onSelectStream?.(stream.rtmpUrl);
-                  }}
-                  className="flex-1"
-                  size="sm"
-                  disabled={!stream.rtmpUrl}
-                >
-                  Use This Stream
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.open(stream.watchUrl, '_blank')}
-                >
-                  <ExternalLink className="h-4 w-4" />
-                </Button>
+              <div className="space-y-2">
+                {!stream.rtmpUrl && (
+                  <p className="text-xs text-amber-500">
+                    ⚠️ This stream uses WebRTC. To pull it, go to YouTube Studio → Stream Settings → Change stream type to "RTMP"
+                  </p>
+                )}
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => {
+                      if (!stream.rtmpUrl) {
+                        toast({
+                          title: 'RTMP not enabled',
+                          description: 'This stream uses WebRTC. Change your YouTube stream settings to RTMP to pull it.',
+                          variant: 'destructive',
+                        });
+                        return;
+                      }
+                      onSelectStream?.(stream.rtmpUrl);
+                    }}
+                    className="flex-1"
+                    size="sm"
+                    disabled={!stream.rtmpUrl}
+                  >
+                    Use This Stream
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(stream.watchUrl, '_blank')}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
