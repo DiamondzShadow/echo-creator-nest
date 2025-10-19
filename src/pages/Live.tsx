@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Video, StopCircle, Loader2, Copy, Check, ExternalLink } from "lucide-react";
+import { Video, StopCircle, Loader2, Copy, Check, ExternalLink, Radio } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { LiveStreamPlayer } from "@/components/LiveStreamPlayer";
 import { InstantLiveStreamLiveKit } from "@/components/InstantLiveStreamLiveKit";
@@ -502,92 +502,174 @@ const Live = () => {
 
                   <TabsContent value="software" className="space-y-6">
                     <div className="text-center mb-4">
-                      <h3 className="text-xl font-bold mb-2">Professional Streaming</h3>
+                      <h3 className="text-xl font-bold mb-2">Stream with Browser or Software</h3>
                       <p className="text-sm text-muted-foreground">
-                        Use OBS, Streamlabs, or other streaming software for advanced features
+                        WebRTC browser broadcast (ultra-low latency) or use OBS/Streamlabs
                       </p>
                     </div>
 
-                    <form onSubmit={handleStartStream} className="space-y-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="title-software">Stream Title</Label>
-                        <Input
-                          id="title-software"
-                          placeholder="What are you streaming today?"
-                          value={title}
-                          onChange={(e) => setTitle(e.target.value)}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="description-software">Description</Label>
-                        <Textarea
-                          id="description-software"
-                          placeholder="Tell viewers what to expect..."
-                          value={description}
-                          onChange={(e) => setDescription(e.target.value)}
-                          rows={4}
-                        />
-                      </div>
+                    {!streamKey ? (
+                      <form onSubmit={handleStartStream} className="space-y-6">
+                        <div className="space-y-2">
+                          <Label htmlFor="title-software">Stream Title</Label>
+                          <Input
+                            id="title-software"
+                            placeholder="What are you streaming today?"
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="description-software">Description</Label>
+                          <Textarea
+                            id="description-software"
+                            placeholder="Tell viewers what to expect..."
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            rows={4}
+                          />
+                        </div>
 
-                      {/* Recording Options */}
-                      <Card className="border-muted bg-muted/20">
-                        <CardContent className="pt-6 space-y-4">
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-0.5">
-                              <Label htmlFor="enable-recording-sw" className="text-base">
-                                Record Stream
-                              </Label>
-                              <p className="text-sm text-muted-foreground">
-                                Save your stream for viewers to watch later
-                              </p>
-                            </div>
-                            <Switch
-                              id="enable-recording-sw"
-                              checked={enableRecording}
-                              onCheckedChange={setEnableRecording}
-                            />
-                          </div>
-
-                          {enableRecording && (
-                            <div className="flex items-center justify-between pl-4 border-l-2 border-primary/30">
-                              <div className="space-y-0.5">
-                                <Label htmlFor="save-to-storj-sw" className="text-sm">
-                                  Save to Storj (Decentralized)
-                                </Label>
-                                <p className="text-xs text-muted-foreground">
-                                  Permanently store on decentralized storage
-                                </p>
-                              </div>
-                              <Switch
-                                id="save-to-storj-sw"
-                                checked={saveToStorj}
-                                onCheckedChange={setSaveToStorj}
-                              />
-                            </div>
+                        <Button
+                          type="submit"
+                          size="lg"
+                          className="w-full bg-gradient-hero hover:opacity-90 text-lg"
+                          disabled={loading}
+                        >
+                          {loading ? (
+                            <>
+                              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                              Creating Stream...
+                            </>
+                          ) : (
+                            <>
+                              <Video className="mr-2 h-5 w-5" />
+                              Create Stream
+                            </>
                           )}
-                        </CardContent>
-                      </Card>
+                        </Button>
+                      </form>
+                    ) : (
+                      <div className="space-y-6">
+                        {/* WebRTC Browser Broadcast */}
+                        <Card className="border-primary/20 bg-primary/5">
+                          <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                              <Radio className="w-5 h-5 text-primary" />
+                              Browser Broadcast (WebRTC)
+                            </CardTitle>
+                            <CardDescription>
+                              Ultra-low latency (0.5-3s) - Stream directly from your browser
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            <LivepeerBroadcast 
+                              streamKey={streamKey}
+                              onBroadcastStateChange={(isLive) => {
+                                console.log('Broadcast state changed:', isLive);
+                              }}
+                            />
+                            
+                            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                              <p className="text-sm font-medium">📹 How to use:</p>
+                              <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+                                <li>Allow camera and microphone access when prompted</li>
+                                <li>Click the red button to start broadcasting</li>
+                                <li>Click again (now a square) to stop</li>
+                                <li>Use icons to toggle video/audio on/off</li>
+                              </ol>
+                            </div>
+                          </CardContent>
+                        </Card>
 
-                      <Button
-                        type="submit"
-                        size="lg"
-                        className="w-full bg-gradient-hero hover:opacity-90 text-lg"
-                        disabled={loading}
-                      >
-                        {loading ? (
-                          <>
-                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                            Creating Stream...
-                          </>
-                        ) : (
-                          <>
-                            <Video className="mr-2 h-5 w-5" />
-                            Create Stream
-                          </>
-                        )}
-                      </Button>
-                    </form>
+                        {/* RTMP Software Instructions */}
+                        <Card className="border-muted">
+                          <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                              <ExternalLink className="w-5 h-5" />
+                              OBS/Streaming Software (RTMP)
+                            </CardTitle>
+                            <CardDescription>
+                              For advanced users with professional streaming software
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            <div>
+                              <Label className="text-sm font-medium">Server URL</Label>
+                              <div className="flex gap-2 mt-2">
+                                <Input
+                                  value="rtmp://rtmp.livepeer.com/live"
+                                  readOnly
+                                  className="font-mono text-sm"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText("rtmp://rtmp.livepeer.com/live");
+                                    toast({ title: "Copied!", description: "Server URL copied" });
+                                  }}
+                                >
+                                  <Copy className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
+
+                            <div>
+                              <Label className="text-sm font-medium">Stream Key</Label>
+                              <div className="flex gap-2 mt-2">
+                                <Input
+                                  value={streamKey}
+                                  readOnly
+                                  type="password"
+                                  className="font-mono text-sm"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={copyStreamKey}
+                                >
+                                  {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                                </Button>
+                              </div>
+                            </div>
+
+                            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                              <p className="text-sm font-medium">🎮 OBS Setup:</p>
+                              <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+                                <li>Open OBS Studio</li>
+                                <li>Settings → Stream → Select "Custom"</li>
+                                <li>Paste Server URL and Stream Key above</li>
+                                <li>Click "Start Streaming"</li>
+                              </ol>
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        <Button
+                          onClick={handleEndStream}
+                          variant="destructive"
+                          size="lg"
+                          className="w-full"
+                          disabled={loading}
+                        >
+                          {loading ? (
+                            <>
+                              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                              Ending Stream...
+                            </>
+                          ) : (
+                            <>
+                              <StopCircle className="mr-2 h-5 w-5" />
+                              End Stream
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )}
                   </TabsContent>
 
                   <TabsContent value="pull" className="space-y-6">
