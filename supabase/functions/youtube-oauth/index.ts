@@ -13,7 +13,15 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const action = url.searchParams.get('action');
+    
+    // For callback, action is in URL params
+    let action = url.searchParams.get('action');
+    
+    // For invoke calls, action is in body
+    if (!action && req.method === 'POST') {
+      const body = await req.json();
+      action = body.action;
+    }
 
     const YOUTUBE_CLIENT_ID = Deno.env.get('YOUTUBE_CLIENT_ID');
     const YOUTUBE_CLIENT_SECRET = Deno.env.get('YOUTUBE_CLIENT_SECRET');
