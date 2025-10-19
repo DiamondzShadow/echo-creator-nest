@@ -14,8 +14,9 @@ serve(async (req) => {
   try {
     const url = new URL(req.url);
     
-    // For callback, action is in URL params
-    let action = url.searchParams.get('action');
+    // Detect callback by presence of 'code' parameter from Google
+    const code = url.searchParams.get('code');
+    let action = code ? 'callback' : url.searchParams.get('action');
     
     // For invoke calls, action is in body
     if (!action && req.method === 'POST') {
@@ -32,7 +33,7 @@ serve(async (req) => {
       throw new Error('YouTube OAuth credentials not configured');
     }
 
-    const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/youtube-oauth/callback`;
+    const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/youtube-oauth`;
 
     if (action === 'authorize') {
       // Generate OAuth URL
