@@ -12,9 +12,12 @@ serve(async (req) => {
   }
 
   try {
-    // Verify user is authenticated
+    // Get authorization header
     const authHeader = req.headers.get('Authorization');
+    console.log('Auth header present:', !!authHeader);
+    
     if (!authHeader) {
+      console.error('Missing authorization header');
       return new Response(
         JSON.stringify({ error: 'Unauthorized: Missing authorization header' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -23,18 +26,36 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    
+    // Create Supabase client with the auth token
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
+      global: { 
+        headers: { 
+          Authorization: authHeader 
+        } 
+      }
     });
 
-    // Get authenticated user
+    // Verify user is authenticated
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    
+    if (authError) {
+      console.error('Auth error:', authError);
       return new Response(
-        JSON.stringify({ error: 'Unauthorized: Invalid token' }),
+        JSON.stringify({ error: `Authentication failed: ${authError.message}` }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    
+    if (!user) {
+      console.error('No user found from token');
+      return new Response(
+        JSON.stringify({ error: 'No user found' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    console.log('User authenticated:', user.id);
 
     const LIVEPEER_API_KEY = Deno.env.get('LIVEPEER_API_KEY');
     if (!LIVEPEER_API_KEY) {
