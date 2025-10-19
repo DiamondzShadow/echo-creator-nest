@@ -86,9 +86,9 @@ serve(async (req) => {
       }).eq('id', connection.id);
     }
 
-    // Fetch live broadcasts
+    // Fetch live broadcasts using mine=true (broadcastStatus and mine are incompatible)
     const broadcastsResponse = await fetch(
-      'https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,status&broadcastStatus=active&mine=true',
+      'https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,status&mine=true',
       {
         headers: { Authorization: `Bearer ${accessToken}` },
       }
@@ -105,7 +105,12 @@ serve(async (req) => {
 
     const broadcasts = await broadcastsResponse.json();
     
-    const streams = (broadcasts.items || []).map((item: any) => ({
+    // Filter for active/live broadcasts only
+    const activeItems = (broadcasts.items || []).filter((item: any) => 
+      item.status.lifeCycleStatus === 'live' || item.status.lifeCycleStatus === 'liveStarting'
+    );
+    
+    const streams = activeItems.map((item: any) => ({
       id: item.id,
       title: item.snippet.title,
       description: item.snippet.description,
