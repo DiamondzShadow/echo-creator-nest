@@ -2,6 +2,8 @@ import { EnableVideoIcon, StopIcon } from "@livepeer/react/assets";
 import * as Broadcast from "@livepeer/react/broadcast";
 import { getIngest } from "@livepeer/react/external";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
 import { Radio, Signal, Video, VideoOff, Mic, MicOff } from "lucide-react";
 
 interface LivepeerBroadcastProps {
@@ -10,6 +12,26 @@ interface LivepeerBroadcastProps {
 }
 
 export const LivepeerBroadcast = ({ streamKey, onBroadcastStateChange }: LivepeerBroadcastProps) => {
+  const [permissionError, setPermissionError] = useState<string | null>(null);
+  const [permissionReady, setPermissionReady] = useState(false);
+
+  const requestPermissions = async () => {
+    try {
+      const stream = await navigator.mediaDevices?.getUserMedia?.({ video: true, audio: true });
+      stream?.getTracks?.().forEach((t) => t.stop());
+      setPermissionReady(true);
+      setPermissionError(null);
+    } catch (e: any) {
+      setPermissionError(e?.message || 'Camera/mic permission denied');
+      setPermissionReady(false);
+    }
+  };
+
+  useEffect(() => {
+    // Warm-up permission prompt on mount
+    requestPermissions();
+  }, []);
+
   return (
     <Card className="border-0 shadow-glow bg-gradient-card overflow-hidden">
       <Broadcast.Root ingestUrl={getIngest(streamKey)}>
@@ -51,6 +73,20 @@ export const LivepeerBroadcast = ({ streamKey, onBroadcastStateChange }: Livepee
               </Broadcast.StatusIndicator>
             </div>
           </Broadcast.LoadingIndicator>
+
+          {/* Permissions */}
+          <div className="absolute top-4 right-4 z-10 flex flex-col items-end gap-2">
+            {!permissionReady && (
+              <Button variant="secondary" size="sm" onClick={requestPermissions}>
+                Allow Camera & Mic
+              </Button>
+            )}
+            {permissionError && (
+              <div className="text-xs text-destructive bg-background/60 backdrop-blur px-3 py-1.5 rounded">
+                {permissionError}
+              </div>
+            )}
+          </div>
 
           {/* Enhanced Controls */}
           <Broadcast.Controls className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent p-6">
