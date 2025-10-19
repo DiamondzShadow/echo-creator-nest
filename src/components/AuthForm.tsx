@@ -21,7 +21,6 @@ interface AuthFormProps {
 
 const AuthForm = ({ onSuccess }: AuthFormProps) => {
   const [isLogin, setIsLogin] = useState(true);
-  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
@@ -34,27 +33,6 @@ const AuthForm = ({ onSuccess }: AuthFormProps) => {
     setLoading(true);
 
     try {
-      if (isForgotPassword) {
-        // Validate email
-        const emailValidation = z.string().email().safeParse(email);
-        if (!emailValidation.success) {
-          throw new Error("Please enter a valid email address");
-        }
-
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/reset-password`,
-        });
-
-        if (error) throw error;
-
-        toast({
-          title: "Check your email",
-          description: "We've sent you a password reset link.",
-        });
-        setIsForgotPassword(false);
-        return;
-      }
-
       // Validate input
       const validation = authSchema.safeParse({
         email,
@@ -116,19 +94,15 @@ const AuthForm = ({ onSuccess }: AuthFormProps) => {
     <Card className="w-full max-w-md border-0 shadow-glow bg-gradient-card">
       <CardHeader>
         <CardTitle className="text-2xl bg-gradient-hero bg-clip-text text-transparent">
-          {isForgotPassword ? "Reset Password" : isLogin ? "Welcome Back" : "Join Us"}
+          {isLogin ? "Welcome Back" : "Join Us"}
         </CardTitle>
         <CardDescription>
-          {isForgotPassword 
-            ? "Enter your email to receive a reset link" 
-            : isLogin 
-            ? "Sign in to your account" 
-            : "Create your creator account"}
+          {isLogin ? "Sign in to your account" : "Create your creator account"}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleAuth} className="space-y-4">
-          {!isLogin && !isForgotPassword && (
+          {!isLogin && (
             <>
               <div className="space-y-2">
                 <Label htmlFor="username">Username</Label>
@@ -164,20 +138,18 @@ const AuthForm = ({ onSuccess }: AuthFormProps) => {
               required
             />
           </div>
-          {!isForgotPassword && (
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-              />
-            </div>
-          )}
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+            />
+          </div>
           <Button
             type="submit"
             className="w-full bg-gradient-hero hover:opacity-90"
@@ -188,37 +160,19 @@ const AuthForm = ({ onSuccess }: AuthFormProps) => {
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Please wait...
               </>
-            ) : isForgotPassword ? (
-              "Send Reset Link"
             ) : isLogin ? (
               "Sign In"
             ) : (
               "Create Account"
             )}
           </Button>
-          <div className="text-center text-sm space-y-2">
-            {isLogin && !isForgotPassword && (
-              <button
-                type="button"
-                onClick={() => setIsForgotPassword(true)}
-                className="text-primary hover:underline block w-full"
-              >
-                Forgot your password?
-              </button>
-            )}
+          <div className="text-center text-sm">
             <button
               type="button"
-              onClick={() => {
-                setIsForgotPassword(false);
-                setIsLogin(!isLogin);
-              }}
-              className="text-primary hover:underline block w-full"
+              onClick={() => setIsLogin(!isLogin)}
+              className="text-primary hover:underline"
             >
-              {isForgotPassword 
-                ? "Back to sign in" 
-                : isLogin 
-                ? "Don't have an account? Sign up" 
-                : "Already have an account? Sign in"}
+              {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
             </button>
           </div>
         </form>
