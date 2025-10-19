@@ -25,7 +25,9 @@ serve(async (req) => {
       );
     }
 
-    // Get playback info from Livepeer
+    console.log('🔍 Fetching playback info for:', playbackId);
+
+    // Get playback info from Livepeer - includes WebRTC and HLS sources
     const response = await fetch(`https://livepeer.studio/api/playback/${playbackId}`, {
       headers: {
         'Authorization': `Bearer ${LIVEPEER_API_KEY}`,
@@ -33,17 +35,20 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Livepeer API error:', response.status, errorText);
       throw new Error(`Failed to fetch playback info: ${response.statusText}`);
     }
 
     const playbackInfo = await response.json();
+    console.log('✅ Playback info retrieved:', JSON.stringify(playbackInfo, null, 2));
     
     return new Response(
       JSON.stringify(playbackInfo),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Playback info error:', error);
+    console.error('💥 Playback info error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ error: errorMessage }),

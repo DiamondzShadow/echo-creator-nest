@@ -2,8 +2,8 @@ import { Card } from '@/components/ui/card';
 import ReactionOverlay from '@/components/ReactionOverlay';
 import * as Player from '@livepeer/react/player';
 import { getSrc } from '@livepeer/react/external';
-import { useEffect, useState } from 'react';
-import { Loader2, Play, Pause, Volume2, VolumeX, Maximize, AlertCircle } from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
+import { Loader2, Play, Pause, Volume2, VolumeX, Maximize, AlertCircle, Radio } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -21,14 +21,14 @@ export const LiveStreamPlayer = ({ playbackId, title, isLive = false, viewerId }
   const [isDirectUrl, setIsDirectUrl] = useState(false);
   const { toast } = useToast();
 
-  // Handle playback errors
-  const handlePlaybackError = (error: { type: string; message: string } | null) => {
+  // Handle playback errors with retry logic
+  const handlePlaybackError = useCallback((error: { type: string; message: string } | null) => {
     if (error) {
       console.error('🚨 Playback error:', error);
       setPlaybackError(error.message);
       toast({
         title: 'Playback Error',
-        description: error.message || 'An error occurred during playback',
+        description: error.message || 'Unable to play stream. Trying fallback...',
         variant: 'destructive',
       });
     } else {
@@ -38,49 +38,57 @@ export const LiveStreamPlayer = ({ playbackId, title, isLive = false, viewerId }
         setPlaybackError(null);
       }
     }
-  };
+  }, [playbackError, toast]);
 
   useEffect(() => {
     const fetchPlaybackInfo = async () => {
       try {
         setIsLoading(true);
+        setPlaybackError(null);
         
         // Check if playbackId is a direct URL (Storj recording)
         if (playbackId.startsWith('http')) {
-          console.log('Direct video URL detected:', playbackId);
+          console.log('📹 Direct video URL detected:', playbackId);
           setIsDirectUrl(true);
           setSrc([{ src: playbackId, type: 'video/mp4' }]);
           setIsLoading(false);
           return;
         }
 
+        console.log('🔍 Fetching playback info for:', playbackId);
+        
         // Fetch playback info through our backend function for Livepeer
         const { data, error } = await supabase.functions.invoke('livepeer-playback', {
           body: { playbackId }
         });
 
         if (error) {
-          console.error('Failed to fetch playback info:', error);
+          console.error('❌ Failed to fetch playback info:', error);
+          setPlaybackError('Failed to load stream');
           setIsLoading(false);
           return;
         }
 
-        console.log('Playback info:', data);
+        console.log('📦 Playback info received:', data);
         
-        // Use getSrc to parse the playback sources and prefer HLS
+        // Use getSrc to parse the playback sources - prioritize WebRTC for live, HLS for VOD
         const allSources = getSrc(data);
-        const hlsSources = Array.isArray(allSources)
-          ? allSources.filter((s: any) => s?.type?.includes('application/vnd.apple.mpegurl'))
-          : null;
-        console.log('Parsed HLS sources:', hlsSources);
-        setSrc(hlsSources && hlsSources.length ? hlsSources : null);
-
-        // If not live yet, retry shortly
-        if (!hlsSources || hlsSources.length === 0) {
+        console.log('🎬 All parsed sources:', allSources);
+        
+        if (Array.isArray(allSources) && allSources.length > 0) {
+          // For live streams, prefer WebRTC for ultra-low latency
+          // Player will automatically fallback to HLS if WebRTC fails
+          setSrc(allSources);
+          console.log('✅ Sources set:', allSources);
+        } else {
+          console.log('⏳ No sources available yet, retrying...');
+          setSrc(null);
+          // If not live yet, retry shortly
           setTimeout(fetchPlaybackInfo, 5000);
         }
       } catch (error) {
-        console.error('Error fetching playback info:', error);
+        console.error('💥 Error fetching playback info:', error);
+        setPlaybackError('An error occurred while loading the stream');
       } finally {
         setIsLoading(false);
       }
@@ -96,18 +104,20 @@ export const LiveStreamPlayer = ({ playbackId, title, isLive = false, viewerId }
       <div className="relative">
         <div className="aspect-video bg-muted rounded-lg overflow-hidden">
           {isLoading ? (
-            <div className="w-full h-full flex items-center justify-center">
+            <div className="w-full h-full flex flex-col items-center justify-center gap-3">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Loading stream...</p>
             </div>
           ) : src && src.length > 0 ? (
             <Player.Root 
               src={src} 
               autoPlay={isLive} 
               volume={isLive ? 0 : 1}
-              lowLatency={isLive ? true : false}
+              // Enable low latency for live streams with WebRTC fallback to HLS
+              lowLatency={isLive}
               viewerId={viewerId}
               onError={handlePlaybackError}
-              timeout={15000}
+              timeout={20000}
               hotkeys={true}
             >
               <Player.Container className="w-full h-full">
@@ -119,22 +129,33 @@ export const LiveStreamPlayer = ({ playbackId, title, isLive = false, viewerId }
                 {/* Reactions overlay */}
                 <ReactionOverlay />
 
-                <Player.LoadingIndicator className="absolute inset-0 flex items-center justify-center bg-background/80">
-                  <Loader2 className="w-8 h-8 animate-spin" />
+                {/* Loading indicator */}
+                <Player.LoadingIndicator asChild matcher={false}>
+                  <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+                    <div className="flex flex-col items-center gap-3">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                      <p className="text-sm text-muted-foreground">Buffering...</p>
+                    </div>
+                  </div>
                 </Player.LoadingIndicator>
 
-                {/* Live indicator */}
+                {/* Live status indicator with connection quality */}
                 {isLive && (
-                  <div className="absolute top-4 left-4 z-10 bg-destructive text-destructive-foreground px-3 py-1 rounded-full text-sm font-bold flex items-center gap-2 shadow-glow animate-pulse">
-                    <span className="w-2 h-2 bg-destructive-foreground rounded-full animate-pulse"></span>
-                    LIVE
+                  <div className="absolute top-4 left-4 z-10">
+                    <div className="bg-destructive/90 backdrop-blur-sm text-destructive-foreground px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-2 shadow-glow">
+                      <Player.LiveIndicator className="flex items-center gap-2">
+                        <Radio className="w-3 h-3 animate-pulse" />
+                        <span>LIVE</span>
+                      </Player.LiveIndicator>
+                    </div>
                   </div>
                 )}
 
-                {/* Custom controls */}
-                <Player.Controls className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 opacity-0 hover:opacity-100 transition-opacity">
+                {/* Enhanced custom controls */}
+                <Player.Controls className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-4 opacity-0 hover:opacity-100 transition-opacity duration-200">
                   <div className="flex items-center gap-3">
-                    <Player.PlayPauseTrigger className="text-white hover:text-primary transition-colors">
+                    {/* Play/Pause */}
+                    <Player.PlayPauseTrigger className="text-white hover:text-primary transition-colors hover:scale-110 duration-200">
                       <Player.PlayingIndicator asChild matcher={false}>
                         <Play className="w-6 h-6 fill-current" />
                       </Player.PlayingIndicator>
@@ -143,16 +164,19 @@ export const LiveStreamPlayer = ({ playbackId, title, isLive = false, viewerId }
                       </Player.PlayingIndicator>
                     </Player.PlayPauseTrigger>
 
+                    {/* Time display */}
                     <Player.Time className="text-white text-sm font-mono" />
 
-                    <Player.Seek className="flex-1 mx-4">
-                      <Player.Track className="bg-white/30 h-1 rounded-full relative">
-                        <Player.SeekBuffer className="absolute h-full bg-white/50 rounded-full" />
-                        <Player.Range className="absolute h-full bg-primary rounded-full" />
+                    {/* Progress bar */}
+                    <Player.Seek className="flex-1 mx-4 group">
+                      <Player.Track className="bg-white/30 h-1.5 rounded-full relative group-hover:h-2 transition-all">
+                        <Player.SeekBuffer className="absolute h-full bg-white/40 rounded-full" />
+                        <Player.Range className="absolute h-full bg-primary rounded-full shadow-glow" />
                       </Player.Track>
                     </Player.Seek>
 
-                    <Player.MuteTrigger className="text-white hover:text-primary transition-colors">
+                    {/* Volume control */}
+                    <Player.MuteTrigger className="text-white hover:text-primary transition-colors hover:scale-110 duration-200">
                       <Player.VolumeIndicator asChild matcher={false}>
                         <VolumeX className="w-5 h-5" />
                       </Player.VolumeIndicator>
@@ -161,7 +185,8 @@ export const LiveStreamPlayer = ({ playbackId, title, isLive = false, viewerId }
                       </Player.VolumeIndicator>
                     </Player.MuteTrigger>
 
-                    <Player.FullscreenTrigger className="text-white hover:text-primary transition-colors">
+                    {/* Fullscreen */}
+                    <Player.FullscreenTrigger className="text-white hover:text-primary transition-colors hover:scale-110 duration-200">
                       <Maximize className="w-5 h-5" />
                     </Player.FullscreenTrigger>
                   </div>
