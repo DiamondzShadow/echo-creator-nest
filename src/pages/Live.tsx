@@ -16,6 +16,7 @@ import { LiveKitViewer } from "@/components/LiveKitViewer";
 import { PullStreamSetup } from "@/components/PullStreamSetup";
 import { YouTubeConnect } from "@/components/YouTubeConnect";
 import { StreamChat } from "@/components/StreamChat";
+import { LivepeerBroadcast } from "@/components/LivepeerBroadcast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BrandBanner } from "@/components/BrandBanner";
 
