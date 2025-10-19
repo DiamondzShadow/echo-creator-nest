@@ -19,22 +19,52 @@ export const LiveStreamPlayer = ({ playbackId, title, isLive = false, viewerId }
   const [isLoading, setIsLoading] = useState(true);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
   const [isDirectUrl, setIsDirectUrl] = useState(false);
+  const [forcedHlsFallback, setForcedHlsFallback] = useState(false);
   const { toast } = useToast();
 
   // Handle playback errors with retry logic
   const handlePlaybackError = useCallback((error: { type: string; message: string } | null) => {
     if (error) {
       console.error('🚨 Playback error:', error);
-      
+
+      const message = error.message || '';
+
+      // If the source contains B-frames, WebRTC (WHEP) playback will fail.
+      // Immediately fall back to HLS-only sources to keep playback working.
+      const indicatesBFrames = /b[\-\s]?frames?/i.test(message) || /contains\s+bframes?/i.test(message) || /metadata.*bframes?/i.test(message);
+      if (!forcedHlsFallback && indicatesBFrames) {
+        setForcedHlsFallback(true);
+
+        setSrc((prev) => {
+          if (!Array.isArray(prev)) return prev;
+          const filtered = prev.filter((s: any) => {
+            const type = String(s?.type || '');
+            const url = String(s?.src || '');
+            const isWebRTCType = /webrtc|whep/i.test(type) || /^whep:\/\//i.test(url) || /^webrtc:\/\//i.test(url);
+            const isHlsType = /mpegurl|application\/x-mpegurl|hls/i.test(type) || /\.m3u8(\?|$)/i.test(url);
+            const isMp4Type = /mp4/i.test(type) || /\.mp4(\?|$)/i.test(url);
+            return !isWebRTCType && (isHlsType || isMp4Type);
+          });
+          // If filtering resulted in no sources, keep previous to avoid blank player
+          return filtered.length > 0 ? filtered : prev;
+        });
+
+        setPlaybackError('WebRTC not supported for this source (B-frames). Switched to HLS.');
+        toast({
+          title: 'Switched to HLS',
+          description: 'The stream contains B-frames which WebRTC cannot play. Using HLS fallback.',
+        });
+        return;
+      }
+
       // Special handling for "Stream open failed" - this is normal when broadcast hasn't started
-      if (error.message?.includes('Stream open failed') || error.type === 'offline') {
+      if (message.includes('Stream open failed') || error.type === 'offline') {
         setPlaybackError('Waiting for broadcast to start...');
-        // Don't show toast for expected "not live yet" errors
       } else {
-        setPlaybackError(error.message);
+        setPlaybackError(message);
         toast({
           title: 'Playback Error',
-          description: error.message || 'Unable to play stream. Trying fallback...',
+          description: message || 'Unable to play stream. Trying fallback...',
           variant: 'destructive',
         });
       }
@@ -45,7 +75,7 @@ export const LiveStreamPlayer = ({ playbackId, title, isLive = false, viewerId }
         setPlaybackError(null);
       }
     }
-  }, [playbackError, toast]);
+  }, [forcedHlsFallback, playbackError, toast]);
 
   useEffect(() => {
     const fetchPlaybackInfo = async () => {
@@ -83,9 +113,19 @@ export const LiveStreamPlayer = ({ playbackId, title, isLive = false, viewerId }
         console.log('🎬 All parsed sources:', allSources);
         
         if (Array.isArray(allSources) && allSources.length > 0) {
-          // For live streams, prefer WebRTC for ultra-low latency
-          // Player will automatically fallback to HLS if WebRTC fails
-          setSrc(allSources);
+          // For live streams, prefer WebRTC for ultra-low latency.
+          // If we previously forced an HLS fallback, keep HLS-first ordering.
+          if (forcedHlsFallback) {
+            const hlsFirst = [...allSources].sort((a: any, b: any) => {
+              const aIsWebRTC = /webrtc|whep/i.test(String(a?.type || '')) || /^whep:\/\//i.test(String(a?.src || ''));
+              const bIsWebRTC = /webrtc|whep/i.test(String(b?.type || '')) || /^whep:\/\//i.test(String(b?.src || ''));
+              if (aIsWebRTC === bIsWebRTC) return 0;
+              return aIsWebRTC ? 1 : -1; // push WebRTC to the end
+            });
+            setSrc(hlsFirst);
+          } else {
+            setSrc(allSources);
+          }
           console.log('✅ Sources set:', allSources);
         } else {
           console.log('⏳ No sources available yet, retrying...');
