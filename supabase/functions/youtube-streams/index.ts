@@ -88,7 +88,7 @@ serve(async (req) => {
 
     // Fetch live broadcasts using mine=true (broadcastStatus and mine are incompatible)
     const broadcastsResponse = await fetch(
-      'https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,status&mine=true',
+      'https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,status,contentDetails&mine=true',
       {
         headers: { Authorization: `Bearer ${accessToken}` },
       }
@@ -110,17 +110,55 @@ serve(async (req) => {
       item.status.lifeCycleStatus === 'live' || item.status.lifeCycleStatus === 'liveStarting'
     );
     
-    const streams = activeItems.map((item: any) => ({
-      id: item.id,
-      title: item.snippet.title,
-      description: item.snippet.description,
-      thumbnail: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.default?.url,
-      status: item.status.lifeCycleStatus,
-      scheduledStartTime: item.snippet.scheduledStartTime,
-      actualStartTime: item.snippet.actualStartTime,
-      watchUrl: `https://www.youtube.com/watch?v=${item.id}`,
-      liveUrl: `https://youtube.com/live/${item.id}`,
-    }));
+    // Fetch RTMP URLs for each broadcast
+    const streamsWithRtmp = await Promise.all(
+      activeItems.map(async (item: any) => {
+        let rtmpUrl = null;
+        
+        // Get the bound stream ID from the broadcast
+        const boundStreamId = item.contentDetails?.boundStreamId;
+        
+        if (boundStreamId) {
+          try {
+            // Fetch the stream details which contain the RTMP ingestion info
+            const streamResponse = await fetch(
+              `https://www.googleapis.com/youtube/v3/liveStreams?part=cdn&id=${boundStreamId}`,
+              {
+                headers: { Authorization: `Bearer ${accessToken}` },
+              }
+            );
+            
+            if (streamResponse.ok) {
+              const streamData = await streamResponse.json();
+              const stream = streamData.items?.[0];
+              
+              if (stream?.cdn?.ingestionInfo) {
+                const ingestionAddress = stream.cdn.ingestionInfo.ingestionAddress;
+                const streamName = stream.cdn.ingestionInfo.streamName;
+                rtmpUrl = `${ingestionAddress}/${streamName}`;
+              }
+            }
+          } catch (error) {
+            console.error(`Failed to fetch RTMP for stream ${boundStreamId}:`, error);
+          }
+        }
+        
+        return {
+          id: item.id,
+          title: item.snippet.title,
+          description: item.snippet.description,
+          thumbnail: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.default?.url,
+          status: item.status.lifeCycleStatus,
+          scheduledStartTime: item.snippet.scheduledStartTime,
+          actualStartTime: item.snippet.actualStartTime,
+          watchUrl: `https://www.youtube.com/watch?v=${item.id}`,
+          liveUrl: `https://youtube.com/live/${item.id}`,
+          rtmpUrl: rtmpUrl,
+        };
+      })
+    );
+    
+    const streams = streamsWithRtmp;
 
     return new Response(JSON.stringify({ streams }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
