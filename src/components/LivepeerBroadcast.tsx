@@ -3,8 +3,9 @@ import * as Broadcast from "@livepeer/react/broadcast";
 import { getIngest } from "@livepeer/react/external";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useEffect, useMemo, useState } from "react";
-import { Radio, Signal, Video, VideoOff, Mic, MicOff } from "lucide-react";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { Radio, Signal, Video, VideoOff, Mic, MicOff, AlertTriangle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface LivepeerBroadcastProps {
   streamKey: string;
@@ -15,6 +16,9 @@ export const LivepeerBroadcast = ({ streamKey, onBroadcastStateChange }: Livepee
   const [permissionError, setPermissionError] = useState<string | null>(null);
   const [permissionReady, setPermissionReady] = useState(false);
   const [broadcastError, setBroadcastError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [connectionQuality, setConnectionQuality] = useState<'excellent' | 'good' | 'poor' | 'disconnected'>('disconnected');
+  const { toast } = useToast();
 
   // Compute ingest URL and force a remount when streamKey changes
   const ingestUrl = useMemo(() => {
@@ -94,15 +98,49 @@ export const LivepeerBroadcast = ({ streamKey, onBroadcastStateChange }: Livepee
     }
   }, [ingestUrl, permissionReady]);
 
-  const handleBroadcastError = (error: { type: string; message: string } | null) => {
+  const handleBroadcastError = useCallback((error: { type: string; message: string } | null) => {
     if (error) {
-      // eslint-disable-next-line no-console
       console.error('❌ Broadcast error:', error);
-      setBroadcastError(error.message || 'Broadcast error');
+      const errorMsg = error.message || 'Broadcast error';
+      setBroadcastError(errorMsg);
+      
+      // Show toast notification for critical errors
+      if (error.type === 'permissions' || errorMsg.includes('permission')) {
+        toast({
+          title: 'Camera/Microphone Access Denied',
+          description: 'Please grant camera and microphone permissions to broadcast.',
+          variant: 'destructive',
+        });
+      } else if (errorMsg.includes('network') || errorMsg.includes('connection')) {
+        toast({
+          title: 'Connection Error',
+          description: 'Unable to connect to streaming server. Retrying...',
+          variant: 'destructive',
+        });
+        
+        // Auto-retry connection errors up to 3 times
+        if (retryCount < 3) {
+          setTimeout(() => {
+            console.log(`🔄 Retrying connection (attempt ${retryCount + 1}/3)...`);
+            setRetryCount(prev => prev + 1);
+            setBroadcastKey(`broadcast-retry-${streamKey}-${Date.now()}`);
+          }, 3000);
+        }
+      } else {
+        toast({
+          title: 'Broadcast Error',
+          description: errorMsg,
+          variant: 'destructive',
+        });
+      }
+      
+      setConnectionQuality('disconnected');
     } else if (broadcastError) {
       setBroadcastError(null);
+      setRetryCount(0);
+      setConnectionQuality('excellent');
     }
-  };
+  }, [broadcastError, retryCount, streamKey, toast]);
 
   return (
     <Card className="border-0 shadow-glow bg-gradient-card overflow-hidden">
@@ -134,19 +172,28 @@ export const LivepeerBroadcast = ({ streamKey, onBroadcastStateChange }: Livepee
           key={broadcastKey}
           ingestUrl={ingestUrl}
           aspectRatio={16/9}
-          timeout={15000}
+          timeout={30000}
           hotkeys={true}
           // Constrain camera to avoid B-frames (not supported in WebRTC)
+          // Use H.264 Baseline profile for maximum WebRTC compatibility
           video={{
             width: { ideal: 1280, max: 1920 },
             height: { ideal: 720, max: 1080 },
             frameRate: { ideal: 30, max: 30 },
             facingMode: 'user',
+            // Force H.264 codec with Baseline profile (no B-frames)
+            // @ts-ignore - advanced constraints not in types but supported by browsers
+            advanced: [{
+              videoContentHint: 'motion',
+              encodingPriority: 'high',
+            }],
           }}
           audio={{
             echoCancellation: true,
             noiseSuppression: true,
             autoGainControl: true,
+            sampleRate: 48000,
+            channelCount: 2,
           }}
           onError={handleBroadcastError}
         >
@@ -158,9 +205,9 @@ export const LivepeerBroadcast = ({ streamKey, onBroadcastStateChange }: Livepee
               style={{ transform: 'scaleX(-1)' }}
             />
 
-            {/* Status indicator */}
+            {/* Status indicator with connection quality */}
             <Broadcast.LoadingIndicator asChild matcher={false}>
-              <div className="absolute top-4 left-4 z-10 overflow-hidden py-1.5 px-3 rounded-full bg-black/60 backdrop-blur flex items-center shadow-glow">
+              <div className="absolute top-4 left-4 z-10 overflow-hidden py-1.5 px-3 rounded-full bg-black/60 backdrop-blur flex items-center gap-2 shadow-glow">
                 <Broadcast.StatusIndicator
                   matcher="live"
                   className="flex gap-2 items-center"
@@ -168,6 +215,9 @@ export const LivepeerBroadcast = ({ streamKey, onBroadcastStateChange }: Livepee
                   <div className="bg-destructive animate-pulse h-2 w-2 rounded-full shadow-glow" />
                   <Radio className="w-3 h-3" />
                   <span className="text-xs font-bold select-none">LIVE</span>
+                  {connectionQuality === 'excellent' && <span className="text-xs text-green-400">●</span>}
+                  {connectionQuality === 'good' && <span className="text-xs text-yellow-400">●</span>}
+                  {connectionQuality === 'poor' && <span className="text-xs text-orange-400">●</span>}
                 </Broadcast.StatusIndicator>
 
                 <Broadcast.StatusIndicator
@@ -177,6 +227,7 @@ export const LivepeerBroadcast = ({ streamKey, onBroadcastStateChange }: Livepee
                   <div className="bg-amber-500 h-2 w-2 rounded-full animate-pulse" />
                   <Signal className="w-3 h-3 animate-pulse" />
                   <span className="text-xs font-medium select-none">CONNECTING</span>
+                  {retryCount > 0 && <span className="text-xs text-amber-400">(retry {retryCount}/3)</span>}
                 </Broadcast.StatusIndicator>
 
                 <Broadcast.StatusIndicator
@@ -263,12 +314,21 @@ export const LivepeerBroadcast = ({ streamKey, onBroadcastStateChange }: Livepee
                   </Broadcast.StatusIndicator>
                 </div>
 
-                {/* Inline error message */}
+                {/* Inline error message with troubleshooting tips */}
                 {broadcastError && (
-                  <div className="text-center">
+                  <div className="text-center space-y-2">
                     <div className="inline-block rounded bg-destructive/10 border border-destructive/30 px-3 py-2">
-                      <p className="text-sm text-destructive">{broadcastError}</p>
+                      <div className="flex items-center gap-2 justify-center mb-1">
+                        <AlertTriangle className="w-4 h-4 text-destructive" />
+                        <p className="text-sm font-semibold text-destructive">Broadcast Error</p>
+                      </div>
+                      <p className="text-xs text-destructive/90">{broadcastError}</p>
                     </div>
+                    {retryCount >= 3 && (
+                      <p className="text-xs text-muted-foreground">
+                        Tip: Check your internet connection or try refreshing the page
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
