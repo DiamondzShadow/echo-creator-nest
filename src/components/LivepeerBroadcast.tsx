@@ -35,12 +35,41 @@ export const LivepeerBroadcast = ({ streamKey, onBroadcastStateChange }: Livepee
 
   const requestPermissions = async () => {
     try {
-      const stream = await navigator.mediaDevices?.getUserMedia?.({ video: true, audio: true });
-      stream?.getTracks?.().forEach((t) => t.stop());
+      console.log('🎥 Requesting camera and microphone permissions...');
+      
+      // Check if getUserMedia is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('getUserMedia is not supported in this browser');
+      }
+      
+      // Request permissions with the same constraints as broadcast
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: {
+          width: { ideal: 1280, max: 1920 },
+          height: { ideal: 720, max: 1080 },
+          frameRate: { ideal: 30, max: 30 },
+          facingMode: 'user',
+        }, 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        }
+      });
+      
+      console.log('✅ Camera and microphone permissions granted');
+      
+      // Stop the test stream
+      stream.getTracks().forEach((track) => {
+        track.stop();
+      });
+      
       setPermissionReady(true);
       setPermissionError(null);
     } catch (e: any) {
-      setPermissionError(e?.message || 'Camera/mic permission denied');
+      console.error('❌ Camera permission error:', e);
+      const errorMessage = e?.message || 'Camera/mic permission denied';
+      setPermissionError(errorMessage);
       setPermissionReady(false);
     }
   };
@@ -60,10 +89,10 @@ export const LivepeerBroadcast = ({ streamKey, onBroadcastStateChange }: Livepee
   useEffect(() => {
     if (ingestUrl) {
       // Helpful debug logs when connecting
-      // eslint-disable-next-line no-console
       console.log("🔴 Broadcast ingestUrl:", ingestUrl);
+      console.log("🔴 Permission ready:", permissionReady);
     }
-  }, [ingestUrl]);
+  }, [ingestUrl, permissionReady]);
 
   const handleBroadcastError = (error: { type: string; message: string } | null) => {
     if (error) {
@@ -77,7 +106,30 @@ export const LivepeerBroadcast = ({ streamKey, onBroadcastStateChange }: Livepee
 
   return (
     <Card className="border-0 shadow-glow bg-gradient-card overflow-hidden">
-      {ingestUrl ? (
+      {!ingestUrl ? (
+        <div className="p-6">
+          <p className="text-sm text-muted-foreground">Waiting for stream key... Create a stream to enable browser broadcasting.</p>
+        </div>
+      ) : !permissionReady ? (
+        <div className="aspect-video bg-gradient-to-br from-background to-muted relative flex flex-col items-center justify-center p-8 gap-4">
+          <Video className="w-16 h-16 text-muted-foreground" />
+          <div className="text-center space-y-2">
+            <h3 className="text-lg font-semibold">Camera Access Required</h3>
+            <p className="text-sm text-muted-foreground">
+              Allow camera and microphone access to start broadcasting
+            </p>
+          </div>
+          <Button onClick={requestPermissions} size="lg">
+            <Video className="mr-2 h-5 w-5" />
+            Allow Camera & Mic
+          </Button>
+          {permissionError && (
+            <div className="text-sm text-destructive bg-destructive/10 border border-destructive/30 px-4 py-2 rounded-lg max-w-md text-center">
+              {permissionError}
+            </div>
+          )}
+        </div>
+      ) : (
         <Broadcast.Root
           key={broadcastKey}
           ingestUrl={ingestUrl}
@@ -89,8 +141,7 @@ export const LivepeerBroadcast = ({ streamKey, onBroadcastStateChange }: Livepee
             width: { ideal: 1280, max: 1920 },
             height: { ideal: 720, max: 1080 },
             frameRate: { ideal: 30, max: 30 },
-            // Force baseline profile to prevent B-frames
-            advanced: [{ googCpuOveruseDetection: true }] as any,
+            facingMode: 'user',
           }}
           audio={{
             echoCancellation: true,
@@ -138,12 +189,13 @@ export const LivepeerBroadcast = ({ streamKey, onBroadcastStateChange }: Livepee
               </div>
             </Broadcast.LoadingIndicator>
 
-            {/* Permissions */}
+            {/* Permission status */}
             <div className="absolute top-4 right-4 z-10 flex flex-col items-end gap-2">
-              {!permissionReady && (
-                <Button variant="secondary" size="sm" onClick={requestPermissions}>
-                  Allow Camera & Mic
-                </Button>
+              {permissionReady && (
+                <div className="text-xs text-green-500 bg-background/60 backdrop-blur px-3 py-1.5 rounded flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full" />
+                  Camera Ready
+                </div>
               )}
               {permissionError && (
                 <div className="text-xs text-destructive bg-background/60 backdrop-blur px-3 py-1.5 rounded">
@@ -223,10 +275,6 @@ export const LivepeerBroadcast = ({ streamKey, onBroadcastStateChange }: Livepee
             </Broadcast.Controls>
           </Broadcast.Container>
         </Broadcast.Root>
-      ) : (
-        <div className="p-6">
-          <p className="text-sm text-muted-foreground">Waiting for stream key... Create a stream to enable browser broadcasting.</p>
-        </div>
       )}
     </Card>
   );
