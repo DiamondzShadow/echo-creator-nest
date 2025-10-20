@@ -40,6 +40,7 @@ serve(async (req) => {
       const streamConfig: any = {
         name: `Stream ${Date.now()}`,
         // Low latency profiles optimized for WebRTC (gop: 2.0 seconds)
+        // CRITICAL: H264Baseline profile ensures NO B-frames for WebRTC compatibility
         profiles: [
           {
             name: '1080p',
@@ -50,6 +51,8 @@ serve(async (req) => {
             gop: '2.0', // 2 second keyframe interval for low latency
             // Force Baseline profile to avoid B-frames for WebRTC compatibility
             profile: 'H264Baseline',
+            // Additional encoder hints for maximum compatibility
+            encoder: 'h264',
           },
           {
             name: '720p',
@@ -59,6 +62,7 @@ serve(async (req) => {
             height: 720,
             gop: '2.0',
             profile: 'H264Baseline',
+            encoder: 'h264',
           },
           {
             name: '480p',
@@ -68,6 +72,7 @@ serve(async (req) => {
             height: 480,
             gop: '2.0',
             profile: 'H264Baseline',
+            encoder: 'h264',
           },
           {
             name: '360p',
@@ -77,9 +82,17 @@ serve(async (req) => {
             height: 360,
             gop: '2.0',
             profile: 'H264Baseline',
+            encoder: 'h264',
           },
         ],
         record: true, // Enable recording
+        // Add playback policy for better debugging
+        playbackPolicy: {
+          type: 'public',
+          webhookId: null,
+          webhookContext: {},
+          refreshInterval: 600
+        }
       };
 
       // Add Storj storage if configured

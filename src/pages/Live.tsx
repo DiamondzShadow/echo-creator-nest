@@ -19,6 +19,7 @@ import { StreamChat } from "@/components/StreamChat";
 import { LivepeerBroadcast } from "@/components/LivepeerBroadcast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BrandBanner } from "@/components/BrandBanner";
+import { StreamDebugPanel } from "@/components/StreamDebugPanel";
 
 const Live = () => {
   const [user, setUser] = useState<any>(null);
@@ -569,6 +570,13 @@ const Live = () => {
                               onBroadcastStateChange={(isLive) => {
                                 console.log('Broadcast state changed:', isLive);
                               }}
+                            />
+                            
+                            {/* Debug Panel for troubleshooting */}
+                            <StreamDebugPanel 
+                              streamKey={streamKey}
+                              playbackId={playbackId}
+                              isLive={isLive}
                             />
                             
                             <div className="bg-muted/50 rounded-lg p-4 space-y-2">

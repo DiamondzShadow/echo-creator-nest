@@ -96,10 +96,38 @@ export const LivepeerBroadcast = ({ streamKey, onBroadcastStateChange }: Livepee
 
   const handleBroadcastError = (error: { type: string; message: string } | null) => {
     if (error) {
-      // eslint-disable-next-line no-console
-      console.error('❌ Broadcast error:', error);
-      setBroadcastError(error.message || 'Broadcast error');
+      // Enhanced error logging with context
+      console.error('❌ Broadcast error:', {
+        error,
+        streamKey: streamKey?.substring(0, 20) + '...',
+        ingestUrl: ingestUrl?.substring(0, 50) + '...',
+        timestamp: new Date().toISOString(),
+        permissionReady,
+      });
+      
+      // Parse error for specific issues
+      const message = error.message || '';
+      let userFriendlyMessage = message;
+      
+      // Provide helpful messages for common errors
+      if (message.includes('Permission denied') || message.includes('NotAllowedError')) {
+        userFriendlyMessage = 'Camera/microphone access denied. Please check browser permissions.';
+      } else if (message.includes('NotFoundError') || message.includes('DevicesNotFoundError')) {
+        userFriendlyMessage = 'No camera or microphone found. Please connect a device and refresh.';
+      } else if (message.includes('NotReadableError') || message.includes('TrackStartError')) {
+        userFriendlyMessage = 'Camera is being used by another application. Please close other apps and try again.';
+      } else if (message.includes('connection') || message.includes('Connection')) {
+        userFriendlyMessage = 'Failed to connect to streaming server. Please check your internet connection.';
+      } else if (message.includes('timeout') || message.includes('Timeout')) {
+        userFriendlyMessage = 'Connection timeout. The server might be slow or your network might be unstable.';
+      }
+      
+      setBroadcastError(userFriendlyMessage);
+      
+      // Log recovery suggestion
+      console.log('💡 Suggested fix:', userFriendlyMessage);
     } else if (broadcastError) {
+      console.log('✅ Broadcast error resolved');
       setBroadcastError(null);
     }
   };

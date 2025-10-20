@@ -25,18 +25,60 @@ export const LiveStreamPlayer = ({ playbackId, title, isLive = false, viewerId }
   // Handle playback errors with retry logic
   const handlePlaybackError = useCallback((error: { type: string; message: string } | null) => {
     if (error) {
-      console.error('🚨 Playback error:', error);
+      console.error('🚨 Playback error:', {
+        type: error.type,
+        message: error.message,
+        timestamp: new Date().toISOString(),
+        playbackId,
+        currentSources: src,
+        forcedHlsFallback
+      });
 
       const message = error.message || '';
+      const errorType = error.type || '';
 
-      // If the source contains B-frames, WebRTC (WHEP) playback will fail.
-      // Immediately fall back to HLS-only sources to keep playback working.
-      const indicatesBFrames = /b[\-\s]?frames?/i.test(message) || /contains\s+bframes?/i.test(message) || /metadata.*bframes?/i.test(message);
-      if (!forcedHlsFallback && indicatesBFrames) {
+      // Comprehensive B-frames detection patterns
+      const bFramePatterns = [
+        /b[\-\s]?frames?/i,
+        /contains\s+bframes?/i,
+        /metadata.*bframes?/i,
+        /unsupported.*codec/i,
+        /codec.*not.*supported/i,
+        /h\.?264.*main/i,
+        /h\.?264.*high/i,
+        /profile.*not.*baseline/i
+      ];
+
+      const indicatesBFrames = bFramePatterns.some(pattern => pattern.test(message));
+      
+      // WebRTC connection issues
+      const webrtcIssues = [
+        /connection.*failed/i,
+        /ice.*failed/i,
+        /webrtc.*error/i,
+        /whep.*failed/i,
+        /dtls.*failed/i,
+        /sdp.*failed/i
+      ];
+
+      const hasWebRTCIssue = webrtcIssues.some(pattern => pattern.test(message));
+
+      // Force HLS fallback for B-frames or WebRTC issues
+      if (!forcedHlsFallback && (indicatesBFrames || hasWebRTCIssue)) {
+        console.log('📡 Forcing HLS fallback due to:', indicatesBFrames ? 'B-frames' : 'WebRTC connection issue');
         setForcedHlsFallback(true);
 
         setSrc((prev) => {
           if (!Array.isArray(prev)) return prev;
+          
+          // Log source types for debugging
+          const sourceInfo = prev.map((s: any) => ({
+            type: s?.type,
+            src: s?.src?.substring(0, 50) + '...',
+            isWebRTC: /webrtc|whep/i.test(String(s?.type || '')) || /^whep:\/\//i.test(String(s?.src || ''))
+          }));
+          console.log('📊 Available sources:', sourceInfo);
+
           const filtered = prev.filter((s: any) => {
             const type = String(s?.type || '');
             const url = String(s?.src || '');
@@ -45,25 +87,42 @@ export const LiveStreamPlayer = ({ playbackId, title, isLive = false, viewerId }
             const isMp4Type = /mp4/i.test(type) || /\.mp4(\?|$)/i.test(url);
             return !isWebRTCType && (isHlsType || isMp4Type);
           });
+          
+          console.log(`🔄 Filtered to ${filtered.length} HLS/MP4 sources from ${prev.length} total`);
+          
           // If filtering resulted in no sources, keep previous to avoid blank player
           return filtered.length > 0 ? filtered : prev;
         });
 
-        setPlaybackError('WebRTC not supported for this source (B-frames). Switched to HLS.');
+        const fallbackReason = indicatesBFrames 
+          ? 'Stream contains B-frames or incompatible codec profile. WebRTC requires H.264 Baseline profile.'
+          : 'WebRTC connection failed. This could be due to network restrictions or firewall settings.';
+
+        setPlaybackError(`Switched to HLS fallback: ${fallbackReason}`);
+        
         toast({
-          title: 'Switched to HLS',
-          description: 'The stream contains B-frames which WebRTC cannot play. Using HLS fallback.',
+          title: '📡 Switched to HLS',
+          description: fallbackReason + ' Using HLS for compatibility (5-10s delay expected).',
+          duration: 6000,
         });
         return;
       }
 
-      // Special handling for "Stream open failed" - this is normal when broadcast hasn't started
-      if (message.includes('Stream open failed') || error.type === 'offline') {
-        setPlaybackError('Waiting for broadcast to start...');
+      // Special handling for common error scenarios
+      if (message.includes('Stream open failed') || errorType === 'offline' || message.includes('404')) {
+        setPlaybackError('Stream is offline or starting up. Please wait...');
+        console.log('⏳ Stream not ready yet, will retry...');
+      } else if (message.includes('timeout') || message.includes('Timeout')) {
+        setPlaybackError('Connection timeout. The stream might be experiencing high latency.');
+        console.log('⏱️ Timeout detected, stream might be slow to respond');
+      } else if (message.includes('Access denied') || message.includes('403')) {
+        setPlaybackError('Access denied. The stream might be private or restricted.');
+      } else if (message.includes('network') || message.includes('Network')) {
+        setPlaybackError('Network error. Please check your internet connection.');
       } else {
         setPlaybackError(message);
         toast({
-          title: 'Playback Error',
+          title: '⚠️ Playback Issue',
           description: message || 'Unable to play stream. Trying fallback...',
           variant: 'destructive',
         });
@@ -71,11 +130,11 @@ export const LiveStreamPlayer = ({ playbackId, title, isLive = false, viewerId }
     } else {
       // Error resolved
       if (playbackError) {
-        console.log('✅ Playback error resolved');
+        console.log('✅ Playback error resolved, stream is working');
         setPlaybackError(null);
       }
     }
-  }, [forcedHlsFallback, playbackError, toast]);
+  }, [forcedHlsFallback, playbackError, toast, playbackId, src]);
 
   useEffect(() => {
     const fetchPlaybackInfo = async () => {
