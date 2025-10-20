@@ -6,11 +6,16 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Mic, MicOff, Video as VideoIcon, VideoOff, MonitorUp, PhoneOff, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { TipButton } from '@/components/TipButton';
+import SoundCloudWidget from '@/components/SoundCloudWidget';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface VideoConferenceProps {
   roomToken: string;
   roomName: string;
   displayName: string;
+  soundcloudUrl?: string;
   onLeave: () => void;
 }
 
@@ -21,7 +26,14 @@ interface ParticipantVideo {
   isLocal: boolean;
 }
 
-const VideoConference = ({ roomToken, roomName, displayName, onLeave }: VideoConferenceProps) => {
+interface ParticipantProfile {
+  id: string;
+  username: string;
+  display_name: string | null;
+  wallet_address: string | null;
+}
+
+const VideoConference = ({ roomToken, roomName, displayName, soundcloudUrl, onLeave }: VideoConferenceProps) => {
   const { toast } = useToast();
   const [room, setRoom] = useState<Room | null>(null);
   const [isConnecting, setIsConnecting] = useState(true);
@@ -29,6 +41,7 @@ const VideoConference = ({ roomToken, roomName, displayName, onLeave }: VideoCon
   const [isMicEnabled, setIsMicEnabled] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [participants, setParticipants] = useState<ParticipantVideo[]>([]);
+  const [participantProfiles, setParticipantProfiles] = useState<Record<string, ParticipantProfile>>({});
   const [error, setError] = useState<string | null>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -130,8 +143,23 @@ const VideoConference = ({ roomToken, roomName, displayName, onLeave }: VideoCon
       }
     };
 
-    const handleParticipantConnected = (participant: RemoteParticipant) => {
+    const handleParticipantConnected = async (participant: RemoteParticipant) => {
       console.log('Participant connected:', participant.identity);
+      
+      // Fetch participant profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id, username, display_name, wallet_address')
+        .eq('username', participant.name || participant.identity)
+        .single();
+      
+      if (profile) {
+        setParticipantProfiles(prev => ({
+          ...prev,
+          [participant.identity]: profile
+        }));
+      }
+      
       toast({
         title: 'Participant joined',
         description: participant.name || participant.identity,
@@ -256,91 +284,134 @@ const VideoConference = ({ roomToken, roomName, displayName, onLeave }: VideoCon
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <div className="border-b bg-card">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h1 className="text-lg font-semibold">{roomName}</h1>
-            <Badge variant="secondary" className="flex items-center gap-1">
-              <Users className="h-3 w-3" />
-              {participants.length + 1}
-            </Badge>
-          </div>
-          {isConnecting && (
-            <Badge variant="outline">Connecting...</Badge>
-          )}
-        </div>
-      </div>
-
-      {/* Video Grid */}
-      <div className="flex-1 container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-full">
-          {/* Local Video */}
-          <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
-            <video
-              ref={localVideoRef}
-              autoPlay
-              playsInline
-              muted
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-sm z-10">
-              {displayName} (You)
+    <div className="min-h-screen bg-background flex">
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <div className="border-b bg-card">
+          <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <h1 className="text-lg font-semibold">{roomName}</h1>
+              <Badge variant="secondary" className="flex items-center gap-1">
+                <Users className="h-3 w-3" />
+                {participants.length + 1}
+              </Badge>
             </div>
-            {!isCameraEnabled && (
-              <div className="absolute inset-0 flex items-center justify-center bg-muted">
-                <VideoOff className="h-12 w-12 text-muted-foreground" />
-              </div>
+            {isConnecting && (
+              <Badge variant="outline">Connecting...</Badge>
             )}
           </div>
+        </div>
 
-          {/* Remote Participants Container */}
-          <div ref={videoContainerRef} className="contents" />
+        {/* Video Grid */}
+        <div className="flex-1 container mx-auto px-4 py-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-full">
+            {/* Local Video */}
+            <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
+              <video
+                ref={localVideoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-sm z-10">
+                {displayName} (You)
+              </div>
+              {!isCameraEnabled && (
+                <div className="absolute inset-0 flex items-center justify-center bg-muted">
+                  <VideoOff className="h-12 w-12 text-muted-foreground" />
+                </div>
+              )}
+            </div>
+
+            {/* Remote Participants Container */}
+            <div ref={videoContainerRef} className="contents" />
+          </div>
+        </div>
+
+        {/* Controls */}
+        <div className="border-t bg-card">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center justify-center gap-2">
+              <Button
+                onClick={handleToggleMic}
+                variant={isMicEnabled ? 'outline' : 'destructive'}
+                size="lg"
+                className="rounded-full w-14 h-14"
+              >
+                {isMicEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
+              </Button>
+
+              <Button
+                onClick={handleToggleCamera}
+                variant={isCameraEnabled ? 'outline' : 'destructive'}
+                size="lg"
+                className="rounded-full w-14 h-14"
+              >
+                {isCameraEnabled ? <VideoIcon className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
+              </Button>
+
+              <Button
+                onClick={handleToggleScreenShare}
+                variant={isScreenSharing ? 'default' : 'outline'}
+                size="lg"
+                className="rounded-full w-14 h-14"
+              >
+                <MonitorUp className="h-5 w-5" />
+              </Button>
+
+              <Button
+                onClick={handleLeaveRoom}
+                variant="destructive"
+                size="lg"
+                className="rounded-full w-14 h-14"
+              >
+                <PhoneOff className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Controls */}
-      <div className="border-t bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-center gap-2">
-            <Button
-              onClick={handleToggleMic}
-              variant={isMicEnabled ? 'outline' : 'destructive'}
-              size="lg"
-              className="rounded-full w-14 h-14"
-            >
-              {isMicEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
-            </Button>
+      {/* Sidebar */}
+      <div className="w-80 border-l bg-card flex flex-col">
+        <ScrollArea className="flex-1">
+          <div className="p-4 space-y-4">
+            {/* Participants List */}
+            <Card className="p-4">
+              <h3 className="font-semibold mb-3">Participants ({participants.length + 1})</h3>
+              <div className="space-y-2">
+                <div className="text-sm p-2 bg-muted rounded">
+                  {displayName} (You)
+                </div>
+                {participants.map((participant) => {
+                  const profile = participantProfiles[participant.participantId];
+                  return (
+                    <div key={participant.participantId} className="flex items-center justify-between p-2 bg-muted rounded">
+                      <span className="text-sm">{participant.name}</span>
+                      {profile && profile.wallet_address && (
+                        <TipButton
+                          recipientUserId={profile.id}
+                          recipientWalletAddress={profile.wallet_address}
+                          recipientUsername={profile.username}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
 
-            <Button
-              onClick={handleToggleCamera}
-              variant={isCameraEnabled ? 'outline' : 'destructive'}
-              size="lg"
-              className="rounded-full w-14 h-14"
-            >
-              {isCameraEnabled ? <VideoIcon className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
-            </Button>
-
-            <Button
-              onClick={handleToggleScreenShare}
-              variant={isScreenSharing ? 'default' : 'outline'}
-              size="lg"
-              className="rounded-full w-14 h-14"
-            >
-              <MonitorUp className="h-5 w-5" />
-            </Button>
-
-            <Button
-              onClick={handleLeaveRoom}
-              variant="destructive"
-              size="lg"
-              className="rounded-full w-14 h-14"
-            >
-              <PhoneOff className="h-5 w-5" />
-            </Button>
+            {/* SoundCloud Widget */}
+            {soundcloudUrl && (
+              <Card className="p-4">
+                <h3 className="font-semibold mb-3">Music</h3>
+                <SoundCloudWidget url={soundcloudUrl} autoPlay={false} />
+              </Card>
+            )}
           </div>
-        </div>
+        </ScrollArea>
       </div>
     </div>
   );

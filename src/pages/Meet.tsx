@@ -15,6 +15,7 @@ const Meet = () => {
   const { toast } = useToast();
   const [roomName, setRoomName] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [soundcloudUrl, setSoundcloudUrl] = useState('');
   const [joinedRoom, setJoinedRoom] = useState<string | null>(null);
   const [roomToken, setRoomToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -113,6 +114,7 @@ const Meet = () => {
           roomToken={roomToken}
           roomName={joinedRoom}
           displayName={displayName}
+          soundcloudUrl={soundcloudUrl}
           onLeave={handleLeaveRoom}
         />
       </div>
@@ -166,6 +168,16 @@ const Meet = () => {
                   value={roomName}
                   onChange={(e) => setRoomName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleJoinRoom()}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">SoundCloud URL (Optional)</label>
+                <Input
+                  type="text"
+                  placeholder="https://soundcloud.com/artist/track"
+                  value={soundcloudUrl}
+                  onChange={(e) => setSoundcloudUrl(e.target.value)}
                 />
               </div>
 
