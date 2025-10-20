@@ -37,9 +37,11 @@ serve(async (req) => {
       console.log('🎥 Creating stream...');
       
       // Build stream configuration following Livepeer docs
+      // Optimized for WebRTC with ultra-low latency
       const streamConfig: any = {
         name: `Stream ${Date.now()}`,
-        // Low latency profiles optimized for WebRTC (gop: 2.0 seconds)
+        // Low latency profiles optimized for WebRTC
+        // Using H264Baseline profile and 1.0s GOP for best WebRTC compatibility
         profiles: [
           {
             name: '1080p',
@@ -47,9 +49,10 @@ serve(async (req) => {
             fps: 30,
             width: 1920,
             height: 1080,
-            gop: '2.0', // 2 second keyframe interval for low latency
+            gop: '1.0', // 1 second keyframe interval for ultra-low latency
             // Force Baseline profile to avoid B-frames for WebRTC compatibility
             profile: 'H264Baseline',
+            encoder: 'h264',
           },
           {
             name: '720p',
@@ -57,8 +60,9 @@ serve(async (req) => {
             fps: 30,
             width: 1280,
             height: 720,
-            gop: '2.0',
+            gop: '1.0',
             profile: 'H264Baseline',
+            encoder: 'h264',
           },
           {
             name: '480p',
@@ -66,8 +70,9 @@ serve(async (req) => {
             fps: 30,
             width: 854,
             height: 480,
-            gop: '2.0',
+            gop: '1.0',
             profile: 'H264Baseline',
+            encoder: 'h264',
           },
           {
             name: '360p',
@@ -75,11 +80,16 @@ serve(async (req) => {
             fps: 30,
             width: 640,
             height: 360,
-            gop: '2.0',
+            gop: '1.0',
             profile: 'H264Baseline',
+            encoder: 'h264',
           },
         ],
         record: true, // Enable recording
+        // Enable multistream for future expansion
+        multistream: {
+          targets: [],
+        },
       };
 
       // Add Storj storage if configured

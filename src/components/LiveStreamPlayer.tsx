@@ -52,7 +52,8 @@ export const LiveStreamPlayer = ({ playbackId, title, isLive = false, viewerId }
         setPlaybackError('WebRTC not supported for this source (B-frames). Switched to HLS.');
         toast({
           title: 'Switched to HLS',
-          description: 'The stream contains B-frames which WebRTC cannot play. Using HLS fallback.',
+          description: 'Stream contains B-frames. Using HLS playback (~5-10s latency).',
+          duration: 5000,
         });
         return;
       }
@@ -164,8 +165,11 @@ export const LiveStreamPlayer = ({ playbackId, title, isLive = false, viewerId }
               lowLatency={isLive}
               viewerId={viewerId}
               onError={handlePlaybackError}
-              timeout={20000}
+              timeout={30000}
               hotkeys={true}
+              // Optimize playback for WebRTC
+              objectFit="cover"
+              muted={false}
             >
               <Player.Container className="w-full h-full">
                 <Player.Video 
