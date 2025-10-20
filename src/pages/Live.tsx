@@ -8,16 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Video, StopCircle, Loader2, Copy, Check, ExternalLink, Radio } from "lucide-react";
+import { Video, StopCircle, Loader2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
-import { LiveStreamPlayer } from "@/components/LiveStreamPlayer";
 import { InstantLiveStreamLiveKit } from "@/components/InstantLiveStreamLiveKit";
-import { LiveKitViewer } from "@/components/LiveKitViewer";
-import { PullStreamSetup } from "@/components/PullStreamSetup";
-import { YouTubeConnect } from "@/components/YouTubeConnect";
 import { StreamChat } from "@/components/StreamChat";
-import { LivepeerBroadcast } from "@/components/LivepeerBroadcast";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BrandBanner } from "@/components/BrandBanner";
 
 const Live = () => {
@@ -27,13 +21,6 @@ const Live = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [streamId, setStreamId] = useState<string | null>(null);
-  const [streamKey, setStreamKey] = useState<string>("");
-  const [playbackId, setPlaybackId] = useState<string>("");
-  const [pullUrl, setPullUrl] = useState<string>("");
-  const [streamMode, setStreamMode] = useState<"instant" | "software" | "pull">("instant");
-  const [copied, setCopied] = useState(false);
-  const [autoGoLivePending, setAutoGoLivePending] = useState(false);
-  const [hasAutoStarted, setHasAutoStarted] = useState(false);
   const [livekitToken, setLivekitToken] = useState<string>("");
   const [roomName, setRoomName] = useState<string>("");
   const [enableRecording, setEnableRecording] = useState(true);
@@ -57,150 +44,59 @@ const Live = () => {
     setLoading(true);
 
     try {
-      // For instant streaming, use LiveKit instead of Livepeer
-      if (streamMode === 'instant') {
-        console.log('Creating LiveKit room for instant streaming...');
-        
-        // Generate unique room name
-        const roomId = `stream-${user.id}-${Date.now()}`;
-        setRoomName(roomId);
+      console.log('Creating LiveKit room for instant streaming...');
+      
+      // Generate unique room name
+      const roomId = `stream-${user.id}-${Date.now()}`;
+      setRoomName(roomId);
 
-        // First create stream record in database
-        const { data, error } = await supabase
-          .from("live_streams")
-          .insert({
-            user_id: user.id,
-            title: title.trim().substring(0, 200),
-            description: description?.trim().substring(0, 2000),
-            is_live: true,
-            started_at: new Date().toISOString(),
-            livepeer_stream_id: roomId, // Use room ID as identifier
-            livepeer_playback_id: roomId, // Use same for viewer access
-          })
-          .select()
-          .single();
+      // First create stream record in database
+      const { data, error } = await supabase
+        .from("live_streams")
+        .insert({
+          user_id: user.id,
+          title: title.trim().substring(0, 200),
+          description: description?.trim().substring(0, 2000),
+          is_live: true,
+          started_at: new Date().toISOString(),
+          livepeer_stream_id: roomId,
+          livepeer_playback_id: roomId,
+        })
+        .select()
+        .single();
 
-        if (error) {
-          console.error('Database error:', error);
-          throw new Error(`Failed to save stream: ${error.message}`);
-        }
-
-        console.log('Stream record created:', data);
-        setStreamId(data.id);
-
-        // Get LiveKit token for broadcaster
-        const { data: tokenData, error: tokenError } = await supabase.functions.invoke('livekit-token', {
-          body: {
-            action: 'create_token',
-            roomName: roomId,
-            streamId: data.id,
-            enableRecording,
-            saveToStorj,
-          }
-        });
-
-        if (tokenError || !tokenData?.token) {
-          console.error('Token error:', tokenError);
-          throw new Error('Failed to get streaming token');
-        }
-
-        console.log('LiveKit token obtained');
-        setLivekitToken(tokenData.token);
-        setIsLive(true);
-
-        toast({
-          title: "Stream created!",
-          description: "Your instant stream is ready to broadcast!",
-        });
-      } else if (streamMode === 'software' || streamMode === 'pull') {
-        // For software/pull streaming, use existing Livepeer flow
-        console.log('Creating Livepeer stream...');
-        
-        let livepeerData, livepeerError;
-        
-        // Check if this is a pull stream
-        if (streamMode === 'pull' && pullUrl) {
-          // Create pull stream
-          const result = await supabase.functions.invoke('livepeer-pull-stream', {
-            body: { 
-              action: 'create',
-              pullUrl: pullUrl
-            }
-          });
-          livepeerData = result.data;
-          livepeerError = result.error;
-          console.log('Pull stream response:', { livepeerData, livepeerError });
-        } else {
-          // Create regular stream
-          const result = await supabase.functions.invoke('livepeer-stream', {
-            body: { 
-              action: 'create',
-            }
-          });
-          livepeerData = result.data;
-          livepeerError = result.error;
-          console.log('Regular stream response:', { livepeerData, livepeerError });
-        }
-
-        if (livepeerError) {
-          console.error('Livepeer error:', livepeerError);
-          throw new Error(`Livepeer API error: ${livepeerError.message || 'Unknown error'}`);
-        }
-
-        if (!livepeerData || !livepeerData.streamId || !livepeerData.streamKey || !livepeerData.playbackId) {
-          console.error('Invalid Livepeer response:', livepeerData);
-          throw new Error('Invalid response from Livepeer API - missing required fields');
-        }
-
-        const { streamId: lpStreamId, streamKey: lpStreamKey, playbackId: lpPlaybackId } = livepeerData;
-
-        console.log('Storing stream in database...');
-        // Store stream in public table (without stream_key)
-        const { data, error } = await supabase
-          .from("live_streams")
-          .insert({
-            user_id: user.id,
-            title: title.trim().substring(0, 200),
-            description: description?.trim().substring(0, 2000),
-            is_live: true,
-            started_at: new Date().toISOString(),
-            livepeer_stream_id: lpStreamId,
-            livepeer_playback_id: lpPlaybackId,
-          })
-          .select()
-          .single();
-
-        if (error) {
-          console.error('Database error:', error);
-          throw new Error(`Failed to save stream: ${error.message}`);
-        }
-
-        // Store stream key securely using database function
-        const { error: keyError } = await supabase.rpc('store_stream_key', {
-          p_stream_id: data.id,
-          p_stream_key: lpStreamKey,
-        });
-
-        if (keyError) {
-          console.error('Stream key storage error:', keyError);
-          throw new Error(`Failed to save stream credentials: ${keyError.message}`);
-        }
-
-        console.log('Stream created successfully:', data);
-        setStreamId(data.id);
-        setStreamKey(lpStreamKey);
-        setPlaybackId(lpPlaybackId);
-        setIsLive(true);
-        
-        const streamTypeMessage = streamMode === 'pull' 
-          ? "Your pull stream is active and re-broadcasting!" 
-          : "Your stream is ready. Start broadcasting to go live!";
-        
-        toast({
-          title: "Stream created!",
-          description: streamTypeMessage,
-        });
+      if (error) {
+        console.error('Database error:', error);
+        throw new Error(`Failed to save stream: ${error.message}`);
       }
+
+      console.log('Stream record created:', data);
+      setStreamId(data.id);
+
+      // Get LiveKit token for broadcaster
+      const { data: tokenData, error: tokenError } = await supabase.functions.invoke('livekit-token', {
+        body: {
+          action: 'create_token',
+          roomName: roomId,
+          streamId: data.id,
+          enableRecording,
+          saveToStorj,
+        }
+      });
+
+      if (tokenError || !tokenData?.token) {
+        console.error('Token error:', tokenError);
+        throw new Error('Failed to get streaming token');
+      }
+
+      console.log('LiveKit token obtained');
+      setLivekitToken(tokenData.token);
+      setIsLive(true);
+
+      toast({
+        title: "Stream created!",
+        description: "Your instant stream is ready to broadcast!",
+      });
     } catch (error: any) {
       console.error('Stream creation error:', error);
       toast({
@@ -237,15 +133,11 @@ const Live = () => {
       // Clean up all state
       setIsLive(false);
       setStreamId(null);
-      setStreamKey("");
-      setPlaybackId("");
       setTitle("");
       setDescription("");
-      setPullUrl("");
-      setHasAutoStarted(false);
-      setAutoGoLivePending(false);
       setLivekitToken("");
       setRoomName("");
+      setRecordingStarted(false);
       
       toast({
         title: "Stream ended",
@@ -262,17 +154,6 @@ const Live = () => {
     }
   };
 
-  const copyStreamKey = () => {
-    navigator.clipboard.writeText(streamKey);
-    setCopied(true);
-    toast({
-      title: "Copied!",
-      description: "Stream key copied to clipboard",
-    });
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-
   if (!user) return null;
 
   return (
@@ -288,568 +169,179 @@ const Live = () => {
                   Start Your Live Stream
                 </CardTitle>
                 <CardDescription>
-                  Choose how you want to stream
+                  Stream directly from your browser - no software needed!
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="instant" className="w-full" onValueChange={(value) => setStreamMode(value as any)}>
-                  <TabsList className="grid w-full grid-cols-3 mb-6">
-                    <TabsTrigger value="instant">
-                      <Video className="w-4 h-4 mr-2" />
-                      Instant Stream
-                    </TabsTrigger>
-                    <TabsTrigger value="software">
-                      <Video className="w-4 h-4 mr-2" />
-                      Streaming Software
-                    </TabsTrigger>
-                    <TabsTrigger value="pull">
-                      <ExternalLink className="w-4 h-4 mr-2" />
-                      Pull Stream
-                    </TabsTrigger>
-                  </TabsList>
+                <form onSubmit={handleStartStream} className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="title">Stream Title</Label>
+                    <Input
+                      id="title"
+                      placeholder="What are you streaming today?"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      placeholder="Tell viewers what to expect..."
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      rows={4}
+                    />
+                  </div>
 
-                  <TabsContent value="instant" className="space-y-6">
-                    <div className="text-center mb-4">
-                      <h3 className="text-xl font-bold mb-2">Go Live Instantly</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Stream directly from your browser - no software needed!
-                      </p>
-                    </div>
-                    
-                    <form onSubmit={handleStartStream} className="space-y-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="title-instant">Stream Title</Label>
-                        <Input
-                          id="title-instant"
-                          placeholder="What are you streaming today?"
-                          value={title}
-                          onChange={(e) => setTitle(e.target.value)}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="description-instant">Description</Label>
-                        <Textarea
-                          id="description-instant"
-                          placeholder="Tell viewers what to expect..."
-                          value={description}
-                          onChange={(e) => setDescription(e.target.value)}
-                          rows={4}
-                        />
-                      </div>
-
-                      {/* Recording Options */}
-                      <Card className="border-muted bg-muted/20">
-                        <CardContent className="pt-6 space-y-4">
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-0.5">
-                              <Label htmlFor="enable-recording" className="text-base">
-                                Record Stream
-                              </Label>
-                              <p className="text-sm text-muted-foreground">
-                                Save your stream for viewers to watch later
-                              </p>
-                            </div>
-                            <Switch
-                              id="enable-recording"
-                              checked={enableRecording}
-                              onCheckedChange={setEnableRecording}
-                            />
-                          </div>
-
-                          {enableRecording && (
-                            <div className="flex items-center justify-between pl-4 border-l-2 border-primary/30">
-                              <div className="space-y-0.5">
-                                <Label htmlFor="save-to-storj" className="text-sm">
-                                  Save to Storj (Decentralized)
-                                </Label>
-                                <p className="text-xs text-muted-foreground">
-                                  Permanently store on decentralized storage
-                                </p>
-                              </div>
-                              <Switch
-                                id="save-to-storj"
-                                checked={saveToStorj}
-                                onCheckedChange={setSaveToStorj}
-                              />
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                      
-                      {livekitToken ? (
-                        <InstantLiveStreamLiveKit
-                          roomToken={livekitToken}
-                          onStreamEnd={handleEndStream}
-                          onStreamConnected={async () => {
-                            console.log('🔴 Stream connected! Recording:', enableRecording, 'Room:', roomName, 'Already started:', recordingStarted);
-                            
-                            toast({
-                              title: "Connected!",
-                              description: "You're now live",
-                            });
-                            
-                            // Start recording if enabled
-                            if (enableRecording && roomName && !recordingStarted) {
-                              console.log('📹 Attempting to start recording...');
-                              try {
-                                const { data: egressData, error: egressError } = await supabase.functions.invoke('livekit-egress', {
-                                  body: {
-                                    roomName,
-                                    streamId,
-                                  }
-                                });
-                                
-                                console.log('📹 Egress response:', { egressData, egressError });
-                                
-                                if (egressError || !egressData?.success) {
-                                  console.error('❌ Failed to start recording:', egressError || egressData);
-                                  toast({
-                                    title: "Recording Failed",
-                                    description: `Error: ${egressError?.message || egressData?.error || 'Unknown'}`,
-                                    variant: "destructive",
-                                  });
-                                } else {
-                                  setRecordingStarted(true);
-                                  const storageLocation = saveToStorj ? "Storj (decentralized)" : "cloud storage";
-                                  console.log('✅ Recording started:', egressData.egressId);
-                                  toast({
-                                    title: "Recording Started",
-                                    description: `ID: ${egressData.egressId} → ${storageLocation}`,
-                                  });
-                                }
-                              } catch (error) {
-                                console.error('❌ Exception starting recording:', error);
-                                toast({
-                                  title: "Recording Error",
-                                  description: error instanceof Error ? error.message : 'Failed to start',
-                                  variant: "destructive",
-                                });
-                              }
-                            } else {
-                              console.log('⚠️ Recording skipped:', { enableRecording, roomName, recordingStarted });
-                            }
-                          }}
-                          isLive={isLive}
-                          creatorId={user?.id}
-                        />
-) : (
-                        <div className="text-center text-sm text-muted-foreground py-8">
-                          <p>Fill in stream details above and click "Go Live Now"</p>
-                        </div>
-                      )}
-
-                      {isLive && enableRecording && !recordingStarted && roomName && (
-                        <div className="text-center">
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            onClick={async () => {
-                              try {
-                                const { data: egressData, error } = await supabase.functions.invoke('livekit-egress', {
-                                  body: { roomName, streamId },
-                                });
-
-                                if (error || !egressData?.success) {
-                                  console.error('Manual recording start failed:', error || egressData);
-                                  toast({
-                                    title: 'Could not start recording',
-                                    description: 'Please try again or continue streaming without recording',
-                                    variant: 'destructive',
-                                  });
-                                } else {
-                                  setRecordingStarted(true);
-                                  toast({
-                                    title: 'Recording Started',
-                                    description: `Recording ID: ${egressData.egressId || 'N/A'}`,
-                                  });
-                                }
-                              } catch (e) {
-                                console.error(e);
-                              }
-                            }}
-                          >
-                            Start Recording
-                          </Button>
-                          <p className="text-xs text-muted-foreground mt-2">
-                            If recording doesn’t start automatically, click here.
+                  {/* Recording Options */}
+                  <Card className="border-muted bg-muted/20">
+                    <CardContent className="pt-6 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="enable-recording" className="text-base">
+                            Record Stream
+                          </Label>
+                          <p className="text-sm text-muted-foreground">
+                            Save your stream for viewers to watch later
                           </p>
                         </div>
-                      )}
-
-                      {!isLive && (
-                        <Button
-                          type="submit"
-                          size="lg"
-                          className="w-full bg-gradient-hero hover:opacity-90 text-lg"
-                          disabled={loading}
-                        >
-                          {loading ? (
-                            <>
-                              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                              Creating Stream...
-                            </>
-                          ) : (
-                            <>
-                              <Video className="mr-2 h-5 w-5" />
-                              Go Live Now
-                            </>
-                          )}
-                        </Button>
-                      )}
-                    </form>
-                  </TabsContent>
-
-                  <TabsContent value="software" className="space-y-6">
-                    <div className="text-center mb-4">
-                      <h3 className="text-xl font-bold mb-2">Stream with Browser or Software</h3>
-                      <p className="text-sm text-muted-foreground">
-                        WebRTC browser broadcast (ultra-low latency) or use OBS/Streamlabs
-                      </p>
-                    </div>
-
-                    {!streamKey ? (
-                      <form onSubmit={handleStartStream} className="space-y-6">
-                        <div className="space-y-2">
-                          <Label htmlFor="title-software">Stream Title</Label>
-                          <Input
-                            id="title-software"
-                            placeholder="What are you streaming today?"
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            required
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="description-software">Description</Label>
-                          <Textarea
-                            id="description-software"
-                            placeholder="Tell viewers what to expect..."
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            rows={4}
-                          />
-                        </div>
-
-                        <Button
-                          type="submit"
-                          size="lg"
-                          className="w-full bg-gradient-hero hover:opacity-90 text-lg"
-                          disabled={loading}
-                        >
-                          {loading ? (
-                            <>
-                              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                              Creating Stream...
-                            </>
-                          ) : (
-                            <>
-                              <Video className="mr-2 h-5 w-5" />
-                              Create Stream
-                            </>
-                          )}
-                        </Button>
-                      </form>
-                    ) : (
-                      <div className="space-y-6">
-                        {/* WebRTC Browser Broadcast */}
-                        <Card className="border-primary/20 bg-primary/5">
-                          <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                              <Radio className="w-5 h-5 text-primary" />
-                              Browser Broadcast (WebRTC)
-                            </CardTitle>
-                            <CardDescription>
-                              Ultra-low latency (0.5-3s) - Stream directly from your browser
-                            </CardDescription>
-                          </CardHeader>
-                          <CardContent className="space-y-4">
-                            <LivepeerBroadcast 
-                              streamKey={streamKey}
-                              onBroadcastStateChange={(isLive) => {
-                                console.log('Broadcast state changed:', isLive);
-                              }}
-                            />
-                            
-                            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                              <p className="text-sm font-medium">📹 How to use:</p>
-                              <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-                                <li>Allow camera and microphone access when prompted</li>
-                                <li>Click the red button to start broadcasting</li>
-                                <li>Click again (now a square) to stop</li>
-                                <li>Use icons to toggle video/audio on/off</li>
-                              </ol>
-                            </div>
-                          </CardContent>
-                        </Card>
-
-                        {/* RTMP Software Instructions */}
-                        <Card className="border-muted">
-                          <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                              <ExternalLink className="w-5 h-5" />
-                              OBS/Streaming Software (RTMP)
-                            </CardTitle>
-                            <CardDescription>
-                              For advanced users with professional streaming software
-                            </CardDescription>
-                          </CardHeader>
-                          <CardContent className="space-y-4">
-                            <div>
-                              <Label className="text-sm font-medium">Server URL</Label>
-                              <div className="flex gap-2 mt-2">
-                                <Input
-                                  value="rtmp://rtmp.livepeer.com/live"
-                                  readOnly
-                                  className="font-mono text-sm"
-                                />
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    navigator.clipboard.writeText("rtmp://rtmp.livepeer.com/live");
-                                    toast({ title: "Copied!", description: "Server URL copied" });
-                                  }}
-                                >
-                                  <Copy className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            </div>
-
-                            <div>
-                              <Label className="text-sm font-medium">Stream Key</Label>
-                              <div className="flex gap-2 mt-2">
-                                <Input
-                                  value={streamKey}
-                                  readOnly
-                                  type="password"
-                                  className="font-mono text-sm"
-                                />
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={copyStreamKey}
-                                >
-                                  {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                                </Button>
-                              </div>
-                            </div>
-
-                            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                              <p className="text-sm font-medium">🎮 OBS Setup:</p>
-                              <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-                                <li>Open OBS Studio</li>
-                                <li>Settings → Stream → Select "Custom"</li>
-                                <li>Paste Server URL and Stream Key above</li>
-                                <li>Click "Start Streaming"</li>
-                              </ol>
-                            </div>
-                          </CardContent>
-                        </Card>
-
-                        <Button
-                          onClick={handleEndStream}
-                          variant="destructive"
-                          size="lg"
-                          className="w-full"
-                          disabled={loading}
-                        >
-                          {loading ? (
-                            <>
-                              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                              Ending Stream...
-                            </>
-                          ) : (
-                            <>
-                              <StopCircle className="mr-2 h-5 w-5" />
-                              End Stream
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    )}
-                  </TabsContent>
-
-                  <TabsContent value="pull" className="space-y-6">
-                    <div className="text-center mb-4">
-                      <h3 className="text-xl font-bold mb-2">Pull External Stream</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Re-stream from YouTube, Twitch, TikTok, or any RTMP/HLS source
-                      </p>
-                    </div>
-
-                    <form onSubmit={handleStartStream} className="space-y-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="title-pull">Stream Title</Label>
-                        <Input
-                          id="title-pull"
-                          placeholder="What are you streaming today?"
-                          value={title}
-                          onChange={(e) => setTitle(e.target.value)}
-                          required
+                        <Switch
+                          id="enable-recording"
+                          checked={enableRecording}
+                          onCheckedChange={setEnableRecording}
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="description-pull">Description</Label>
-                        <Textarea
-                          id="description-pull"
-                          placeholder="Tell viewers what to expect..."
-                          value={description}
-                          onChange={(e) => setDescription(e.target.value)}
-                          rows={4}
-                        />
-                      </div>
-                      
-                      <YouTubeConnect 
-                        onSelectStream={setPullUrl}
-                      />
 
-                      <div className="relative">
-                        <div className="absolute inset-0 flex items-center">
-                          <span className="w-full border-t" />
-                        </div>
-                        <div className="relative flex justify-center text-xs uppercase">
-                          <span className="bg-background px-2 text-muted-foreground">
-                            Or enter manually
-                          </span>
-                        </div>
-                      </div>
-
-                      <PullStreamSetup 
-                        pullUrl={pullUrl}
-                        onPullUrlChange={setPullUrl}
-                      />
-
-                      {/* Recording Options */}
-                      <Card className="border-muted bg-muted/20">
-                        <CardContent className="pt-6 space-y-4">
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-0.5">
-                              <Label htmlFor="enable-recording-pull" className="text-base">
-                                Record Stream
-                              </Label>
-                              <p className="text-sm text-muted-foreground">
-                                Save your stream for viewers to watch later
-                              </p>
-                            </div>
-                            <Switch
-                              id="enable-recording-pull"
-                              checked={enableRecording}
-                              onCheckedChange={setEnableRecording}
-                            />
+                      {enableRecording && (
+                        <div className="flex items-center justify-between pl-4 border-l-2 border-primary/30">
+                          <div className="space-y-0.5">
+                            <Label htmlFor="save-to-storj" className="text-sm">
+                              Save to Storj (Decentralized)
+                            </Label>
+                            <p className="text-xs text-muted-foreground">
+                              Permanently store on decentralized storage
+                            </p>
                           </div>
-
-                          {enableRecording && (
-                            <div className="flex items-center justify-between pl-4 border-l-2 border-primary/30">
-                              <div className="space-y-0.5">
-                                <Label htmlFor="save-to-storj-pull" className="text-sm">
-                                  Save to Storj (Decentralized)
-                                </Label>
-                                <p className="text-xs text-muted-foreground">
-                                  Permanently store on decentralized storage
-                                </p>
-                              </div>
-                              <Switch
-                                id="save-to-storj-pull"
-                                checked={saveToStorj}
-                                onCheckedChange={setSaveToStorj}
-                              />
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-
-                      <Button
-                        type="submit"
-                        size="lg"
-                        className="w-full bg-gradient-hero hover:opacity-90 text-lg"
-                        disabled={loading || !pullUrl}
-                      >
-                        {loading ? (
-                          <>
-                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                            Creating Pull Stream...
-                          </>
-                        ) : (
-                          <>
-                            <ExternalLink className="mr-2 h-5 w-5" />
-                            Start Pull Stream
-                          </>
-                        )}
-                      </Button>
-                    </form>
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-6 animate-fade-in">
-              <div className="grid lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 space-y-6">
-                  {streamMode === 'instant' && livekitToken ? (
-                    <InstantLiveStreamLiveKit
-                      roomToken={livekitToken}
-                      onStreamEnd={handleEndStream}
-                      onStreamConnected={() => {
-                        toast({ title: 'Connected!', description: "You're now live" });
-                      }}
-                      isLive={isLive}
-                      creatorId={user?.id}
-                    />
-                  ) : playbackId ? (
-                    <LiveStreamPlayer 
-                      playbackId={playbackId}
-                      title={title}
-                      isLive={true}
-                      viewerId={user?.id}
-                    />
-                  ) : null}
-
-                  {streamMode !== 'instant' && (
-                    <Card className="border-0 shadow-card">
-                      <CardContent className="pt-6">
-                        <h3 className="text-xl font-bold mb-4">Stream Configuration</h3>
-...
-                      </CardContent>
-                    </Card>
-                  )}
-
+                          <Switch
+                            id="save-to-storj"
+                            checked={saveToStorj}
+                            onCheckedChange={setSaveToStorj}
+                          />
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                  
                   <Button
-                    onClick={handleEndStream}
+                    type="submit"
                     size="lg"
-                    variant="destructive"
-                    className="w-full text-lg"
+                    className="w-full bg-gradient-hero hover:opacity-90"
                     disabled={loading}
                   >
                     {loading ? (
                       <>
                         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Ending...
+                        Creating Stream...
                       </>
                     ) : (
                       <>
-                        <StopCircle className="mr-2 h-5 w-5" />
-                        End Stream
+                        <Video className="mr-2 h-5 w-5" />
+                        Create Stream
                       </>
                     )}
                   </Button>
-                </div>
+                </form>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-6">
+              {livekitToken && (
+                <InstantLiveStreamLiveKit
+                  roomToken={livekitToken}
+                  onStreamEnd={handleEndStream}
+                  onStreamConnected={async () => {
+                    console.log('🔴 Stream connected! Recording:', enableRecording, 'Room:', roomName, 'Already started:', recordingStarted);
+                    
+                    toast({
+                      title: "Connected!",
+                      description: "You're now live",
+                    });
+                    
+                    // Start recording if enabled
+                    if (enableRecording && roomName && !recordingStarted) {
+                      console.log('📹 Attempting to start recording...');
+                      try {
+                        const { data: egressData, error: egressError } = await supabase.functions.invoke('livekit-egress', {
+                          body: {
+                            roomName,
+                            streamId,
+                          }
+                        });
+                        
+                        console.log('📹 Egress response:', { egressData, egressError });
+                        
+                        if (egressError || !egressData?.success) {
+                          console.error('❌ Failed to start recording:', egressError || egressData);
+                          toast({
+                            title: "Recording Failed",
+                            description: `Error: ${egressError?.message || egressData?.error || 'Unknown'}`,
+                            variant: "destructive",
+                          });
+                        } else {
+                          setRecordingStarted(true);
+                          const storageLocation = saveToStorj ? "Storj (decentralized)" : "cloud storage";
+                          console.log('✅ Recording started:', egressData.egressId);
+                          toast({
+                            title: "Recording Started",
+                            description: `ID: ${egressData.egressId} → ${storageLocation}`,
+                          });
+                        }
+                      } catch (error) {
+                        console.error('❌ Exception starting recording:', error);
+                        toast({
+                          title: "Recording Error",
+                          description: error instanceof Error ? error.message : 'Failed to start',
+                          variant: "destructive",
+                        });
+                      }
+                    } else {
+                      console.log('⚠️ Recording skipped:', { enableRecording, roomName, recordingStarted });
+                    }
+                  }}
+                  isLive={isLive}
+                />
+              )}
 
-                {/* Live Chat for Creator */}
-                {streamId && (
-                  <div className="lg:col-span-1">
-                    <div className="h-[calc(100vh-12rem)] sticky top-24">
-                      <StreamChat 
-                        streamId={streamId}
-                        currentUserId={user?.id}
-                        currentUsername={user?.email?.split('@')[0] || 'Creator'}
-                      />
-                    </div>
-                  </div>
+              {/* Live Chat */}
+              {streamId && (
+                <StreamChat 
+                  streamId={streamId}
+                  currentUserId={user.id}
+                  currentUsername={user.email}
+                />
+              )}
+
+              <Button
+                onClick={handleEndStream}
+                variant="destructive"
+                size="lg"
+                className="w-full"
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Ending Stream...
+                  </>
+                ) : (
+                  <>
+                    <StopCircle className="mr-2 h-5 w-5" />
+                    End Stream
+                  </>
                 )}
-              </div>
+              </Button>
             </div>
           )}
         </div>

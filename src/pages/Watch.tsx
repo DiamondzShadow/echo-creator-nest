@@ -6,8 +6,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/Navbar";
-import { LiveStreamPlayer } from "@/components/LiveStreamPlayer";
-import SoundCloudWidget from "@/components/SoundCloudWidget";
 import { LiveKitViewer } from "@/components/LiveKitViewer";
 import { TipButton } from "@/components/TipButton";
 import FollowButton from "@/components/FollowButton";
@@ -16,6 +14,7 @@ import { Eye, ArrowLeft, Loader2, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { BrandBanner } from "@/components/BrandBanner";
 import StreamReactions, { ReactionType } from "@/components/StreamReactions";
+import SoundCloudWidget from "@/components/SoundCloudWidget";
 
 const Watch = () => {
   const { streamId } = useParams();
@@ -277,13 +276,6 @@ const Watch = () => {
                     </div>
                   </CardContent>
                 </Card>
-              ) : stream.livepeer_playback_id && !isLiveKitStream ? (
-                <LiveStreamPlayer
-                  playbackId={stream.livepeer_playback_id}
-                  title={stream.title}
-                  isLive={stream.is_live}
-                  viewerId={currentUser?.id}
-                />
               ) : (
                 <Card className="border-0 shadow-glow bg-gradient-card">
                   <CardContent className="pt-6">
