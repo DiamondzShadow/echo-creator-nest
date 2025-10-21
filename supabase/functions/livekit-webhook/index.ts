@@ -1,10 +1,52 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createHmac } from "https://deno.land/std@0.224.0/crypto/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+/**
+ * Constant-time string comparison to prevent timing attacks
+ */
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+  
+  const aBytes = new TextEncoder().encode(a);
+  const bBytes = new TextEncoder().encode(b);
+  
+  let result = 0;
+  for (let i = 0; i < aBytes.length; i++) {
+    result |= aBytes[i] ^ bBytes[i];
+  }
+  
+  return result === 0;
+}
+
+/**
+ * Verify LiveKit webhook signature
+ */
+async function verifyWebhookSignature(
+  body: string,
+  signature: string,
+  secret: string
+): Promise<boolean> {
+  try {
+    const hmac = createHmac("sha256", secret);
+    hmac.update(body);
+    const expectedSignature = Array.from(hmac.digest())
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+    
+    return timingSafeEqual(signature, expectedSignature);
+  } catch (error) {
+    console.error('Error verifying signature:', error);
+    return false;
+  }
+}
 
 /**
  * LiveKit Webhook Handler
@@ -20,11 +62,46 @@ serve(async (req) => {
   }
 
   try {
+    // Get webhook secret
+    const webhookSecret = Deno.env.get('LIVEKIT_WEBHOOK_SECRET');
+    if (!webhookSecret) {
+      console.error('LIVEKIT_WEBHOOK_SECRET not configured');
+      return new Response(
+        JSON.stringify({ error: 'Webhook secret not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Get signature from header
+    const signature = req.headers.get('livekit-signature');
+    if (!signature) {
+      console.error('Missing livekit-signature header');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized: Missing signature' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Read body as text for signature verification
+    const body = await req.text();
+    
+    // Verify signature
+    const isValid = await verifyWebhookSignature(body, signature, webhookSecret);
+    if (!isValid) {
+      console.error('Invalid webhook signature');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized: Invalid signature' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('✅ Webhook signature verified');
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const webhookData = await req.json();
+    const webhookData = JSON.parse(body);
     console.log('LiveKit webhook received:', JSON.stringify(webhookData, null, 2));
 
     const { event, room, egress, egressInfo } = webhookData;
