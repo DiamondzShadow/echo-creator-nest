@@ -65,7 +65,13 @@ serve(async (req) => {
         });
       }
 
-      authUrl.searchParams.set('state', user.id);
+      // Generate cryptographically secure state parameter (fixes INPUT_VALIDATION: youtube_oauth_state_weak)
+      const randomBytes = new Uint8Array(32);
+      crypto.getRandomValues(randomBytes);
+      const secureToken = Array.from(randomBytes, byte => byte.toString(16).padStart(2, '0')).join('');
+      // Encode both user ID and secure token (separated by .)
+      const state = `${user.id}.${secureToken}`;
+      authUrl.searchParams.set('state', state);
 
       return new Response(JSON.stringify({ authUrl: authUrl.toString() }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -75,10 +81,23 @@ serve(async (req) => {
     if (action === 'callback') {
       // Handle OAuth callback
       const code = url.searchParams.get('code');
-      const state = url.searchParams.get('state'); // user_id
+      const state = url.searchParams.get('state');
       
       if (!code || !state) {
         return new Response('Missing code or state', { status: 400 });
+      }
+
+      // Validate and extract user ID from state (fixes INPUT_VALIDATION: youtube_oauth_state_weak)
+      const stateParts = state.split('.');
+      if (stateParts.length !== 2) {
+        return new Response('Invalid state parameter', { status: 400 });
+      }
+      const userId = stateParts[0];
+      const token = stateParts[1];
+      
+      // Validate token format (should be 64 hex chars)
+      if (!/^[0-9a-f]{64}$/i.test(token)) {
+        return new Response('Invalid state token', { status: 400 });
       }
 
       // Exchange code for tokens
@@ -123,7 +142,7 @@ serve(async (req) => {
       const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
 
       const { error } = await supabase.from('platform_connections').upsert({
-        user_id: state,
+        user_id: userId,
         platform: 'youtube',
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,

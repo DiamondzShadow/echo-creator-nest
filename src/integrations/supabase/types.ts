@@ -101,11 +101,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "followers_follower_id_fkey"
+            columns: ["follower_id"]
+            isOneToOne: false
+            referencedRelation: "tip_leaderboard"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "followers_following_id_fkey"
             columns: ["following_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followers_following_id_fkey"
+            columns: ["following_id"]
+            isOneToOne: false
+            referencedRelation: "tip_leaderboard"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -162,6 +176,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_streams_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "tip_leaderboard"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -384,7 +405,33 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      tip_leaderboard: {
+        Row: {
+          avatar_url: string | null
+          display_name: string | null
+          tip_count: number | null
+          total_tips_received: number | null
+          user_id: string | null
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          display_name?: string | null
+          tip_count?: number | null
+          total_tips_received?: number | null
+          user_id?: string | null
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          display_name?: string | null
+          tip_count?: number | null
+          total_tips_received?: number | null
+          user_id?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_stream_key: {

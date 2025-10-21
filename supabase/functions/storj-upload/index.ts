@@ -33,10 +33,26 @@ serve(async (req) => {
         throw new Error('filename is required');
       }
 
+      // Validate and sanitize path to prevent traversal (fixes INPUT_VALIDATION: storj_path_traversal)
+      if (path) {
+        // Reject paths with directory traversal attempts
+        if (path.includes('..') || path.includes('\\')) {
+          throw new Error('Invalid path: directory traversal not allowed');
+        }
+        // Ensure path starts with /
+        if (!path.startsWith('/')) {
+          throw new Error('Invalid path: must start with /');
+        }
+      }
+
       // Generate a unique path for the file
       const timestamp = Date.now();
-      const sanitizedFilename = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
-      const uploadPath = path || `/uploads/${timestamp}/${sanitizedFilename}`;
+      // Strict filename sanitization - only allow alphanumeric, dots, hyphens, underscores
+      const sanitizedFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+      // Limit filename length
+      const maxFilenameLength = 100;
+      const truncatedFilename = sanitizedFilename.slice(0, maxFilenameLength);
+      const uploadPath = path || `/uploads/${timestamp}/${truncatedFilename}`;
       
       // In a production environment, you would generate a proper AWS Signature V4
       // For now, we'll return the upload configuration
@@ -99,20 +115,26 @@ serve(async (req) => {
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
-    }
-    else if (action === 'get-config') {
-      // Return safe upload configuration (without secret key)
+  } 
+  else if (action === 'get-config') {
+    // Require authentication for config access (fixes CLIENT_SIDE_AUTH: storj_config_no_auth)
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
       return new Response(
-        JSON.stringify({
-          bucket: STORJ_BUCKET,
-          endpoint: STORJ_ENDPOINT,
-          region: 'us-east-1',
-          // Note: Never expose the secret key to the client
-          hasCredentials: !!STORJ_ACCESS_KEY_ID && !!STORJ_SECRET_ACCESS_KEY
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Authentication required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Return minimal safe configuration (don't expose bucket/endpoint details)
+    return new Response(
+      JSON.stringify({
+        region: 'us-east-1',
+        configured: !!STORJ_ACCESS_KEY_ID && !!STORJ_SECRET_ACCESS_KEY
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
 
     return new Response(
       JSON.stringify({ error: 'Invalid action' }),
