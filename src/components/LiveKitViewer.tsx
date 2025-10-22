@@ -59,18 +59,21 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
           publication,
           participant: RemoteParticipant
         ) => {
-          console.log('📥 Track subscribed:', track.kind);
+          console.log('📥 Track subscribed from:', participant.identity, 'kind:', track.kind);
           
           if (track.kind === Track.Kind.Video && videoRef.current) {
+            console.log('🎥 Attaching video track to element');
             track.attach(videoRef.current);
             setHasVideo(true);
           } else if (track.kind === Track.Kind.Audio && audioRef.current) {
+            console.log('🔊 Attaching audio track to element');
             track.attach(audioRef.current);
           }
         });
 
         newRoom.on(RoomEvent.TrackUnsubscribed, (track) => {
           console.log('📤 Track unsubscribed:', track.kind);
+          track.detach();
           if (track.kind === Track.Kind.Video) {
             setHasVideo(false);
           }
@@ -81,14 +84,37 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
           setIsConnected(false);
         });
 
-        // Check for existing tracks from remote participants
-        newRoom.remoteParticipants.forEach((participant) => {
+        // Handle new participants joining
+        newRoom.on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
+          console.log('👤 Participant connected:', participant.identity);
+          
+          // Subscribe to their existing tracks
           participant.trackPublications.forEach((publication) => {
-            if (publication.track) {
+            if (publication.isSubscribed && publication.track) {
               if (publication.track.kind === Track.Kind.Video && videoRef.current) {
                 (publication.track as RemoteVideoTrack).attach(videoRef.current);
                 setHasVideo(true);
               } else if (publication.track.kind === Track.Kind.Audio && audioRef.current) {
+                (publication.track as RemoteAudioTrack).attach(audioRef.current);
+              }
+            }
+          });
+        });
+
+        // Check for existing tracks from remote participants already in room
+        console.log('🔍 Checking for existing participants. Count:', newRoom.remoteParticipants.size);
+        newRoom.remoteParticipants.forEach((participant) => {
+          console.log('👤 Found participant:', participant.identity);
+          participant.trackPublications.forEach((publication) => {
+            console.log('📹 Track publication:', publication.trackName, 'subscribed:', publication.isSubscribed);
+            
+            if (publication.isSubscribed && publication.track) {
+              if (publication.track.kind === Track.Kind.Video && videoRef.current) {
+                console.log('🎥 Attaching existing video track');
+                (publication.track as RemoteVideoTrack).attach(videoRef.current);
+                setHasVideo(true);
+              } else if (publication.track.kind === Track.Kind.Audio && audioRef.current) {
+                console.log('🔊 Attaching existing audio track');
                 (publication.track as RemoteAudioTrack).attach(audioRef.current);
               }
             }
