@@ -52,6 +52,13 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
         setIsConnecting(false);
 
         console.log('✅ Connected to room:', newRoom.name);
+        console.log('📊 Room state:', {
+          name: newRoom.name,
+          state: newRoom.state,
+          localParticipant: newRoom.localParticipant.identity,
+          numRemoteParticipants: newRoom.remoteParticipants.size,
+          metadata: newRoom.metadata,
+        });
 
         // Setup room event handlers
         newRoom.on(RoomEvent.TrackSubscribed, (
@@ -89,6 +96,35 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
           }
         });
 
+        // Listen for subscription status changes
+        newRoom.on(RoomEvent.TrackSubscriptionStatusChanged, (publication, status, participant) => {
+          console.log('🔄 Track subscription status changed:', {
+            trackName: publication.trackName,
+            kind: publication.kind,
+            status,
+            participant: participant.identity,
+          });
+          
+          // If subscription failed, try again
+          if (status === 'error' && !publication.isSubscribed) {
+            console.log('⚠️ Subscription error, retrying...');
+            setTimeout(() => {
+              publication.setSubscribed(true).catch(err => {
+                console.error('❌ Retry failed:', err);
+              });
+            }, 1000);
+          }
+        });
+
+        // Listen for track mute/unmute
+        newRoom.on(RoomEvent.TrackMuted, (publication, participant) => {
+          console.log('🔇 Track muted:', publication.trackName, 'by', participant.identity);
+        });
+
+        newRoom.on(RoomEvent.TrackUnmuted, (publication, participant) => {
+          console.log('🔊 Track unmuted:', publication.trackName, 'by', participant.identity);
+        });
+
         newRoom.on(RoomEvent.Disconnected, () => {
           console.log('🔌 Room disconnected');
           setIsConnected(false);
@@ -96,6 +132,14 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
 
         newRoom.on(RoomEvent.TrackPublished, (publication, participant: RemoteParticipant) => {
           console.log('📤 Track published by:', participant.identity, 'kind:', publication.kind, 'trackName:', publication.trackName);
+          
+          // CRITICAL FIX: Ensure we subscribe to newly published tracks
+          if (!publication.isSubscribed) {
+            console.log('🔄 Auto-subscribing to newly published track...');
+            publication.setSubscribed(true).catch((err) => {
+              console.error('❌ Failed to subscribe to newly published track:', err);
+            });
+          }
         });
 
         // Handle new participants joining
@@ -114,6 +158,12 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
                 console.log('🔊 Attaching audio from new participant');
                 (publication.track as RemoteAudioTrack).attach(audioRef.current);
               }
+            } else if (!publication.isSubscribed) {
+              // CRITICAL FIX: Subscribe to tracks that aren't auto-subscribed
+              console.log('🔄 Subscribing to participant track...');
+              publication.setSubscribed(true).catch((err) => {
+                console.error('❌ Failed to subscribe:', err);
+              });
             }
           });
         });
@@ -145,7 +195,11 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
                 (publication.track as RemoteAudioTrack).attach(audioRef.current);
               }
             } else if (!publication.isSubscribed) {
-              console.log('⚠️ Track not subscribed yet, waiting...');
+              // CRITICAL FIX: Explicitly subscribe to tracks that aren't auto-subscribed
+              console.log('⚠️ Track not subscribed yet, explicitly subscribing...');
+              publication.setSubscribed(true).catch((err) => {
+                console.error('❌ Failed to subscribe to track:', err);
+              });
             }
           });
         });

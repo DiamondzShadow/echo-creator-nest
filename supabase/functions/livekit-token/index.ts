@@ -135,6 +135,8 @@ serve(async (req) => {
       const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
         identity: viewerIdentity,
         name: viewerName,
+        // Set token to expire in 24 hours (86400 seconds)
+        ttl: '24h',
         metadata: JSON.stringify({
           userId: userId,
           role: 'viewer',
@@ -142,13 +144,13 @@ serve(async (req) => {
         }),
       });
 
-      // Grant viewer permissions (subscribe only)
+      // Grant viewer permissions (subscribe only, but MUST have canSubscribe: true)
       at.addGrant({
         roomJoin: true,
         room: roomName,
         canPublish: false,
         canPublishData: false,
-        canSubscribe: true,
+        canSubscribe: true, // CRITICAL: Viewers must be able to subscribe
       });
 
       const token = await at.toJwt();
