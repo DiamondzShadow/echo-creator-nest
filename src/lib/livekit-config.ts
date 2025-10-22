@@ -17,6 +17,8 @@ export async function createLiveKitRoom(token: string): Promise<Room> {
   const room = new Room({
     adaptiveStream: true,
     dynacast: true,
+    // CRITICAL: Ensure viewers automatically subscribe to all tracks
+    autoSubscribe: true,
     videoCaptureDefaults: {
       resolution: {
         width: 1920,
