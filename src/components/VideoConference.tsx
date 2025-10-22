@@ -46,6 +46,7 @@ const VideoConference = ({ roomToken, roomName, displayName, soundcloudUrl, onLe
   const [expandedVideo, setExpandedVideo] = useState<string | null>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const localVideoRef = useRef<HTMLVideoElement>(null);
+  const expandedVideoRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -230,6 +231,26 @@ const VideoConference = ({ roomToken, roomName, displayName, soundcloudUrl, onLe
     });
   }, [participants]);
 
+  // Handle expanded video display
+  useEffect(() => {
+    if (!expandedVideoRef.current || !expandedVideo || expandedVideo === 'local') return;
+
+    const participant = participants.find(p => p.participantId === expandedVideo);
+    if (!participant) return;
+
+    // Clear and append the video element
+    expandedVideoRef.current.innerHTML = '';
+    participant.videoElement.className = 'w-full h-full object-contain';
+    expandedVideoRef.current.appendChild(participant.videoElement);
+
+    return () => {
+      // Clean up on unmount or change
+      if (participant.videoElement.parentElement === expandedVideoRef.current) {
+        expandedVideoRef.current?.removeChild(participant.videoElement);
+      }
+    };
+  }, [expandedVideo, participants]);
+
   const handleToggleCamera = async () => {
     if (!room) return;
     try {
@@ -311,11 +332,11 @@ const VideoConference = ({ roomToken, roomName, displayName, soundcloudUrl, onLe
         </div>
 
         {/* Video Grid */}
-        <div className="flex-1 container mx-auto px-4 py-6">
+        <div className="flex-1 overflow-hidden px-4 py-6">
           {expandedVideo ? (
             // Expanded single video view
-            <div className="h-full flex flex-col">
-              <div className="flex-1 relative bg-muted rounded-lg overflow-hidden">
+            <div className="h-full flex flex-col max-w-7xl mx-auto">
+              <div className="flex-1 relative bg-black rounded-lg overflow-hidden min-h-0">
                 {expandedVideo === 'local' ? (
                   <>
                     <video
@@ -325,11 +346,11 @@ const VideoConference = ({ roomToken, roomName, displayName, soundcloudUrl, onLe
                       muted
                       className="w-full h-full object-contain"
                     />
-                    <div className="absolute bottom-4 left-4 bg-black/70 text-white px-3 py-2 rounded text-base z-10">
+                    <div className="absolute bottom-4 left-4 bg-black/80 text-white px-3 py-2 rounded text-base z-10">
                       {displayName} (You)
                     </div>
                     {!isCameraEnabled && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-muted">
+                      <div className="absolute inset-0 flex items-center justify-center bg-black">
                         <VideoOff className="h-16 w-16 text-muted-foreground" />
                       </div>
                     )}
@@ -337,46 +358,43 @@ const VideoConference = ({ roomToken, roomName, displayName, soundcloudUrl, onLe
                 ) : (
                   participants
                     .filter(p => p.participantId === expandedVideo)
-                    .map(participant => (
-                      <div key={participant.participantId} className="w-full h-full">
-                        <video
-                          ref={(el) => {
-                            if (el && el !== participant.videoElement) {
-                              el.replaceWith(participant.videoElement);
-                            }
-                          }}
-                          className="w-full h-full object-contain"
-                        />
-                        <div className="absolute bottom-4 left-4 bg-black/70 text-white px-3 py-2 rounded text-base z-10">
-                          {participant.name}
+                    .map(participant => {
+                      const profile = participantProfiles[participant.participantId];
+                      return (
+                        <div key={participant.participantId} className="w-full h-full relative">
+                          <div ref={expandedVideoRef} className="w-full h-full" />
+                          <div className="absolute bottom-4 left-4 bg-black/80 text-white px-3 py-2 rounded text-base z-10 flex items-center gap-3">
+                            <span>{participant.name}</span>
+                            {profile && profile.wallet_address && (
+                              <TipButton
+                                recipientUserId={profile.id}
+                                recipientWalletAddress={profile.wallet_address}
+                                recipientUsername={profile.username}
+                              />
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                 )}
                 <Button
                   onClick={() => setExpandedVideo(null)}
                   variant="secondary"
                   size="lg"
-                  className="absolute top-4 right-4 z-10"
+                  className="absolute top-4 right-4 z-20"
                 >
                   <Minimize2 className="h-5 w-5 mr-2" />
-                  Exit Fullscreen
+                  Exit
                 </Button>
               </div>
               
               {/* Thumbnail strip */}
-              <div className="flex gap-2 mt-4 overflow-x-auto">
+              <div className="flex gap-2 mt-4 overflow-x-auto pb-2">
                 <button
                   onClick={() => setExpandedVideo('local')}
-                  className={`relative flex-shrink-0 w-32 h-20 rounded overflow-hidden ${expandedVideo === 'local' ? 'ring-2 ring-primary' : ''}`}
+                  className={`relative flex-shrink-0 w-32 h-20 rounded overflow-hidden border-2 ${expandedVideo === 'local' ? 'border-primary' : 'border-transparent'}`}
                 >
-                  <video
-                    ref={localVideoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    className="w-full h-full object-cover"
-                  />
+                  <div className="w-full h-full bg-muted" />
                   <div className="absolute inset-x-0 bottom-0 bg-black/70 text-white text-xs px-1 py-0.5 truncate">
                     You
                   </div>
@@ -385,7 +403,7 @@ const VideoConference = ({ roomToken, roomName, displayName, soundcloudUrl, onLe
                   <button
                     key={participant.participantId}
                     onClick={() => setExpandedVideo(participant.participantId)}
-                    className={`relative flex-shrink-0 w-32 h-20 rounded overflow-hidden ${expandedVideo === participant.participantId ? 'ring-2 ring-primary' : ''}`}
+                    className={`relative flex-shrink-0 w-32 h-20 rounded overflow-hidden border-2 ${expandedVideo === participant.participantId ? 'border-primary' : 'border-transparent'}`}
                   >
                     <div className="w-full h-full bg-muted" />
                     <div className="absolute inset-x-0 bottom-0 bg-black/70 text-white text-xs px-1 py-0.5 truncate">
@@ -397,7 +415,7 @@ const VideoConference = ({ roomToken, roomName, displayName, soundcloudUrl, onLe
             </div>
           ) : (
             // Grid view
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-full">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-full max-w-7xl mx-auto">
               {/* Local Video */}
               <div className="relative aspect-video bg-muted rounded-lg overflow-hidden group">
                 <video
@@ -476,40 +494,53 @@ const VideoConference = ({ roomToken, roomName, displayName, soundcloudUrl, onLe
       </div>
 
       {/* Sidebar */}
-      <div className="w-80 border-l bg-card flex flex-col">
+      <div className="w-80 border-l bg-card flex flex-col max-h-screen">
         <ScrollArea className="flex-1">
           <div className="p-4 space-y-4">
             {/* Participants List */}
-            <Card className="p-4">
-              <h3 className="font-semibold mb-3">Participants ({participants.length + 1})</h3>
+            <div className="space-y-3">
+              <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
+                Participants ({participants.length + 1})
+              </h3>
               <div className="space-y-2">
-                <div className="text-sm p-2 bg-muted rounded">
-                  {displayName} (You)
-                </div>
+                <Card className="p-3 bg-muted/50">
+                  <div className="text-sm font-medium">{displayName} (You)</div>
+                </Card>
                 {participants.map((participant) => {
                   const profile = participantProfiles[participant.participantId];
                   return (
-                    <div key={participant.participantId} className="flex items-center justify-between p-2 bg-muted rounded">
-                      <span className="text-sm">{participant.name}</span>
-                      {profile && profile.wallet_address && (
-                        <TipButton
-                          recipientUserId={profile.id}
-                          recipientWalletAddress={profile.wallet_address}
-                          recipientUsername={profile.username}
-                        />
-                      )}
-                    </div>
+                    <Card key={participant.participantId} className="p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium truncate">{participant.name}</div>
+                          {profile && (
+                            <div className="text-xs text-muted-foreground truncate">
+                              @{profile.username}
+                            </div>
+                          )}
+                        </div>
+                        {profile && profile.wallet_address && (
+                          <TipButton
+                            recipientUserId={profile.id}
+                            recipientWalletAddress={profile.wallet_address}
+                            recipientUsername={profile.username}
+                          />
+                        )}
+                      </div>
+                    </Card>
                   );
                 })}
               </div>
-            </Card>
+            </div>
 
             {/* SoundCloud Widget */}
             {soundcloudUrl && (
-              <Card className="p-4">
-                <h3 className="font-semibold mb-3">Music</h3>
-                <SoundCloudWidget url={soundcloudUrl} autoPlay={false} />
-              </Card>
+              <div className="space-y-3">
+                <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Music</h3>
+                <Card className="p-3">
+                  <SoundCloudWidget url={soundcloudUrl} autoPlay={false} />
+                </Card>
+              </div>
             )}
           </div>
         </ScrollArea>
