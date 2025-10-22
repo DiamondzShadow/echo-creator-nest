@@ -146,15 +146,36 @@ const Watch = () => {
 
       // If LiveKit stream, get viewer token
       if (isLiveKit && streamData.is_live) {
-        const { data: tokenData } = await supabase.functions.invoke('livekit-token', {
-          body: {
-            action: 'create_viewer_token',
-            roomName: streamData.livepeer_playback_id,
-          }
-        });
+        console.log('📺 Fetching viewer token for LiveKit room:', streamData.livepeer_playback_id);
+        
+        try {
+          const { data: tokenData, error: tokenError } = await supabase.functions.invoke('livekit-token', {
+            body: {
+              action: 'create_viewer_token',
+              roomName: streamData.livepeer_playback_id,
+            }
+          });
 
-        if (tokenData?.token) {
-          setLivekitToken(tokenData.token);
+          if (tokenError) {
+            console.error('❌ Failed to get viewer token:', tokenError);
+            toast({
+              title: 'Connection Error',
+              description: 'Unable to connect to live stream. Please try refreshing.',
+              variant: 'destructive',
+            });
+          } else if (tokenData?.token) {
+            console.log('✅ Viewer token obtained successfully');
+            setLivekitToken(tokenData.token);
+          } else {
+            console.error('❌ No token in response:', tokenData);
+          }
+        } catch (err) {
+          console.error('❌ Exception getting viewer token:', err);
+          toast({
+            title: 'Connection Error',
+            description: 'Failed to connect to stream',
+            variant: 'destructive',
+          });
         }
       }
       
