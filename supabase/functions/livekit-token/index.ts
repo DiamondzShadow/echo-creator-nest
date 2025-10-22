@@ -16,30 +16,22 @@ serve(async (req) => {
   try {
     // Get Supabase auth token
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Missing authorization header');
-    }
 
     // Initialize Supabase client
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       {
-        global: {
+        global: authHeader ? {
           headers: { Authorization: authHeader },
-        },
+        } : undefined,
       }
     );
 
-    // Verify user is authenticated
+    // Try to get authenticated user (optional for viewers)
     const {
       data: { user },
-      error: userError,
     } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      throw new Error('Unauthorized');
-    }
 
     // Parse request body
     const { roomName, action, streamId, enableRecording, saveToStorj } = await req.json();
@@ -53,6 +45,11 @@ serve(async (req) => {
     }
 
     if (action === 'create_token') {
+      // User must be authenticated to create broadcaster token
+      if (!user) {
+        throw new Error('Unauthorized: You must be logged in to broadcast');
+      }
+
       // Verify user owns this stream
       if (streamId) {
         const { data: streamData, error: streamError } = await supabase
@@ -130,13 +127,18 @@ serve(async (req) => {
       );
     } else if (action === 'create_viewer_token') {
       // Create viewer token (subscribe-only) with unique identity to avoid kicking host or other viewers
-      const viewerIdentity = `viewer-${roomName}-${user.id}-${crypto.randomUUID().slice(0,8)}`;
+      // Viewers can be anonymous or authenticated
+      const userId = user?.id || `anonymous-${crypto.randomUUID().slice(0,12)}`;
+      const viewerIdentity = `viewer-${roomName}-${userId}-${crypto.randomUUID().slice(0,8)}`;
+      const viewerName = user?.email || `Viewer-${crypto.randomUUID().slice(0,4)}`;
+      
       const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
         identity: viewerIdentity,
-        name: user.email || 'Viewer',
+        name: viewerName,
         metadata: JSON.stringify({
-          userId: user.id,
+          userId: userId,
           role: 'viewer',
+          authenticated: !!user,
         }),
       });
 
@@ -155,7 +157,7 @@ serve(async (req) => {
         JSON.stringify({
           token,
           roomName,
-          identity: user.id,
+          identity: userId,
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

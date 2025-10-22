@@ -59,15 +59,25 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
           publication,
           participant: RemoteParticipant
         ) => {
-          console.log('📥 Track subscribed from:', participant.identity, 'kind:', track.kind);
+          console.log('📥 Track subscribed from:', participant.identity, 'kind:', track.kind, 'trackSid:', track.sid);
           
           if (track.kind === Track.Kind.Video && videoRef.current) {
             console.log('🎥 Attaching video track to element');
-            track.attach(videoRef.current);
-            setHasVideo(true);
+            try {
+              track.attach(videoRef.current);
+              setHasVideo(true);
+              console.log('✅ Video track attached successfully');
+            } catch (err) {
+              console.error('❌ Failed to attach video track:', err);
+            }
           } else if (track.kind === Track.Kind.Audio && audioRef.current) {
             console.log('🔊 Attaching audio track to element');
-            track.attach(audioRef.current);
+            try {
+              track.attach(audioRef.current);
+              console.log('✅ Audio track attached successfully');
+            } catch (err) {
+              console.error('❌ Failed to attach audio track:', err);
+            }
           }
         });
 
@@ -84,17 +94,24 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
           setIsConnected(false);
         });
 
+        newRoom.on(RoomEvent.TrackPublished, (publication, participant: RemoteParticipant) => {
+          console.log('📤 Track published by:', participant.identity, 'kind:', publication.kind, 'trackName:', publication.trackName);
+        });
+
         // Handle new participants joining
         newRoom.on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
-          console.log('👤 Participant connected:', participant.identity);
+          console.log('👤 Participant connected:', participant.identity, 'Tracks:', participant.trackPublications.size);
           
           // Subscribe to their existing tracks
           participant.trackPublications.forEach((publication) => {
+            console.log('📹 Checking track:', publication.trackName, 'subscribed:', publication.isSubscribed);
             if (publication.isSubscribed && publication.track) {
               if (publication.track.kind === Track.Kind.Video && videoRef.current) {
+                console.log('🎥 Attaching video from new participant');
                 (publication.track as RemoteVideoTrack).attach(videoRef.current);
                 setHasVideo(true);
               } else if (publication.track.kind === Track.Kind.Audio && audioRef.current) {
+                console.log('🔊 Attaching audio from new participant');
                 (publication.track as RemoteAudioTrack).attach(audioRef.current);
               }
             }
@@ -103,10 +120,20 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
 
         // Check for existing tracks from remote participants already in room
         console.log('🔍 Checking for existing participants. Count:', newRoom.remoteParticipants.size);
+        
+        if (newRoom.remoteParticipants.size === 0) {
+          console.log('⏳ No participants yet - waiting for broadcaster to join...');
+        }
+        
         newRoom.remoteParticipants.forEach((participant) => {
-          console.log('👤 Found participant:', participant.identity);
+          console.log('👤 Found participant:', participant.identity, 'Tracks:', participant.trackPublications.size);
           participant.trackPublications.forEach((publication) => {
-            console.log('📹 Track publication:', publication.trackName, 'subscribed:', publication.isSubscribed);
+            console.log('📹 Track publication:', {
+              trackName: publication.trackName,
+              kind: publication.kind,
+              subscribed: publication.isSubscribed,
+              hasTrack: !!publication.track,
+            });
             
             if (publication.isSubscribed && publication.track) {
               if (publication.track.kind === Track.Kind.Video && videoRef.current) {
@@ -117,6 +144,8 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
                 console.log('🔊 Attaching existing audio track');
                 (publication.track as RemoteAudioTrack).attach(audioRef.current);
               }
+            } else if (!publication.isSubscribed) {
+              console.log('⚠️ Track not subscribed yet, waiting...');
             }
           });
         });
