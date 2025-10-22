@@ -72,6 +72,39 @@ const Watch = () => {
     };
   }, [streamId]);
 
+  // Auto-fetch viewer token when the stream flips to live after page load
+  useEffect(() => {
+    if (!stream) return;
+    const isLiveKit = stream.livepeer_playback_id?.startsWith('stream-');
+
+    if (isLiveKit && stream.is_live && !livekitToken) {
+      (async () => {
+        try {
+          const { data: tokenData, error: tokenError } = await supabase.functions.invoke('livekit-token', {
+            body: {
+              action: 'create_viewer_token',
+              roomName: stream.livepeer_playback_id,
+            }
+          });
+
+          if (tokenError) {
+            console.error('❌ Failed to get viewer token (live update):', tokenError);
+            toast({
+              title: 'Connection Error',
+              description: 'Unable to connect to live stream. Please try refreshing.',
+              variant: 'destructive',
+            });
+          } else if (tokenData?.token) {
+            console.log('✅ Viewer token obtained after live update');
+            setLivekitToken(tokenData.token);
+          }
+        } catch (err) {
+          console.error('❌ Exception getting viewer token (live update):', err);
+        }
+      })();
+    }
+  }, [stream?.is_live, stream?.livepeer_playback_id, livekitToken]);
+
   const fetchCurrentUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     setCurrentUser(session?.user);

@@ -105,14 +105,14 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
             participant: participant.identity,
           });
           
-          // If subscription failed, try again
-          if (status === 'error' && !publication.isSubscribed) {
-            console.log('⚠️ Subscription error, retrying...');
-            setTimeout(() => {
-              publication.setSubscribed(true).catch(err => {
-                console.error('❌ Retry failed:', err);
-              });
-            }, 1000);
+          // If not subscribed, try to subscribe
+          if (!publication.isSubscribed) {
+            console.log('⚠️ Not subscribed, attempting to subscribe...');
+            try {
+              publication.setSubscribed(true);
+            } catch (err) {
+              console.error('❌ Subscription attempt failed:', err);
+            }
           }
         });
 
@@ -136,9 +136,11 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
           // CRITICAL FIX: Ensure we subscribe to newly published tracks
           if (!publication.isSubscribed) {
             console.log('🔄 Auto-subscribing to newly published track...');
-            publication.setSubscribed(true).catch((err) => {
+            try {
+              publication.setSubscribed(true);
+            } catch (err) {
               console.error('❌ Failed to subscribe to newly published track:', err);
-            });
+            }
           }
         });
 
@@ -161,9 +163,11 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
             } else if (!publication.isSubscribed) {
               // CRITICAL FIX: Subscribe to tracks that aren't auto-subscribed
               console.log('🔄 Subscribing to participant track...');
-              publication.setSubscribed(true).catch((err) => {
+              try {
+                publication.setSubscribed(true);
+              } catch (err) {
                 console.error('❌ Failed to subscribe:', err);
-              });
+              }
             }
           });
         });
@@ -197,9 +201,11 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
             } else if (!publication.isSubscribed) {
               // CRITICAL FIX: Explicitly subscribe to tracks that aren't auto-subscribed
               console.log('⚠️ Track not subscribed yet, explicitly subscribing...');
-              publication.setSubscribed(true).catch((err) => {
+              try {
+                publication.setSubscribed(true);
+              } catch (err) {
                 console.error('❌ Failed to subscribe to track:', err);
-              });
+              }
             }
           });
         });
