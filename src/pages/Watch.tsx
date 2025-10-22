@@ -144,9 +144,9 @@ const Watch = () => {
       const isLiveKit = streamData.livepeer_playback_id?.startsWith('stream-');
       setIsLiveKitStream(isLiveKit);
 
-      // If LiveKit stream, get viewer token
+      // If LiveKit stream AND actually live (broadcaster has published tracks), get viewer token
       if (isLiveKit && streamData.is_live) {
-        console.log('📺 Fetching viewer token for LiveKit room:', streamData.livepeer_playback_id);
+        console.log('📺 Stream is live! Fetching viewer token for LiveKit room:', streamData.livepeer_playback_id);
         
         try {
           const { data: tokenData, error: tokenError } = await supabase.functions.invoke('livekit-token', {
@@ -278,12 +278,24 @@ const Watch = () => {
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-4 gap-6">
             <div className="lg:col-span-3 space-y-4">
-              {isLiveKitStream && livekitToken ? (
+              {isLiveKitStream && stream.is_live && livekitToken ? (
                 <LiveKitViewer
                   roomToken={livekitToken}
                   title={stream.title}
                   isLive={stream.is_live}
                 />
+              ) : isLiveKitStream && !stream.is_live ? (
+                <Card className="border-0 shadow-glow bg-gradient-card">
+                  <CardContent className="pt-6">
+                    <div className="aspect-video bg-muted rounded-lg flex flex-col items-center justify-center p-8">
+                      <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
+                      <p className="text-lg font-semibold mb-2">Stream Starting Soon...</p>
+                      <p className="text-sm text-muted-foreground text-center">
+                        The broadcaster is setting up their camera and microphone. This page will update automatically when they go live.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
               ) : assetPlaybackUrl ? (
                 <Card className="border-0 shadow-glow bg-gradient-card">
                   <CardContent className="pt-6">

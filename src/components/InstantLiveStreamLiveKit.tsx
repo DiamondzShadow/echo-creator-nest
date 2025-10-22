@@ -107,13 +107,6 @@ export const InstantLiveStreamLiveKit = ({
         console.log('✅ Connected to LiveKit room:', newRoom.name);
 
         // Setup room event handlers
-        newRoom.on(RoomEvent.Connected, () => {
-          console.log('📡 Room connected event');
-          if (onStreamConnected) {
-            onStreamConnected();
-          }
-        });
-
         newRoom.on(RoomEvent.Disconnected, () => {
           console.log('🔌 Room disconnected');
           setIsConnected(false);
@@ -158,9 +151,15 @@ export const InstantLiveStreamLiveKit = ({
         // Setup audio visualization
         await setupAudioVisualization();
 
+        // CRITICAL: Only call onStreamConnected after tracks are successfully published
+        console.log('✅ Tracks published successfully, triggering onStreamConnected callback');
+        if (onStreamConnected) {
+          onStreamConnected();
+        }
+
         toast({
-          title: '🎉 Live!',
-          description: 'You are now broadcasting to your audience',
+          title: '🎉 Connected!',
+          description: 'Setting up your broadcast...',
         });
 
       } catch (err: any) {
