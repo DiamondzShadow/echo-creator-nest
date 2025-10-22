@@ -119,20 +119,25 @@ export const InstantLiveStreamLiveKit = ({
           setIsConnected(false);
         });
 
-        // Track participant joins/leaves for viewer notifications
+        // Track participant joins/leaves for viewer count (non-intrusive)
         newRoom.on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
           console.log('👤 Viewer joined:', participant.identity);
-          const viewerName = participant.name || participant.identity;
-          toast({
-            title: '👋 New Viewer',
-            description: `${viewerName} joined your stream`,
-          });
-          setViewerCount(newRoom.remoteParticipants.size);
+          // Update viewer count without interrupting stream
+          setTimeout(() => {
+            if (mounted && connectedRoom) {
+              setViewerCount(connectedRoom.remoteParticipants.size);
+            }
+          }, 100);
         });
 
         newRoom.on(RoomEvent.ParticipantDisconnected, (participant: RemoteParticipant) => {
           console.log('👤 Viewer left:', participant.identity);
-          setViewerCount(newRoom.remoteParticipants.size);
+          // Update viewer count without interrupting stream
+          setTimeout(() => {
+            if (mounted && connectedRoom) {
+              setViewerCount(connectedRoom.remoteParticipants.size);
+            }
+          }, 100);
         });
 
         newRoom.on(RoomEvent.LocalTrackPublished, (publication) => {
