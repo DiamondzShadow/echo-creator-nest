@@ -70,13 +70,15 @@ serve(async (req) => {
         }
       }
 
-      // Create LiveKit access token
+      // Create LiveKit access token for host/publisher with stable identity per room
+      const hostIdentity = `host-${roomName}-${user.id}`;
       const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
-        identity: user.id,
-        name: user.email || 'Anonymous',
+        identity: hostIdentity,
+        name: user.email || 'Host',
         metadata: JSON.stringify({
           userId: user.id,
           streamId: streamId,
+          role: 'host',
         }),
       });
 
@@ -127,9 +129,10 @@ serve(async (req) => {
         }
       );
     } else if (action === 'create_viewer_token') {
-      // Create viewer token (subscribe-only)
+      // Create viewer token (subscribe-only) with unique identity to avoid kicking host or other viewers
+      const viewerIdentity = `viewer-${roomName}-${user.id}-${crypto.randomUUID().slice(0,8)}`;
       const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
-        identity: user.id,
+        identity: viewerIdentity,
         name: user.email || 'Viewer',
         metadata: JSON.stringify({
           userId: user.id,
