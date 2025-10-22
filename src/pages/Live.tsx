@@ -50,14 +50,14 @@ const Live = () => {
       const roomId = `stream-${user.id}-${Date.now()}`;
       setRoomName(roomId);
 
-      // First create stream record in database
+      // First create stream record in database (NOT live yet - will be set when tracks are published)
       const { data, error } = await supabase
         .from("live_streams")
         .insert({
           user_id: user.id,
           title: title.trim().substring(0, 200),
           description: description?.trim().substring(0, 2000),
-          is_live: true,
+          is_live: false, // Don't mark as live until broadcaster publishes tracks
           started_at: new Date().toISOString(),
           livepeer_stream_id: roomId,
           livepeer_playback_id: roomId,
@@ -264,9 +264,25 @@ const Live = () => {
                   onStreamConnected={async () => {
                     console.log('🔴 Stream connected! Recording:', enableRecording, 'Room:', roomName, 'Already started:', recordingStarted);
                     
+                    // CRITICAL: Now mark stream as live since broadcaster has published tracks
+                    try {
+                      const { error: updateError } = await supabase
+                        .from("live_streams")
+                        .update({ is_live: true })
+                        .eq("id", streamId);
+                      
+                      if (updateError) {
+                        console.error('Failed to update stream status:', updateError);
+                      } else {
+                        console.log('✅ Stream marked as live in database - viewers can now join!');
+                      }
+                    } catch (err) {
+                      console.error('Error updating stream status:', err);
+                    }
+                    
                     toast({
-                      title: "Connected!",
-                      description: "You're now live",
+                      title: "🎉 You're Live!",
+                      description: "Viewers can now see your stream",
                     });
                     
                     // Start recording if enabled
