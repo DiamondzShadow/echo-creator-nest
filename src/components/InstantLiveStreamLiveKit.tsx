@@ -144,15 +144,6 @@ export const InstantLiveStreamLiveKit = ({
           console.log('📤 Local track published:', publication.trackName);
         });
 
-        newRoom.on(RoomEvent.TrackSubscribed, (track) => {
-          console.log('📥 Track subscribed:', track.kind);
-          
-          // Attach local video to video element
-          if (track.kind === Track.Kind.Video && track instanceof LocalVideoTrack && videoRef.current) {
-            track.attach(videoRef.current);
-          }
-        });
-
         // Publish camera and microphone
         console.log('📹 Publishing camera and microphone...');
         await newRoom.localParticipant.setCameraEnabled(true);
