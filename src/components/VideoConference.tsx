@@ -4,7 +4,7 @@ import { createLiveKitRoom } from '@/lib/livekit-config';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
-import { Mic, MicOff, Video as VideoIcon, VideoOff, MonitorUp, PhoneOff, Users } from 'lucide-react';
+import { Mic, MicOff, Video as VideoIcon, VideoOff, MonitorUp, PhoneOff, Users, Maximize2, Minimize2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { TipButton } from '@/components/TipButton';
@@ -43,6 +43,7 @@ const VideoConference = ({ roomToken, roomName, displayName, soundcloudUrl, onLe
   const [participants, setParticipants] = useState<ParticipantVideo[]>([]);
   const [participantProfiles, setParticipantProfiles] = useState<Record<string, ParticipantProfile>>({});
   const [error, setError] = useState<string | null>(null);
+  const [expandedVideo, setExpandedVideo] = useState<string | null>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const localVideoRef = useRef<HTMLVideoElement>(null);
 
@@ -210,14 +211,20 @@ const VideoConference = ({ roomToken, roomName, displayName, soundcloudUrl, onLe
     participants.forEach((participant) => {
       if (videoContainerRef.current && participant.videoElement.parentElement !== videoContainerRef.current) {
         const wrapper = document.createElement('div');
-        wrapper.className = 'relative aspect-video bg-muted rounded-lg overflow-hidden';
+        wrapper.className = 'relative aspect-video bg-muted rounded-lg overflow-hidden group';
         
         const nameLabel = document.createElement('div');
         nameLabel.className = 'absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-sm z-10';
         nameLabel.textContent = participant.name;
         
+        const expandBtn = document.createElement('button');
+        expandBtn.className = 'absolute top-2 right-2 bg-black/70 text-white p-2 rounded opacity-0 group-hover:opacity-100 transition-opacity z-10';
+        expandBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>';
+        expandBtn.onclick = () => setExpandedVideo(participant.participantId);
+        
         wrapper.appendChild(participant.videoElement);
         wrapper.appendChild(nameLabel);
+        wrapper.appendChild(expandBtn);
         videoContainerRef.current.appendChild(wrapper);
       }
     });
@@ -305,29 +312,123 @@ const VideoConference = ({ roomToken, roomName, displayName, soundcloudUrl, onLe
 
         {/* Video Grid */}
         <div className="flex-1 container mx-auto px-4 py-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-full">
-            {/* Local Video */}
-            <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
-              <video
-                ref={localVideoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-sm z-10">
-                {displayName} (You)
+          {expandedVideo ? (
+            // Expanded single video view
+            <div className="h-full flex flex-col">
+              <div className="flex-1 relative bg-muted rounded-lg overflow-hidden">
+                {expandedVideo === 'local' ? (
+                  <>
+                    <video
+                      ref={localVideoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="w-full h-full object-contain"
+                    />
+                    <div className="absolute bottom-4 left-4 bg-black/70 text-white px-3 py-2 rounded text-base z-10">
+                      {displayName} (You)
+                    </div>
+                    {!isCameraEnabled && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-muted">
+                        <VideoOff className="h-16 w-16 text-muted-foreground" />
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  participants
+                    .filter(p => p.participantId === expandedVideo)
+                    .map(participant => (
+                      <div key={participant.participantId} className="w-full h-full">
+                        <video
+                          ref={(el) => {
+                            if (el && el !== participant.videoElement) {
+                              el.replaceWith(participant.videoElement);
+                            }
+                          }}
+                          className="w-full h-full object-contain"
+                        />
+                        <div className="absolute bottom-4 left-4 bg-black/70 text-white px-3 py-2 rounded text-base z-10">
+                          {participant.name}
+                        </div>
+                      </div>
+                    ))
+                )}
+                <Button
+                  onClick={() => setExpandedVideo(null)}
+                  variant="secondary"
+                  size="lg"
+                  className="absolute top-4 right-4 z-10"
+                >
+                  <Minimize2 className="h-5 w-5 mr-2" />
+                  Exit Fullscreen
+                </Button>
               </div>
-              {!isCameraEnabled && (
-                <div className="absolute inset-0 flex items-center justify-center bg-muted">
-                  <VideoOff className="h-12 w-12 text-muted-foreground" />
-                </div>
-              )}
+              
+              {/* Thumbnail strip */}
+              <div className="flex gap-2 mt-4 overflow-x-auto">
+                <button
+                  onClick={() => setExpandedVideo('local')}
+                  className={`relative flex-shrink-0 w-32 h-20 rounded overflow-hidden ${expandedVideo === 'local' ? 'ring-2 ring-primary' : ''}`}
+                >
+                  <video
+                    ref={localVideoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-x-0 bottom-0 bg-black/70 text-white text-xs px-1 py-0.5 truncate">
+                    You
+                  </div>
+                </button>
+                {participants.map(participant => (
+                  <button
+                    key={participant.participantId}
+                    onClick={() => setExpandedVideo(participant.participantId)}
+                    className={`relative flex-shrink-0 w-32 h-20 rounded overflow-hidden ${expandedVideo === participant.participantId ? 'ring-2 ring-primary' : ''}`}
+                  >
+                    <div className="w-full h-full bg-muted" />
+                    <div className="absolute inset-x-0 bottom-0 bg-black/70 text-white text-xs px-1 py-0.5 truncate">
+                      {participant.name}
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
+          ) : (
+            // Grid view
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-full">
+              {/* Local Video */}
+              <div className="relative aspect-video bg-muted rounded-lg overflow-hidden group">
+                <video
+                  ref={localVideoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-sm z-10">
+                  {displayName} (You)
+                </div>
+                <Button
+                  onClick={() => setExpandedVideo('local')}
+                  variant="secondary"
+                  size="icon"
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                >
+                  <Maximize2 className="h-4 w-4" />
+                </Button>
+                {!isCameraEnabled && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-muted">
+                    <VideoOff className="h-12 w-12 text-muted-foreground" />
+                  </div>
+                )}
+              </div>
 
-            {/* Remote Participants Container */}
-            <div ref={videoContainerRef} className="contents" />
-          </div>
+              {/* Remote Participants Container */}
+              <div ref={videoContainerRef} className="contents" />
+            </div>
+          )}
         </div>
 
         {/* Controls */}

@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { createHmac } from "https://deno.land/std@0.224.0/crypto/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -27,7 +26,7 @@ function timingSafeEqual(a: string, b: string): boolean {
 }
 
 /**
- * Verify LiveKit webhook signature
+ * Verify LiveKit webhook signature using Web Crypto API
  */
 async function verifyWebhookSignature(
   body: string,
@@ -35,9 +34,24 @@ async function verifyWebhookSignature(
   secret: string
 ): Promise<boolean> {
   try {
-    const hmac = createHmac("sha256", secret);
-    hmac.update(body);
-    const expectedSignature = Array.from(hmac.digest())
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(secret);
+    const messageData = encoder.encode(body);
+    
+    // Import the secret key
+    const key = await crypto.subtle.importKey(
+      'raw',
+      keyData,
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+    
+    // Sign the message
+    const signatureBuffer = await crypto.subtle.sign('HMAC', key, messageData);
+    
+    // Convert to hex string
+    const expectedSignature = Array.from(new Uint8Array(signatureBuffer))
       .map(b => b.toString(16).padStart(2, '0'))
       .join('');
     
