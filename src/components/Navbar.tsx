@@ -2,11 +2,20 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { LogOut, Video, User as UserIcon, Trophy, Menu, Users, Film, HardDrive } from "lucide-react";
+import { LogOut, Video, User as UserIcon, Menu, PlayCircle, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MoreHorizontal, Users, Film, HardDrive, Trophy } from "lucide-react";
 import crabbyLogo from "@/assets/crabby-logo.jpg";
 
 const Navbar = () => {
@@ -81,33 +90,39 @@ const Navbar = () => {
                         <Video className="w-4 h-4 mr-2" />
                         Go Live
                       </Button>
-                      <Button variant="outline" onClick={() => handleNavigate("/meet")} className="w-full justify-start">
-                        <Users className="w-4 h-4 mr-2" />
-                        Meet
-                      </Button>
                       <Button variant="outline" onClick={() => handleNavigate("/discover")} className="w-full justify-start">
+                        <Search className="w-4 h-4 mr-2" />
                         Discover
                       </Button>
-                      <Button variant="outline" onClick={() => handleNavigate("/creators")} className="w-full justify-start">
-                        <Trophy className="w-4 h-4 mr-2" />
-                        Creators
-                      </Button>
                       <Button variant="outline" onClick={() => handleNavigate("/videos")} className="w-full justify-start">
-                        <Film className="w-4 h-4 mr-2" />
-                        Videos
+                        <PlayCircle className="w-4 h-4 mr-2" />
+                        My Videos
                       </Button>
-                      <Button variant="outline" onClick={() => handleNavigate("/fvm")} className="w-full justify-start">
-                        <HardDrive className="w-4 h-4 mr-2" />
-                        FVM YouTube
-                      </Button>
-                      <Button variant="outline" onClick={() => handleNavigate("/profile")} className="w-full justify-start">
-                        <UserIcon className="w-4 h-4 mr-2" />
-                        Profile
-                      </Button>
-                      <Button variant="ghost" onClick={handleSignOut} className="w-full justify-start">
-                        <LogOut className="w-4 h-4 mr-2" />
-                        Sign Out
-                      </Button>
+                      <div className="border-t pt-4">
+                        <p className="text-xs text-muted-foreground mb-2 px-2">More</p>
+                        <Button variant="ghost" onClick={() => handleNavigate("/meet")} className="w-full justify-start">
+                          <Users className="w-4 h-4 mr-2" />
+                          Video Meetings
+                        </Button>
+                        <Button variant="ghost" onClick={() => handleNavigate("/creators")} className="w-full justify-start">
+                          <Trophy className="w-4 h-4 mr-2" />
+                          Top Creators
+                        </Button>
+                        <Button variant="ghost" onClick={() => handleNavigate("/fvm")} className="w-full justify-start">
+                          <HardDrive className="w-4 h-4 mr-2" />
+                          Decentralized Storage
+                        </Button>
+                      </div>
+                      <div className="border-t pt-4">
+                        <Button variant="outline" onClick={() => handleNavigate("/profile")} className="w-full justify-start">
+                          <UserIcon className="w-4 h-4 mr-2" />
+                          Profile
+                        </Button>
+                        <Button variant="ghost" onClick={handleSignOut} className="w-full justify-start text-destructive hover:text-destructive">
+                          <LogOut className="w-4 h-4 mr-2" />
+                          Sign Out
+                        </Button>
+                      </div>
                     </>
                   ) : (
                     <Button onClick={() => handleNavigate("/auth")} className="bg-gradient-hero hover:opacity-90 w-full">
@@ -128,32 +143,45 @@ const Navbar = () => {
                     <Video className="w-4 h-4 mr-2" />
                     Go Live
                   </Button>
-                  <Button variant="outline" onClick={() => navigate("/meet")}>
-                    <Users className="w-4 h-4 mr-2" />
-                    Meet
-                  </Button>
                   <Button variant="outline" onClick={() => navigate("/discover")}>
+                    <Search className="w-4 h-4 mr-2" />
                     Discover
                   </Button>
-                  <Button variant="outline" onClick={() => navigate("/creators")}>
-                    <Trophy className="w-4 h-4 mr-2" />
-                    Creators
-                  </Button>
                   <Button variant="outline" onClick={() => navigate("/videos")}>
-                    <Film className="w-4 h-4 mr-2" />
-                    Videos
+                    <PlayCircle className="w-4 h-4 mr-2" />
+                    My Videos
                   </Button>
-                  <Button variant="outline" onClick={() => navigate("/fvm")}>
-                    <HardDrive className="w-4 h-4 mr-2" />
-                    FVM YouTube
-                  </Button>
+                  
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline">
+                        <MoreHorizontal className="w-4 h-4 mr-2" />
+                        More
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuLabel>Features</DropdownMenuLabel>
+                      <DropdownMenuItem onClick={() => navigate("/meet")}>
+                        <Users className="w-4 h-4 mr-2" />
+                        Video Meetings
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate("/creators")}>
+                        <Trophy className="w-4 h-4 mr-2" />
+                        Top Creators
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate("/fvm")}>
+                        <HardDrive className="w-4 h-4 mr-2" />
+                        Decentralized Storage
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
                   <Button variant="outline" onClick={() => navigate("/profile")}>
                     <UserIcon className="w-4 h-4 mr-2" />
                     Profile
                   </Button>
                   <Button variant="ghost" onClick={handleSignOut}>
                     <LogOut className="w-4 h-4 mr-2" />
-                    Sign Out
                   </Button>
                 </>
               ) : (

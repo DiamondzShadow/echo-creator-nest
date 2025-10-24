@@ -168,12 +168,11 @@ const Discover = () => {
         <Tabs defaultValue="live" className="w-full">
           <TabsList className="mb-8">
             <TabsTrigger value="live">
-              Live Now {liveStreams.length > 0 && `(${liveStreams.length})`}
+              🔴 Live Now {liveStreams.length > 0 && `(${liveStreams.length})`}
             </TabsTrigger>
             <TabsTrigger value="recordings">
-              Recordings {recordings.length > 0 && `(${recordings.length})`}
+              📹 Recordings {recordings.length > 0 && `(${recordings.length})`}
             </TabsTrigger>
-            <TabsTrigger value="all">All Recordings</TabsTrigger>
           </TabsList>
 
           <TabsContent value="live">
@@ -216,33 +215,6 @@ const Discover = () => {
                       }
                     : null;
                   
-                  return (
-                    <LiveStreamCard 
-                      key={asset.id} 
-                      stream={{ ...asset, profiles: assetProfile }} 
-                      isRecording={true} 
-                    />
-                  );
-                })}
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="all">
-            {loading ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">Loading recordings...</p>
-              </div>
-            ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 animate-scale-in">
-                {recordings.map((asset) => {
-                  const assetProfile = asset.user_id 
-                    ? { 
-                        username: 'creator', 
-                        display_name: asset.title?.substring(0, 20) || 'Creator',
-                        avatar_url: null 
-                      }
-                    : null;
                   return (
                     <LiveStreamCard 
                       key={asset.id} 
