@@ -12,14 +12,44 @@ import { Users, UserPlus, Wallet, Coins } from "lucide-react";
 import SoundCloudWidget from "@/components/SoundCloudWidget";
 import { BrandBanner } from "@/components/BrandBanner";
 import LiveStreamCard from "@/components/LiveStreamCard";
+import { User } from "@supabase/supabase-js";
+
+interface ProfileData {
+  id: string;
+  username: string;
+  display_name: string | null;
+  bio: string | null;
+  avatar_url: string | null;
+  theme_color: string | null;
+  background_image: string | null;
+  soundcloud_url: string | null;
+  wallet_address: string | null;
+  followers_count?: number;
+  following_count?: number;
+  total_tips_received?: number;
+}
+
+interface Recording {
+  id: string;
+  title: string;
+  description: string | null;
+  user_id: string;
+  created_at: string;
+  livepeer_playback_id: string | null;
+  profiles?: {
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+  } | null;
+}
  
 const Profile = () => {
   const { userId } = useParams();
-  const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isOwnProfile, setIsOwnProfile] = useState(false);
-  const [recordings, setRecordings] = useState<any[]>([]);
+  const [recordings, setRecordings] = useState<Recording[]>([]);
   const navigate = useNavigate();
 
   const fetchProfile = async () => {

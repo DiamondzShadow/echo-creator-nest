@@ -102,11 +102,11 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
         title: '✅ Avatar uploaded successfully',
         description: 'Don\'t forget to click "Save Changes" to apply your new avatar!',
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Upload error:', error);
       toast({
         title: 'Upload failed',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'An error occurred',
         variant: 'destructive',
       });
     } finally {
@@ -147,10 +147,10 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
         title: '✅ Background uploaded',
         description: 'Click "Save Changes" to apply!',
       });
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: 'Upload failed',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'An error occurred',
         variant: 'destructive',
       });
     } finally {
@@ -193,10 +193,10 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
       });
       setOpen(false);
       onUpdate();
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: 'Update failed',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'An error occurred',
         variant: 'destructive',
       });
     } finally {

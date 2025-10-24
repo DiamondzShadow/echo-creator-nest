@@ -103,16 +103,31 @@ serve(async (req) => {
       });
     }
 
+    interface YouTubeBroadcast {
+      id: string;
+      snippet: {
+        title: string;
+        description: string;
+        thumbnails?: { default?: { url: string } };
+      };
+      status: {
+        lifeCycleStatus: string;
+      };
+      contentDetails?: {
+        boundStreamId?: string;
+      };
+    }
+
     const broadcasts = await broadcastsResponse.json();
     
     // Filter for active/live broadcasts only
-    const activeItems = (broadcasts.items || []).filter((item: any) => 
+    const activeItems = (broadcasts.items || []).filter((item: YouTubeBroadcast) => 
       item.status.lifeCycleStatus === 'live' || item.status.lifeCycleStatus === 'liveStarting'
     );
     
     // Fetch RTMP URLs for each broadcast
     const streamsWithRtmp = await Promise.all(
-      activeItems.map(async (item: any) => {
+      activeItems.map(async (item: YouTubeBroadcast) => {
         let rtmpUrl = null;
         
         // Get the bound stream ID from the broadcast

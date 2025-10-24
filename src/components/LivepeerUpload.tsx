@@ -16,7 +16,7 @@ export const LivepeerUpload = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'processing' | 'ready' | 'error'>('idle');
   const [enableIPFS, setEnableIPFS] = useState(true);
-  const [assetInfo, setAssetInfo] = useState<{ playbackId?: string; ipfs?: any } | null>(null);
+  const [assetInfo, setAssetInfo] = useState<{ playbackId?: string; ipfs?: { cid?: string; url?: string } } | null>(null);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -97,12 +97,12 @@ export const LivepeerUpload = () => {
 
         upload.start();
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Upload error:', error);
       setUploadStatus('error');
       toast({
         title: 'Upload failed',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'An error occurred',
         variant: 'destructive',
       });
     }
@@ -157,7 +157,7 @@ export const LivepeerUpload = () => {
             });
           }
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error('Status check error:', error);
       }
     };

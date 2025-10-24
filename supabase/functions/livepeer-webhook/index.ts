@@ -25,7 +25,7 @@ serve(async (req) => {
       console.log('Processing asset.ready event for:', asset.id);
 
       // Update asset in database with IPFS info if available
-      const updateData: any = {
+      const updateData: Record<string, unknown> = {
         status: 'ready',
         ready_at: new Date().toISOString(),
         livepeer_playback_id: asset.playbackId,

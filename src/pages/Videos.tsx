@@ -69,11 +69,11 @@ const Videos = () => {
       if (error) throw error;
 
       setAssets(data || []);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error fetching assets:', error);
       toast({
         title: 'Error loading videos',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'An error occurred',
         variant: 'destructive',
       });
     } finally {
@@ -190,7 +190,7 @@ const Videos = () => {
                     />
                   </div>
                 </div>
-                <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+                <Select value={sortBy} onValueChange={(v: 'recent' | 'views' | 'likes') => setSortBy(v)}>
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>

@@ -4,9 +4,21 @@ import { useEffect, useRef, useState } from 'react';
 // Controls: play, pause, volume (0-100)
 // Usage: <SoundCloudWidget url="https://soundcloud.com/artist/track-or-playlist" />
 
+interface SCWidget {
+  bind: (event: string, callback: () => void) => void;
+  unbind: (event: string) => void;
+  setVolume: (volume: number) => void;
+  play: () => void;
+  pause: () => void;
+}
+
+interface SoundCloudAPI {
+  Widget: (iframe: HTMLIFrameElement) => SCWidget;
+}
+
 declare global {
   interface Window {
-    SC?: any;
+    SC?: SoundCloudAPI;
   }
 }
 
@@ -19,7 +31,7 @@ interface SoundCloudWidgetProps {
 
 export function SoundCloudWidget({ url, autoPlay = false, visual = false, height = visual ? 380 : 166 }: SoundCloudWidgetProps) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
-  const [widget, setWidget] = useState<any>(null);
+  const [widget, setWidget] = useState<SCWidget | null>(null);
   const [volume, setVolume] = useState<number>(50);
   const [isReady, setIsReady] = useState<boolean>(false);
 
@@ -60,7 +72,9 @@ export function SoundCloudWidget({ url, autoPlay = false, visual = false, height
     return () => {
       try {
         widget.unbind('ready');
-      } catch {}
+      } catch {
+        // Widget cleanup may fail if already destroyed
+      }
     };
   }, [widget]);
 

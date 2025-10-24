@@ -23,7 +23,7 @@ interface TipRequest {
   token_symbol: string;
   network: string;
   transaction_hash: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 async function verifyTransaction(

@@ -13,9 +13,10 @@ import Navbar from "@/components/Navbar";
 import { InstantLiveStreamLiveKit } from "@/components/InstantLiveStreamLiveKit";
 import { StreamChat } from "@/components/StreamChat";
 import { BrandBanner } from "@/components/BrandBanner";
+import { User } from "@supabase/supabase-js";
 
 const Live = () => {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isLive, setIsLive] = useState(false);
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState("");
@@ -97,11 +98,11 @@ const Live = () => {
         title: "Stream created!",
         description: "Your instant stream is ready to broadcast!",
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Stream creation error:', error);
       toast({
         title: "Failed to create stream",
-        description: error.message || "Please check console for details",
+        description: error instanceof Error ? error.message : "Please check console for details",
         variant: "destructive",
       });
     } finally {
@@ -143,10 +144,10 @@ const Live = () => {
         title: "Stream ended",
         description: "Your live stream has been ended.",
       });
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Error",
-        description: error.message,
+        description: error instanceof Error ? error.message : "An error occurred",
         variant: "destructive",
       });
     } finally {

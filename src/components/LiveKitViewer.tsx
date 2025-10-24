@@ -210,14 +210,15 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
           });
         });
 
-      } catch (err: any) {
+      } catch (err) {
         console.error('❌ Failed to connect to LiveKit:', err);
-        setError(err.message || 'Failed to connect to stream');
+        const errorMsg = err instanceof Error ? err.message : 'Failed to connect to stream';
+        setError(errorMsg);
         setIsConnecting(false);
         
         toast({
           title: 'Connection failed',
-          description: err.message || 'Failed to connect to stream',
+          description: errorMsg,
           variant: 'destructive',
         });
       }

@@ -80,7 +80,7 @@ export const StreamReactions = ({ streamId, currentUserId, onReact }: StreamReac
 
       setCounts(nextCounts);
       setMyReaction(mine);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to fetch reactions:', error);
     } finally {
       if (setLoadingState) setLoading(false);
@@ -119,9 +119,9 @@ export const StreamReactions = ({ streamId, currentUserId, onReact }: StreamReac
 
       setMyReaction(reaction);
       onReact?.(reaction);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to react:', error);
-      toast({ title: 'Reaction failed', description: error.message, variant: 'destructive' });
+      toast({ title: 'Reaction failed', description: error instanceof Error ? error.message : 'An error occurred', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
