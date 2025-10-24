@@ -16,12 +16,14 @@ export type Database = {
     Tables: {
       assets: {
         Row: {
+          arweave_url: string | null
           category: string | null
           created_at: string
           description: string | null
           duration: number | null
           id: string
           ipfs_cid: string | null
+          ipfs_gateway_url: string | null
           ipfs_url: string | null
           is_public: boolean | null
           likes: number | null
@@ -31,6 +33,7 @@ export type Database = {
           shares: number | null
           size: number | null
           status: string
+          storage_provider: string | null
           stream_id: string | null
           tags: string[] | null
           thumbnail_url: string | null
@@ -40,12 +43,14 @@ export type Database = {
           views: number | null
         }
         Insert: {
+          arweave_url?: string | null
           category?: string | null
           created_at?: string
           description?: string | null
           duration?: number | null
           id?: string
           ipfs_cid?: string | null
+          ipfs_gateway_url?: string | null
           ipfs_url?: string | null
           is_public?: boolean | null
           likes?: number | null
@@ -55,6 +60,7 @@ export type Database = {
           shares?: number | null
           size?: number | null
           status: string
+          storage_provider?: string | null
           stream_id?: string | null
           tags?: string[] | null
           thumbnail_url?: string | null
@@ -64,12 +70,14 @@ export type Database = {
           views?: number | null
         }
         Update: {
+          arweave_url?: string | null
           category?: string | null
           created_at?: string
           description?: string | null
           duration?: number | null
           id?: string
           ipfs_cid?: string | null
+          ipfs_gateway_url?: string | null
           ipfs_url?: string | null
           is_public?: boolean | null
           likes?: number | null
@@ -79,6 +87,7 @@ export type Database = {
           shares?: number | null
           size?: number | null
           status?: string
+          storage_provider?: string | null
           stream_id?: string | null
           tags?: string[] | null
           thumbnail_url?: string | null
@@ -151,14 +160,18 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          enable_recording: boolean | null
           ended_at: string | null
           id: string
           is_live: boolean | null
           livepeer_playback_id: string | null
           livepeer_stream_id: string | null
+          save_to_storj: boolean | null
           started_at: string | null
+          stream_key: string | null
           thumbnail_url: string | null
           title: string
+          total_tips: number | null
           updated_at: string
           user_id: string
           viewer_count: number | null
@@ -166,14 +179,18 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
+          enable_recording?: boolean | null
           ended_at?: string | null
           id?: string
           is_live?: boolean | null
           livepeer_playback_id?: string | null
           livepeer_stream_id?: string | null
+          save_to_storj?: boolean | null
           started_at?: string | null
+          stream_key?: string | null
           thumbnail_url?: string | null
           title: string
+          total_tips?: number | null
           updated_at?: string
           user_id: string
           viewer_count?: number | null
@@ -181,14 +198,18 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
+          enable_recording?: boolean | null
           ended_at?: string | null
           id?: string
           is_live?: boolean | null
           livepeer_playback_id?: string | null
           livepeer_stream_id?: string | null
+          save_to_storj?: boolean | null
           started_at?: string | null
+          stream_key?: string | null
           thumbnail_url?: string | null
           title?: string
+          total_tips?: number | null
           updated_at?: string
           user_id?: string
           viewer_count?: number | null
@@ -643,6 +664,10 @@ export type Database = {
     }
     Functions: {
       get_stream_key: { Args: { p_stream_id: string }; Returns: string }
+      increment_stream_tips: {
+        Args: { p_amount: number; p_stream_id: string }
+        Returns: undefined
+      }
       store_stream_key: {
         Args: { p_stream_id: string; p_stream_key: string }
         Returns: undefined
