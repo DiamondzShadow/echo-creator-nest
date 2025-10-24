@@ -94,8 +94,42 @@ serve(async (req) => {
       }
     };
 
-    // Create authorization header for LiveKit API
-    const authToken = btoa(`${LIVEKIT_API_KEY}:${LIVEKIT_API_SECRET}`);
+    // Create JWT token for LiveKit API authentication
+    // LiveKit requires a JWT with specific claims
+    const encoder = new TextEncoder();
+    const header = { alg: 'HS256', typ: 'JWT' };
+    const now = Math.floor(Date.now() / 1000);
+    const payload = {
+      iss: LIVEKIT_API_KEY,
+      exp: now + 3600, // 1 hour expiration
+      nbf: now - 60,   // Not before 1 min ago
+      sub: user.id,    // Subject (user ID)
+    };
+
+    // Helper to base64url encode
+    const base64url = (data: string) => {
+      return btoa(data)
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
+    };
+
+    const headerB64 = base64url(JSON.stringify(header));
+    const payloadB64 = base64url(JSON.stringify(payload));
+    const signatureInput = `${headerB64}.${payloadB64}`;
+
+    // Sign with HMAC-SHA256
+    const keyData = encoder.encode(LIVEKIT_API_SECRET);
+    const key = await crypto.subtle.importKey(
+      'raw',
+      keyData,
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+    const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(signatureInput));
+    const signatureB64 = base64url(String.fromCharCode(...new Uint8Array(signature)));
+    const jwtToken = `${signatureInput}.${signatureB64}`;
 
     console.log('Sending egress request to LiveKit...');
     
@@ -103,7 +137,7 @@ serve(async (req) => {
     const egressResponse = await fetch(`${LIVEKIT_URL}/twirp/livekit.Egress/StartRoomCompositeEgress`, {
       method: 'POST',
       headers: {
-        'Authorization': `Basic ${authToken}`,
+        'Authorization': `Bearer ${jwtToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(egressRequest),

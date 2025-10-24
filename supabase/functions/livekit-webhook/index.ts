@@ -193,33 +193,79 @@ serve(async (req) => {
             );
           }
 
-          // Create asset record for the recording
+          // Create Storj URL for the recording
           const storjUrl = fileResult.filename 
             ? `${Deno.env.get('STORJ_ENDPOINT') || 'https://gateway.storjshare.io'}/${Deno.env.get('STORJ_BUCKET') || 'livepeer-videos'}/${fileResult.filename}`
             : null;
 
-          const { data: asset, error: assetError } = await supabase
-            .from('assets')
-            .insert({
-              user_id: streamData.user_id,
-              stream_id: streamData.id,
-              title: streamData.title || 'Untitled Recording',
-              description: `LiveKit recording${storjUrl ? `\nStorj URL: ${storjUrl}` : ''}\nFile: ${fileResult.filename}`,
-              livepeer_asset_id: egressInfo.egressId,
-              livepeer_playback_id: storjUrl || egressInfo.egressId, // Store Storj URL as playback ID
-              status: 'ready',
-              duration: fileResult.duration ? fileResult.duration / 1000 : null, // Convert ms to seconds
-              size: fileResult.size,
-              ready_at: new Date().toISOString(),
-            })
-            .select()
-            .single();
+          console.log('📤 Uploading recording to Livepeer with IPFS...');
+          
+          // Import recording into Livepeer with IPFS enabled
+          try {
+            const { data: livepeerData, error: livepeerError } = await supabase.functions.invoke(
+              'livepeer-asset',
+              {
+                body: {
+                  action: 'import-url',
+                  name: streamData.title || 'Untitled Recording',
+                  url: storjUrl,
+                  enableIPFS: true,
+                }
+              }
+            );
 
-          if (assetError) {
-            console.error('Error creating asset:', assetError);
-          } else {
-            console.log('Asset created:', asset);
-            console.log('Playback URL:', storjUrl);
+            if (livepeerError) {
+              console.error('❌ Failed to import to Livepeer:', livepeerError);
+              
+              // Still create asset with Storj URL
+              const { data: asset, error: assetError } = await supabase
+                .from('assets')
+                .insert({
+                  user_id: streamData.user_id,
+                  stream_id: streamData.id,
+                  title: streamData.title || 'Untitled Recording',
+                  description: `LiveKit recording\nStorj URL: ${storjUrl}\nFile: ${fileResult.filename}`,
+                  livepeer_asset_id: egressInfo.egressId,
+                  livepeer_playback_id: storjUrl,
+                  status: 'ready',
+                  duration: fileResult.duration ? fileResult.duration / 1000 : null,
+                  size: fileResult.size,
+                  ready_at: new Date().toISOString(),
+                })
+                .select()
+                .single();
+
+              if (assetError) {
+                console.error('Error creating asset:', assetError);
+              }
+            } else {
+              console.log('✅ Recording imported to Livepeer:', livepeerData);
+              
+              // Create asset with Livepeer playback ID
+              const { data: asset, error: assetError } = await supabase
+                .from('assets')
+                .insert({
+                  user_id: streamData.user_id,
+                  stream_id: streamData.id,
+                  title: streamData.title || 'Untitled Recording',
+                  description: `LiveKit recording\nStorj URL: ${storjUrl}\nFile: ${fileResult.filename}`,
+                  livepeer_asset_id: livepeerData.assetId,
+                  livepeer_playback_id: livepeerData.playbackId,
+                  status: 'processing',
+                  duration: fileResult.duration ? fileResult.duration / 1000 : null,
+                  size: fileResult.size,
+                })
+                .select()
+                .single();
+
+              if (assetError) {
+                console.error('Error creating asset:', assetError);
+              } else {
+                console.log('✅ Asset created with Livepeer processing:', asset);
+              }
+            }
+          } catch (err) {
+            console.error('❌ Exception importing to Livepeer:', err);
           }
         }
       }
