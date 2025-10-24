@@ -16,52 +16,76 @@ export type Database = {
     Tables: {
       assets: {
         Row: {
+          category: string | null
           created_at: string
           description: string | null
           duration: number | null
           id: string
+          ipfs_cid: string | null
+          ipfs_url: string | null
+          is_public: boolean | null
+          likes: number | null
           livepeer_asset_id: string
           livepeer_playback_id: string | null
           ready_at: string | null
+          shares: number | null
           size: number | null
           status: string
           stream_id: string | null
+          tags: string[] | null
           thumbnail_url: string | null
           title: string
           updated_at: string
           user_id: string
+          views: number | null
         }
         Insert: {
+          category?: string | null
           created_at?: string
           description?: string | null
           duration?: number | null
           id?: string
+          ipfs_cid?: string | null
+          ipfs_url?: string | null
+          is_public?: boolean | null
+          likes?: number | null
           livepeer_asset_id: string
           livepeer_playback_id?: string | null
           ready_at?: string | null
+          shares?: number | null
           size?: number | null
           status: string
           stream_id?: string | null
+          tags?: string[] | null
           thumbnail_url?: string | null
           title: string
           updated_at?: string
           user_id: string
+          views?: number | null
         }
         Update: {
+          category?: string | null
           created_at?: string
           description?: string | null
           duration?: number | null
           id?: string
+          ipfs_cid?: string | null
+          ipfs_url?: string | null
+          is_public?: boolean | null
+          likes?: number | null
           livepeer_asset_id?: string
           livepeer_playback_id?: string | null
           ready_at?: string | null
+          shares?: number | null
           size?: number | null
           status?: string
           stream_id?: string | null
+          tags?: string[] | null
           thumbnail_url?: string | null
           title?: string
           updated_at?: string
           user_id?: string
+          views?: number | null
         }
         Relationships: [
           {
@@ -227,6 +251,78 @@ export type Database = {
           refresh_token?: string | null
           token_expires_at?: string | null
           updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      playlist_items: {
+        Row: {
+          asset_id: string
+          created_at: string
+          id: string
+          playlist_id: string
+          position: number
+        }
+        Insert: {
+          asset_id: string
+          created_at?: string
+          id?: string
+          playlist_id: string
+          position: number
+        }
+        Update: {
+          asset_id?: string
+          created_at?: string
+          id?: string
+          playlist_id?: string
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "playlist_items_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "playlist_items_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "playlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      playlists: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_public: boolean | null
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -403,6 +499,118 @@ export type Database = {
         }
         Relationships: []
       }
+      video_comments: {
+        Row: {
+          asset_id: string
+          comment: string
+          created_at: string
+          id: string
+          parent_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          asset_id: string
+          comment: string
+          created_at?: string
+          id?: string
+          parent_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          asset_id?: string
+          comment?: string
+          created_at?: string
+          id?: string
+          parent_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_comments_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "video_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      video_likes: {
+        Row: {
+          asset_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          asset_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          asset_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_likes_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      video_views: {
+        Row: {
+          asset_id: string
+          created_at: string
+          device_type: string | null
+          id: string
+          user_id: string | null
+          viewer_location: string | null
+          watch_duration: number | null
+        }
+        Insert: {
+          asset_id: string
+          created_at?: string
+          device_type?: string | null
+          id?: string
+          user_id?: string | null
+          viewer_location?: string | null
+          watch_duration?: number | null
+        }
+        Update: {
+          asset_id?: string
+          created_at?: string
+          device_type?: string | null
+          id?: string
+          user_id?: string | null
+          viewer_location?: string | null
+          watch_duration?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_views_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       tip_leaderboard: {
@@ -434,10 +642,7 @@ export type Database = {
       }
     }
     Functions: {
-      get_stream_key: {
-        Args: { p_stream_id: string }
-        Returns: string
-      }
+      get_stream_key: { Args: { p_stream_id: string }; Returns: string }
       store_stream_key: {
         Args: { p_stream_id: string; p_stream_key: string }
         Returns: undefined

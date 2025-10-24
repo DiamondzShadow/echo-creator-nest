@@ -13,6 +13,7 @@ import Creators from "./pages/Creators";
 import Watch from "./pages/Watch";
 import StorjTranscode from "./pages/StorjTranscode";
 import Videos from "./pages/Videos";
+import VideoWatch from "./pages/VideoWatch";
 import About from "./pages/About";
 import Meet from "./pages/Meet";
 import NotFound from "./pages/NotFound";
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/watch/:streamId" element={<Watch />} />
             <Route path="/storj-transcode" element={<StorjTranscode />} />
             <Route path="/videos" element={<Videos />} />
+            <Route path="/video/:assetId" element={<VideoWatch />} />
             <Route path="/about" element={<About />} />
             <Route path="/meet" element={<Meet />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
