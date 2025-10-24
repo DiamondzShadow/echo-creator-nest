@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { LogOut, Video, User as UserIcon, Trophy, Menu, Users } from "lucide-react";
+import { LogOut, Video, User as UserIcon, Trophy, Menu, Users, Film } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -92,6 +92,10 @@ const Navbar = () => {
                         <Trophy className="w-4 h-4 mr-2" />
                         Creators
                       </Button>
+                      <Button variant="outline" onClick={() => handleNavigate("/videos")} className="w-full justify-start">
+                        <Film className="w-4 h-4 mr-2" />
+                        Videos
+                      </Button>
                       <Button variant="outline" onClick={() => handleNavigate("/profile")} className="w-full justify-start">
                         <UserIcon className="w-4 h-4 mr-2" />
                         Profile
@@ -130,6 +134,10 @@ const Navbar = () => {
                   <Button variant="outline" onClick={() => navigate("/creators")}>
                     <Trophy className="w-4 h-4 mr-2" />
                     Creators
+                  </Button>
+                  <Button variant="outline" onClick={() => navigate("/videos")}>
+                    <Film className="w-4 h-4 mr-2" />
+                    Videos
                   </Button>
                   <Button variant="outline" onClick={() => navigate("/profile")}>
                     <UserIcon className="w-4 h-4 mr-2" />
