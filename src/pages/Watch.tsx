@@ -31,11 +31,16 @@ interface StreamData {
 }
 
 interface ProfileData {
+  id: string;
   username: string;
   display_name: string | null;
   avatar_url: string | null;
   soundcloud_url: string | null;
   wallet_address: string | null;
+  bio?: string | null;
+  follower_count?: number;
+  tip_count?: number;
+  total_tips_received?: number;
 }
 
 const Watch = () => {
@@ -84,7 +89,7 @@ const Watch = () => {
           filter: `id=eq.${streamId}`,
         },
         (payload) => {
-          setStream(payload.new);
+          setStream(payload.new as StreamData);
         }
       )
       .subscribe();
@@ -479,7 +484,7 @@ const Watch = () => {
                         <p className="text-xs text-muted-foreground">Followers</p>
                       </div>
                       <div>
-                        <p className="text-2xl font-bold">{profile.tip_count || 0}</p>
+                        <p className="text-2xl font-bold">{Math.round(profile.total_tips_received || 0)}</p>
                         <p className="text-xs text-muted-foreground">Tips</p>
                       </div>
                     </div>

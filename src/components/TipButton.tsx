@@ -184,7 +184,7 @@ export const TipButton = ({ recipientUserId, recipientWalletAddress, recipientUs
 
               <div>
                 <Label htmlFor="token">Token</Label>
-                <Select value={token} onValueChange={(value: string) => setToken(value)}>
+                <Select value={token} onValueChange={(value) => setToken(value as 'ETH' | 'MATIC' | 'custom')}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>

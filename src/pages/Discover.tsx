@@ -30,6 +30,7 @@ interface Asset {
   livepeer_playback_id: string | null;
   created_at: string;
   title?: string | null;
+  description?: string | null;
 }
 
 const Discover = () => {
@@ -187,9 +188,12 @@ const Discover = () => {
               </div>
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 animate-scale-in">
-                {liveStreams.map((stream) => (
-                  <LiveStreamCard key={stream.id} stream={stream} />
-                ))}
+                {liveStreams.map((stream) => {
+                  const profiles = stream.profiles || { username: 'Unknown', display_name: 'Unknown', avatar_url: null };
+                  return (
+                    <LiveStreamCard key={stream.id} stream={{ ...stream, title: stream.title || 'Untitled Stream', description: stream.title || '', profiles }} />
+                  );
+                })}
               </div>
             )}
           </TabsContent>
@@ -219,7 +223,7 @@ const Discover = () => {
                   return (
                     <LiveStreamCard 
                       key={asset.id} 
-                      stream={{ ...asset, profiles: assetProfile }} 
+                      stream={{ ...asset, title: asset.title || 'Untitled', description: asset.description || asset.title || '', profiles: assetProfile }} 
                       isRecording={true} 
                     />
                   );
@@ -246,7 +250,7 @@ const Discover = () => {
                   return (
                     <LiveStreamCard 
                       key={asset.id} 
-                      stream={{ ...asset, profiles: assetProfile }} 
+                      stream={{ ...asset, title: asset.title || 'Untitled', description: asset.description || asset.title || '', profiles: assetProfile }} 
                       isRecording={true} 
                     />
                   );

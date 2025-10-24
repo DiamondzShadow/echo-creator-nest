@@ -6,7 +6,6 @@ import type { Chain } from "wagmi/chains";
 export const filecoinHyperspace: Chain = {
   id: 3141,
   name: "Filecoin Hyperspace",
-  network: "hyperspace",
   nativeCurrency: {
     decimals: 18,
     name: "Test Filecoin",

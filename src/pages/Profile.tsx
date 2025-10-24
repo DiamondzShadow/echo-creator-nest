@@ -119,7 +119,7 @@ const Profile = () => {
           filter: `id=eq.${profileId}`,
         },
         (payload) => {
-          setProfile(payload.new);
+          setProfile(payload.new as ProfileData);
         }
       )
       .subscribe();
@@ -212,7 +212,7 @@ const Profile = () => {
                 <Card className="border shadow-card">
                   <CardContent className="pt-6 text-center">
                     <Users className="w-8 h-8 mx-auto mb-2 text-primary" />
-                    <p className="text-2xl font-bold">{profile.follower_count || 0}</p>
+                    <p className="text-2xl font-bold">{profile.followers_count || 0}</p>
                     <p className="text-sm text-muted-foreground">Followers</p>
                   </CardContent>
                 </Card>
@@ -226,8 +226,8 @@ const Profile = () => {
                 <Card className="border shadow-card">
                   <CardContent className="pt-6 text-center">
                     <Coins className="w-8 h-8 mx-auto mb-2 text-primary" />
-                    <p className="text-2xl font-bold">{profile.tip_count || 0}</p>
-                    <p className="text-sm text-muted-foreground">Tips Received</p>
+                    <p className="text-2xl font-bold">{Math.round(profile.total_tips_received || 0)}</p>
+                    <p className="text-sm text-muted-foreground">Tips Value</p>
                   </CardContent>
                 </Card>
                 <Card className="border shadow-card">

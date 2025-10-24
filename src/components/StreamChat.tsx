@@ -43,7 +43,7 @@ export const StreamChat = ({ streamId, currentUserId, currentUsername }: StreamC
           filter: `stream_id=eq.${streamId}`,
         },
         (payload) => {
-          setMessages((prev) => [...prev, payload.new]);
+          setMessages((prev) => [...prev, payload.new as ChatMessage]);
         }
       )
       .subscribe();
