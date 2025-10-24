@@ -5,10 +5,37 @@ import LiveStreamCard from "@/components/LiveStreamCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BrandBanner } from "@/components/BrandBanner";
 
+interface Profile {
+  username: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+}
+
+interface LiveStream {
+  id: string;
+  user_id: string;
+  is_live: boolean;
+  started_at: string;
+  ended_at: string | null;
+  livepeer_playback_id: string | null;
+  created_at: string;
+  title?: string;
+  profiles?: Profile | null;
+}
+
+interface Asset {
+  id: string;
+  user_id: string | null;
+  status: string;
+  livepeer_playback_id: string | null;
+  created_at: string;
+  title?: string | null;
+}
+
 const Discover = () => {
-  const [liveStreams, setLiveStreams] = useState<any[]>([]);
-  const [allStreams, setAllStreams] = useState<any[]>([]);
-  const [recordings, setRecordings] = useState<any[]>([]);
+  const [liveStreams, setLiveStreams] = useState<LiveStream[]>([]);
+  const [allStreams, setAllStreams] = useState<LiveStream[]>([]);
+  const [recordings, setRecordings] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -99,7 +126,7 @@ const Discover = () => {
 
     // Remove duplicates from live streams based on user_id
     // Keep only the most recent live stream per user
-    const uniqueLiveStreams = live?.reduce((acc: any[], stream) => {
+    const uniqueLiveStreams = live?.reduce((acc: LiveStream[], stream) => {
       const existingStream = acc.find(s => s.user_id === stream.user_id);
       if (!existingStream) {
         acc.push(stream);

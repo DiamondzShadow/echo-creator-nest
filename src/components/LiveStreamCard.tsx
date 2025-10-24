@@ -53,11 +53,11 @@ const LiveStreamCard = ({ stream, isRecording = false }: LiveStreamCardProps) =>
         title: "Saving to Storj",
         description: "Your recording is being saved to decentralized storage. This may take a few minutes.",
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Save to Storj error:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to save recording to Storj",
+        description: error instanceof Error ? error.message : "Failed to save recording to Storj",
         variant: "destructive",
       });
     } finally {

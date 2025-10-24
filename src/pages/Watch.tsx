@@ -15,14 +15,36 @@ import { useToast } from "@/hooks/use-toast";
 import { BrandBanner } from "@/components/BrandBanner";
 import StreamReactions, { ReactionType } from "@/components/StreamReactions";
 import SoundCloudWidget from "@/components/SoundCloudWidget";
+import { User } from "@supabase/supabase-js";
+
+interface StreamData {
+  id: string;
+  title: string;
+  description: string | null;
+  user_id: string;
+  is_live: boolean;
+  viewer_count: number;
+  livepeer_playback_id: string | null;
+  livepeer_stream_id: string | null;
+  started_at: string;
+  ended_at: string | null;
+}
+
+interface ProfileData {
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  soundcloud_url: string | null;
+  wallet_address: string | null;
+}
 
 const Watch = () => {
   const { streamId } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [stream, setStream] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [stream, setStream] = useState<StreamData | null>(null);
+  const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [livekitToken, setLivekitToken] = useState<string | null>(null);
   const [isLiveKitStream, setIsLiveKitStream] = useState(false);
@@ -141,7 +163,7 @@ const Watch = () => {
           ended_at: assetData.ready_at,
         };
         
-        setStream(mockStream as any);
+        setStream(mockStream);
         setHasRecording(true);
         setIsLiveKitStream(false);
         // Use original stream id for reactions if available (FK constraint)
