@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { LogOut, Video, User as UserIcon, Trophy, Menu, Users, Film } from "lucide-react";
+import { LogOut, Video, User as UserIcon, Trophy, Menu, Users, Film, HardDrive } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -96,6 +96,10 @@ const Navbar = () => {
                         <Film className="w-4 h-4 mr-2" />
                         Videos
                       </Button>
+                      <Button variant="outline" onClick={() => handleNavigate("/fvm")} className="w-full justify-start">
+                        <HardDrive className="w-4 h-4 mr-2" />
+                        FVM YouTube
+                      </Button>
                       <Button variant="outline" onClick={() => handleNavigate("/profile")} className="w-full justify-start">
                         <UserIcon className="w-4 h-4 mr-2" />
                         Profile
@@ -138,6 +142,10 @@ const Navbar = () => {
                   <Button variant="outline" onClick={() => navigate("/videos")}>
                     <Film className="w-4 h-4 mr-2" />
                     Videos
+                  </Button>
+                  <Button variant="outline" onClick={() => navigate("/fvm")}>
+                    <HardDrive className="w-4 h-4 mr-2" />
+                    FVM YouTube
                   </Button>
                   <Button variant="outline" onClick={() => navigate("/profile")}>
                     <UserIcon className="w-4 h-4 mr-2" />

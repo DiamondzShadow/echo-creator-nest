@@ -7,6 +7,7 @@ A modern live streaming platform with instant browser streaming, software stream
 - **Instant Browser Streaming** - Go live directly from your browser (powered by LiveKit)
 - **Software Streaming** - Use OBS, Streamlabs, or any RTMP software (powered by Livepeer)
 - **Pull Streaming** - Re-stream from YouTube, Twitch, TikTok, etc.
+- **FVM YouTube Clone** - Decentralized video platform on Filecoin Virtual Machine
 - **Web3 Integration** - Wallet connection and tipping with crypto
 - **Profile System** - Creator profiles with followers and tips
 
@@ -88,6 +89,8 @@ This project is built with:
 - **Supabase** - Backend as a Service (database, auth, edge functions)
 - **LiveKit** - Instant WebRTC streaming (browser broadcasting)
 - **Livepeer** - RTMP streaming (OBS, pull streams)
+- **FVM** - Filecoin Virtual Machine for decentralized video storage
+- **Lighthouse** - IPFS storage for videos and thumbnails
 - **RainbowKit + wagmi** - Web3 wallet integration
 
 ## ⚙️ Setup
@@ -109,6 +112,10 @@ VITE_SUPABASE_PUBLISHABLE_KEY=your_key
 
 # LiveKit (for instant streaming - required)
 VITE_LIVEKIT_URL=wss://your-project.livekit.cloud
+
+# FVM YouTube Clone (optional - see FVM_SETUP.md)
+VITE_FVM_CONTRACT_ADDRESS=your_contract_address
+VITE_LIGHTHOUSE_API_KEY=your_lighthouse_api_key
 ```
 
 ### 3. Setup LiveKit
@@ -147,16 +154,24 @@ src/
 │   ├── InstantLiveStreamLiveKit.tsx  # Browser broadcasting (LiveKit)
 │   ├── LiveKitViewer.tsx             # Stream viewer (LiveKit)
 │   ├── LiveStreamPlayer.tsx          # Stream player (Livepeer)
+│   ├── FVMUpload.tsx                 # FVM video upload
+│   ├── FVMVideoList.tsx              # FVM video browser
+│   ├── FVMVideoPlayer.tsx            # FVM video player
 │   └── ...
 ├── pages/
 │   ├── Live.tsx                      # Go live page
 │   ├── Watch.tsx                     # Watch streams
 │   ├── Discover.tsx                  # Browse streams
+│   ├── FVM.tsx                       # FVM YouTube Clone
 │   └── ...
 ├── lib/
-│   └── livekit-config.ts             # LiveKit helpers
+│   ├── livekit-config.ts             # LiveKit helpers
+│   └── fvm-config.ts                 # FVM contract helpers
 └── integrations/
     └── supabase/                     # Supabase client
+
+contracts/
+└── YouTube.sol                       # FVM smart contract
 
 supabase/functions/
 ├── livekit-token/                    # LiveKit JWT generation
@@ -166,8 +181,12 @@ supabase/functions/
 
 ## 📖 Documentation
 
+### Streaming Setup
 - **[LIVEKIT_SETUP.md](./LIVEKIT_SETUP.md)** - Complete LiveKit setup guide
 - **[INSTANT_STREAM_LIVEKIT_MIGRATION.md](./INSTANT_STREAM_LIVEKIT_MIGRATION.md)** - Migration summary
+
+### Web3 & Decentralization
+- **[FVM_SETUP.md](./FVM_SETUP.md)** - FVM YouTube Clone setup (NEW!)
 - **[WEB3_SETUP.md](./WEB3_SETUP.md)** - Web3 wallet configuration
 - **[STORJ_SETUP.md](./STORJ_SETUP.md)** - Decentralized storage setup
 
