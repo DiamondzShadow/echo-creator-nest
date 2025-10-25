@@ -22,7 +22,14 @@ Instant browser streaming now uses **LiveKit** instead of Livepeer for:
 - 📱 Better mobile support
 - 🎯 95%+ reliability
 
-See **[INSTANT_STREAM_LIVEKIT_MIGRATION.md](./INSTANT_STREAM_LIVEKIT_MIGRATION.md)** for details.
+See **[INSTANT_STREAM_LIVEKIT_MIGRATION.md](./docs/improvements/INSTANT_STREAM_LIVEKIT_MIGRATION.md)** for details.
+
+### 🧹 Codebase Cleanup
+
+- Organized 24 documentation files into `/docs` directory
+- Removed unused components and dead code
+- Streamlined navigation (4 core features vs 8+ buttons)
+- Consolidated duplicate tabs and features
 
 ## Project info
 
@@ -113,8 +120,8 @@ VITE_SUPABASE_PUBLISHABLE_KEY=your_key
 # LiveKit (for instant streaming - required)
 VITE_LIVEKIT_URL=wss://your-project.livekit.cloud
 
-# FVM YouTube Clone (optional - see FVM_SETUP.md)
-VITE_FVM_CONTRACT_ADDRESS=your_contract_address
+# FVM YouTube Clone (optional - see docs/setup/FVM_SETUP.md)
+VITE_FVM_CONTRACT_ADDRESS=0x853F25A4fD9120F1A5DB8cbA05f434cC6613904a
 VITE_LIGHTHOUSE_API_KEY=your_lighthouse_api_key
 ```
 
@@ -138,7 +145,7 @@ supabase secrets set LIVEKIT_API_SECRET=your_secret
 supabase functions deploy livekit-token
 ```
 
-📚 **Full setup guide**: [LIVEKIT_SETUP.md](./LIVEKIT_SETUP.md)
+📚 **Full setup guide**: [LIVEKIT_SETUP.md](./docs/setup/LIVEKIT_SETUP.md)
 
 ### 4. Run Development Server
 
@@ -181,14 +188,20 @@ supabase/functions/
 
 ## 📖 Documentation
 
-### Streaming Setup
-- **[LIVEKIT_SETUP.md](./LIVEKIT_SETUP.md)** - Complete LiveKit setup guide
-- **[INSTANT_STREAM_LIVEKIT_MIGRATION.md](./INSTANT_STREAM_LIVEKIT_MIGRATION.md)** - Migration summary
+**[📚 Full Documentation →](./docs/README.md)**
 
-### Web3 & Decentralization
-- **[FVM_SETUP.md](./FVM_SETUP.md)** - FVM YouTube Clone setup (NEW!)
-- **[WEB3_SETUP.md](./WEB3_SETUP.md)** - Web3 wallet configuration
-- **[STORJ_SETUP.md](./STORJ_SETUP.md)** - Decentralized storage setup
+All technical documentation is organized in the `/docs` directory:
+
+### Quick Links
+- **[Setup Guides](./docs/setup/)** - Initial configuration (LiveKit, FVM, Web3, Storj, etc.)
+- **[User Guides](./docs/guides/)** - Tutorials and how-tos
+- **[Fixes](./docs/fixes/)** - Troubleshooting and bug fixes
+- **[Improvements](./docs/improvements/)** - Feature enhancements and migrations
+
+### Most Used Docs
+- **[LIVEKIT_SETUP.md](./docs/setup/LIVEKIT_SETUP.md)** - Complete LiveKit setup guide
+- **[FVM_SETUP.md](./docs/setup/FVM_SETUP.md)** - FVM YouTube Clone on Polygon
+- **[TESTING_GUIDE.md](./docs/guides/TESTING_GUIDE.md)** - Testing best practices
 
 ## How can I deploy this project?
 
