@@ -62,7 +62,7 @@ const Navbar = () => {
           </span>
         </button>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           {isMobile ? (
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
@@ -75,36 +75,34 @@ const Navbar = () => {
                   {user ? (
                     <>
                       <Button
+                        onClick={() => handleNavigate("/videos")}
+                        className="w-full justify-start"
+                        variant="ghost"
+                      >
+                        <Film className="w-4 h-4 mr-2" />
+                        Videos
+                      </Button>
+                      <Button
                         onClick={() => handleNavigate("/live")}
-                        className="bg-gradient-hero hover:opacity-90 w-full justify-start"
+                        className="w-full justify-start"
+                        variant="ghost"
                       >
                         <Video className="w-4 h-4 mr-2" />
                         Go Live
                       </Button>
-                      <Button variant="outline" onClick={() => handleNavigate("/meet")} className="w-full justify-start">
-                        <Users className="w-4 h-4 mr-2" />
-                        Meetings
-                      </Button>
-                      <Button variant="outline" onClick={() => handleNavigate("/discover")} className="w-full justify-start">
-                        Discover
-                      </Button>
-                      <Button variant="outline" onClick={() => handleNavigate("/creators")} className="w-full justify-start">
-                        <Trophy className="w-4 h-4 mr-2" />
-                        Creators
-                      </Button>
-                      <Button variant="outline" onClick={() => handleNavigate("/videos")} className="w-full justify-start">
-                        <Film className="w-4 h-4 mr-2" />
-                        Videos
-                      </Button>
-                      <Button variant="outline" onClick={() => handleNavigate("/fvm")} className="w-full justify-start">
-                        <HardDrive className="w-4 h-4 mr-2" />
-                        FVM YouTube
-                      </Button>
-                      <Button variant="outline" onClick={() => handleNavigate("/profile")} className="w-full justify-start">
+                      <Button 
+                        onClick={() => handleNavigate("/profile")} 
+                        className="w-full justify-start"
+                        variant="ghost"
+                      >
                         <UserIcon className="w-4 h-4 mr-2" />
                         Profile
                       </Button>
-                      <Button variant="ghost" onClick={handleSignOut} className="w-full justify-start">
+                      <Button 
+                        onClick={handleSignOut} 
+                        className="w-full justify-start"
+                        variant="ghost"
+                      >
                         <LogOut className="w-4 h-4 mr-2" />
                         Sign Out
                       </Button>
@@ -121,6 +119,9 @@ const Navbar = () => {
             <>
               {user ? (
                 <>
+                  <Button variant="ghost" onClick={() => navigate("/videos")}>
+                    Videos
+                  </Button>
                   <Button
                     onClick={() => navigate("/live")}
                     className="bg-gradient-hero hover:opacity-90"
@@ -128,32 +129,8 @@ const Navbar = () => {
                     <Video className="w-4 h-4 mr-2" />
                     Go Live
                   </Button>
-                  <Button variant="outline" onClick={() => navigate("/meet")}>
-                    <Users className="w-4 h-4 mr-2" />
-                    Meetings
-                  </Button>
-                  <Button variant="outline" onClick={() => navigate("/discover")}>
-                    Discover
-                  </Button>
-                  <Button variant="outline" onClick={() => navigate("/creators")}>
-                    <Trophy className="w-4 h-4 mr-2" />
-                    Creators
-                  </Button>
-                  <Button variant="outline" onClick={() => navigate("/videos")}>
-                    <Film className="w-4 h-4 mr-2" />
-                    Videos
-                  </Button>
-                  <Button variant="outline" onClick={() => navigate("/fvm")}>
-                    <HardDrive className="w-4 h-4 mr-2" />
-                    FVM YouTube
-                  </Button>
-                  <Button variant="outline" onClick={() => navigate("/profile")}>
+                  <Button variant="ghost" onClick={() => navigate("/profile")}>
                     <UserIcon className="w-4 h-4 mr-2" />
-                    Profile
-                  </Button>
-                  <Button variant="ghost" onClick={handleSignOut}>
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Sign Out
                   </Button>
                 </>
               ) : (

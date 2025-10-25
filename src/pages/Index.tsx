@@ -95,11 +95,7 @@ const Index = () => {
               </Button>
               <Button size="lg" variant="outline" onClick={() => navigate('/videos')}>
                 <Video className="mr-2 h-5 w-5" />
-                Upload Video
-              </Button>
-              <Button size="lg" variant="outline" onClick={() => navigate('/meet')}>
-                <Users className="mr-2 h-5 w-5" />
-                Start Meeting
+                Browse Videos
               </Button>
             </div>
           </div>
@@ -209,12 +205,12 @@ const Index = () => {
       <section className="py-12 bg-muted/30">
         <div className="container px-4 mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Everything You Need</h2>
+            <h2 className="text-3xl font-bold mb-4">Why CrabbyTV?</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              One unified platform for all your video streaming and collaboration needs
+              Stream, upload, and earn all in one place
             </p>
           </div>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-6 md:grid-cols-3">
             <Card className="text-center">
               <CardHeader>
                 <Radio className="h-12 w-12 text-red-500 mx-auto mb-2" />
@@ -222,29 +218,18 @@ const Index = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
-                  Broadcast live from your browser. No software needed.
+                  Stream live from your browser instantly
                 </p>
               </CardContent>
             </Card>
             <Card className="text-center">
               <CardHeader>
                 <Video className="h-12 w-12 text-primary mx-auto mb-2" />
-                <CardTitle>Video Upload</CardTitle>
+                <CardTitle>Video Hosting</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
-                  Upload and host videos with professional quality transcoding.
-                </p>
-              </CardContent>
-            </Card>
-            <Card className="text-center">
-              <CardHeader>
-                <Users className="h-12 w-12 text-primary mx-auto mb-2" />
-                <CardTitle>Video Meetings</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Collaborate with multi-participant video conferences.
+                  Upload videos with pro-quality delivery
                 </p>
               </CardContent>
             </Card>
@@ -255,7 +240,7 @@ const Index = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
-                  Support creators with cryptocurrency tips and donations.
+                  Earn crypto directly from viewers
                 </p>
               </CardContent>
             </Card>
