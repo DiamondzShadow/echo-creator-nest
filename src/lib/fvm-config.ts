@@ -198,10 +198,37 @@ export const YOUTUBE_CONTRACT_ABI = [
   }
 ];
 
-// Contract Address - Update this after deploying your contract
-export const YOUTUBE_CONTRACT_ADDRESS = import.meta.env.VITE_FVM_CONTRACT_ADDRESS || "0x...";
+// Contract Address - Deployed on Polygon
+export const YOUTUBE_CONTRACT_ADDRESS = import.meta.env.VITE_FVM_CONTRACT_ADDRESS || "0x853F25A4fD9120F1A5DB8cbA05f434cC6613904a";
 
-// Filecoin Hyperspace Testnet Chain Config
+// Lighthouse API Key for decentralized storage
+export const LIGHTHOUSE_API_KEY = import.meta.env.VITE_LIGHTHOUSE_API_KEY || "";
+
+// Polygon Network Config (where the contract is deployed)
+export const POLYGON_CHAIN = {
+  id: 137,
+  name: "Polygon",
+  network: "polygon",
+  nativeCurrency: {
+    decimals: 18,
+    name: "MATIC",
+    symbol: "MATIC",
+  },
+  rpcUrls: {
+    default: {
+      http: ["https://polygon-rpc.com"],
+    },
+    public: {
+      http: ["https://polygon-rpc.com"],
+    },
+  },
+  blockExplorers: {
+    default: { name: "PolygonScan", url: "https://polygonscan.com" },
+  },
+  testnet: false,
+};
+
+// Filecoin Hyperspace Testnet Chain Config (alternative)
 export const HYPERSPACE_CHAIN = {
   id: 3141,
   name: "Filecoin Hyperspace",
@@ -224,6 +251,9 @@ export const HYPERSPACE_CHAIN = {
   },
   testnet: true,
 };
+
+// Current chain being used for the YouTube contract
+export const YOUTUBE_CHAIN = POLYGON_CHAIN;
 
 // Video interface
 export interface FVMVideo {

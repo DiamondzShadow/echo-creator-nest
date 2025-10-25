@@ -123,7 +123,7 @@ export default function FVMVideoPlayer({ video }: FVMVideoPlayerProps) {
               </div>
               <div className="space-y-1 p-3 bg-secondary/50 rounded-lg">
                 <p className="text-muted-foreground">Blockchain</p>
-                <p className="font-mono">Filecoin (FVM)</p>
+                <p className="font-mono">Polygon</p>
               </div>
             </div>
           </div>
