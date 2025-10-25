@@ -9,6 +9,7 @@ import FVMVideoPlayer from "@/components/FVMVideoPlayer";
 import { type FVMVideo } from "@/types/fvm";
 import { useAccount } from "wagmi";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import Navbar from "@/components/Navbar";
 
 export default function FVM() {
   const [selectedVideo, setSelectedVideo] = useState<FVMVideo | null>(null);
@@ -26,7 +27,9 @@ export default function FVM() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-6">
+    <>
+      <Navbar />
+      <div className="container mx-auto px-4 py-8 space-y-6">
       {/* Header */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
@@ -228,6 +231,7 @@ VITE_LIGHTHOUSE_API_KEY=your_lighthouse_api_key`}
           </div>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </>
   );
 }
