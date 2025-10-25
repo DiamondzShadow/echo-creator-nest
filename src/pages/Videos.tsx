@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Play, Clock, CheckCircle, AlertCircle, ExternalLink, Eye, Heart, Search, Filter, Trash2 } from 'lucide-react';
+import { Play, Clock, CheckCircle, AlertCircle, ExternalLink, Eye, Heart, Search, Filter, Trash2, Upload } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
@@ -125,6 +125,19 @@ const Videos = () => {
 
             <TabsContent value="upload">
               <div className="grid gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Upload to IPFS (Lighthouse)</CardTitle>
+                    <CardDescription>Direct decentralized storage with Lighthouse</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button onClick={() => navigate('/fvm')} className="w-full">
+                      <Upload className="mr-2 h-4 w-4" />
+                      Go to IPFS Upload
+                    </Button>
+                  </CardContent>
+                </Card>
+                
                 <LivepeerUpload />
 
                 <Card>
