@@ -199,13 +199,21 @@ export const YOUTUBE_CONTRACT_ABI = [
 ];
 
 // Contract Address - Update this after deploying your contract
-export const YOUTUBE_CONTRACT_ADDRESS = import.meta.env.VITE_FVM_CONTRACT_ADDRESS || "0x...";
+export const YOUTUBE_CONTRACT_ADDRESS = import.meta.env.VITE_FVM_CONTRACT_ADDRESS || "0x853F25A4fD9120F1A5DB8cbA05f434cC6613904a";
+
+// Supported chains for FVM contract
+export const SUPPORTED_CHAINS = {
+  POLYGON: 137,
+  HYPERSPACE: 3141,
+};
+
+// Default chain ID (Polygon mainnet)
+export const DEFAULT_CHAIN_ID = SUPPORTED_CHAINS.POLYGON;
 
 // Filecoin Hyperspace Testnet Chain Config
 export const HYPERSPACE_CHAIN = {
   id: 3141,
   name: "Filecoin Hyperspace",
-  network: "hyperspace",
   nativeCurrency: {
     decimals: 18,
     name: "tFIL",
