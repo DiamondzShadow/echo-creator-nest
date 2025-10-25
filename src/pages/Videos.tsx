@@ -117,77 +117,14 @@ const Videos = () => {
             </p>
           </div>
 
-          <Tabs defaultValue="upload" className="space-y-6">
+          <Tabs defaultValue="library" className="space-y-6">
             <TabsList className="grid w-full grid-cols-2 max-w-md">
-              <TabsTrigger value="upload">Upload</TabsTrigger>
               <TabsTrigger value="library">My Videos ({assets.length})</TabsTrigger>
+              <TabsTrigger value="upload">Upload</TabsTrigger>
             </TabsList>
 
             <TabsContent value="upload">
-              <div className="grid gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Upload to IPFS (Lighthouse)</CardTitle>
-                    <CardDescription>Direct decentralized storage with Lighthouse</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Button onClick={() => navigate('/fvm')} className="w-full">
-                      <Upload className="mr-2 h-4 w-4" />
-                      Go to IPFS Upload
-                    </Button>
-                  </CardContent>
-                </Card>
-                
-                <LivepeerUpload />
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Features</CardTitle>
-                    <CardDescription>What you get with Livepeer video hosting</CardDescription>
-                  </CardHeader>
-                  <CardContent className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <h4 className="font-semibold flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                        Professional Quality
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        Automatic transcoding to multiple resolutions (360p to 1080p)
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <h4 className="font-semibold flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                        IPFS Storage
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        Optional decentralized storage for permanent hosting
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <h4 className="font-semibold flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                        Fast Delivery
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        Global CDN for fast playback worldwide
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <h4 className="font-semibold flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                        Adaptive Streaming
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        HLS streaming that adapts to viewer's bandwidth
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+              <LivepeerUpload />
             </TabsContent>
 
             <TabsContent value="library" className="space-y-4">
