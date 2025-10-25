@@ -182,14 +182,14 @@ export const LivepeerUpload = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Upload Video to Livepeer</CardTitle>
+        <CardTitle>Upload Video</CardTitle>
         <CardDescription>
-          Professional video hosting with optional IPFS decentralized storage
+          Select a video file to upload
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="title">Video Title</Label>
+          <Label htmlFor="title">Title</Label>
           <Input
             id="title"
             placeholder="Enter video title"
@@ -200,7 +200,7 @@ export const LivepeerUpload = () => {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="video-file">Select Video File</Label>
+          <Label htmlFor="video-file">Video File</Label>
           <Input
             id="video-file"
             type="file"
@@ -217,8 +217,8 @@ export const LivepeerUpload = () => {
             onCheckedChange={setEnableIPFS}
             disabled={uploadStatus !== 'idle'}
           />
-          <Label htmlFor="ipfs" className="cursor-pointer">
-            Store on IPFS (Decentralized Storage)
+          <Label htmlFor="ipfs" className="cursor-pointer text-sm">
+            Store permanently (decentralized)
           </Label>
         </div>
 
@@ -287,7 +287,7 @@ export const LivepeerUpload = () => {
           className="w-full"
         >
           <Upload className="mr-2 h-4 w-4" />
-          Upload to Livepeer
+          Upload Video
         </Button>
 
         {uploadStatus === 'ready' && (
