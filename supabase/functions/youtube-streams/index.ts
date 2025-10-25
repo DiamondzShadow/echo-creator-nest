@@ -108,7 +108,12 @@ serve(async (req) => {
       snippet: {
         title: string;
         description: string;
-        thumbnails?: { default?: { url: string } };
+        thumbnails?: { 
+          default?: { url: string };
+          high?: { url: string };
+        };
+        scheduledStartTime?: string;
+        actualStartTime?: string;
       };
       status: {
         lifeCycleStatus: string;
