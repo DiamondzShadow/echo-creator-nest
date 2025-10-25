@@ -83,7 +83,7 @@ const Navbar = () => {
                       </Button>
                       <Button variant="outline" onClick={() => handleNavigate("/meet")} className="w-full justify-start">
                         <Users className="w-4 h-4 mr-2" />
-                        Meet
+                        Meetings
                       </Button>
                       <Button variant="outline" onClick={() => handleNavigate("/discover")} className="w-full justify-start">
                         Discover
@@ -130,7 +130,7 @@ const Navbar = () => {
                   </Button>
                   <Button variant="outline" onClick={() => navigate("/meet")}>
                     <Users className="w-4 h-4 mr-2" />
-                    Meet
+                    Meetings
                   </Button>
                   <Button variant="outline" onClick={() => navigate("/discover")}>
                     Discover
