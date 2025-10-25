@@ -57,10 +57,14 @@ export const LivepeerUpload = () => {
       const { tusEndpoint, assetId, playbackId } = uploadData;
 
       // Upload using TUS protocol
-      const { default: tus } = await import('tus-js-client');
+      const tus = await import('tus-js-client');
+      const Upload = (tus as any).Upload || (tus as any).default?.Upload;
+      if (!Upload) {
+        throw new Error('Upload library not loaded');
+      }
 
       return new Promise((resolve, reject) => {
-        const upload = new tus.Upload(file, {
+        const upload = new Upload(file, {
           endpoint: tusEndpoint,
           metadata: {
             filename: file.name,
