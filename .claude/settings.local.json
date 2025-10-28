@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(supabase secrets:*)"
+      "Bash(supabase secrets:*)",
+      "Bash(git merge:*)",
+      "Bash(git commit:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
