@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Play, Clock, CheckCircle, AlertCircle, ExternalLink, Eye, Heart, Search, Filter, Trash2 } from 'lucide-react';
+import { Play, Clock, CheckCircle, AlertCircle, ExternalLink, Eye, Heart, Search, Filter, Trash2, Upload } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
@@ -69,11 +69,11 @@ const Videos = () => {
       if (error) throw error;
 
       setAssets(data || []);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error fetching assets:', error);
       toast({
         title: 'Error loading videos',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'An error occurred',
         variant: 'destructive',
       });
     } finally {
@@ -111,70 +111,20 @@ const Videos = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           <div className="mb-8">
-            <h1 className="text-4xl font-bold mb-2">Video Library</h1>
+            <h1 className="text-4xl font-bold mb-2">My Videos</h1>
             <p className="text-muted-foreground">
-              Upload and manage your videos with Livepeer's professional streaming infrastructure
+              Manage your uploaded videos
             </p>
           </div>
 
-          <Tabs defaultValue="upload" className="space-y-6">
+          <Tabs defaultValue="library" className="space-y-6">
             <TabsList className="grid w-full grid-cols-2 max-w-md">
-              <TabsTrigger value="upload">Upload</TabsTrigger>
               <TabsTrigger value="library">My Videos ({assets.length})</TabsTrigger>
+              <TabsTrigger value="upload">Upload</TabsTrigger>
             </TabsList>
 
             <TabsContent value="upload">
-              <div className="grid gap-6">
-                <LivepeerUpload />
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Features</CardTitle>
-                    <CardDescription>What you get with Livepeer video hosting</CardDescription>
-                  </CardHeader>
-                  <CardContent className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <h4 className="font-semibold flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                        Professional Quality
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        Automatic transcoding to multiple resolutions (360p to 1080p)
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <h4 className="font-semibold flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                        IPFS Storage
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        Optional decentralized storage for permanent hosting
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <h4 className="font-semibold flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                        Fast Delivery
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        Global CDN for fast playback worldwide
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <h4 className="font-semibold flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                        Adaptive Streaming
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        HLS streaming that adapts to viewer's bandwidth
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+              <LivepeerUpload />
             </TabsContent>
 
             <TabsContent value="library" className="space-y-4">
@@ -190,7 +140,7 @@ const Videos = () => {
                     />
                   </div>
                 </div>
-                <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+                <Select value={sortBy} onValueChange={(v: 'recent' | 'views' | 'likes') => setSortBy(v)}>
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>

@@ -12,6 +12,7 @@ import { Clock, Calendar, Tag } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
+import { User } from '@supabase/supabase-js';
 
 interface Asset {
   id: string;
@@ -39,7 +40,7 @@ const VideoWatch = () => {
   const [asset, setAsset] = useState<Asset | null>(null);
   const [isLiked, setIsLiked] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -81,7 +82,7 @@ const VideoWatch = () => {
           avatar_url: '',
         },
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error fetching asset:', error);
       toast({
         title: 'Error',
@@ -144,7 +145,7 @@ const VideoWatch = () => {
       
       // Refresh asset to get updated like count
       fetchAsset();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error toggling like:', error);
       toast({
         title: 'Error',

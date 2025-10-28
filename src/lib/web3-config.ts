@@ -1,10 +1,34 @@
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
 import { mainnet, polygon, base, arbitrum, optimism } from "wagmi/chains";
+import type { Chain } from "wagmi/chains";
+
+// Filecoin Hyperspace Testnet Chain
+export const filecoinHyperspace: Chain = {
+  id: 3141,
+  name: "Filecoin Hyperspace",
+  nativeCurrency: {
+    decimals: 18,
+    name: "Test Filecoin",
+    symbol: "tFIL",
+  },
+  rpcUrls: {
+    default: {
+      http: ["https://api.hyperspace.node.glif.io/rpc/v1"],
+    },
+    public: {
+      http: ["https://api.hyperspace.node.glif.io/rpc/v1"],
+    },
+  },
+  blockExplorers: {
+    default: { name: "Filscan", url: "https://hyperspace.filscan.io" },
+  },
+  testnet: true,
+};
 
 export const web3Config = getDefaultConfig({
   appName: "CreatorHub",
   projectId: "7a8854ee7c58b56eb8d461175ac5032c", // Get from https://cloud.walletconnect.com
-  chains: [mainnet, polygon, base, arbitrum, optimism],
+  chains: [mainnet, polygon, base, arbitrum, optimism, filecoinHyperspace],
   ssr: false,
 });
 

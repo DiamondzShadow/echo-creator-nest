@@ -72,7 +72,7 @@ export interface TranscodeCreateResponse {
   output?: TranscodeOutputs;
 }
 
-export interface TranscodeStatusResponse extends TranscodeTask {}
+export type TranscodeStatusResponse = TranscodeTask;
 
 export interface TranscodeListResponse {
   data: TranscodeTask[];

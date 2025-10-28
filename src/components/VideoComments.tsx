@@ -7,6 +7,7 @@ import { MessageSquare, Send } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
+import { User } from '@supabase/supabase-js';
 
 interface Comment {
   id: string;
@@ -28,7 +29,7 @@ export const VideoComments = ({ assetId }: VideoCommentsProps) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -95,7 +96,7 @@ export const VideoComments = ({ assetId }: VideoCommentsProps) => {
       } else {
         setComments([]);
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error fetching comments:', error);
     }
   };
@@ -128,7 +129,7 @@ export const VideoComments = ({ assetId }: VideoCommentsProps) => {
         title: 'Comment posted',
         description: 'Your comment has been added',
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error posting comment:', error);
       toast({
         title: 'Error',

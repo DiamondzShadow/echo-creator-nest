@@ -15,14 +15,41 @@ import { useToast } from "@/hooks/use-toast";
 import { BrandBanner } from "@/components/BrandBanner";
 import StreamReactions, { ReactionType } from "@/components/StreamReactions";
 import SoundCloudWidget from "@/components/SoundCloudWidget";
+import { User } from "@supabase/supabase-js";
+
+interface StreamData {
+  id: string;
+  title: string;
+  description: string | null;
+  user_id: string;
+  is_live: boolean;
+  viewer_count: number;
+  livepeer_playback_id: string | null;
+  livepeer_stream_id: string | null;
+  started_at: string;
+  ended_at: string | null;
+}
+
+interface ProfileData {
+  id: string;
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  soundcloud_url: string | null;
+  wallet_address: string | null;
+  bio?: string | null;
+  follower_count?: number;
+  tip_count?: number;
+  total_tips_received?: number;
+}
 
 const Watch = () => {
   const { streamId } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [stream, setStream] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [stream, setStream] = useState<StreamData | null>(null);
+  const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [livekitToken, setLivekitToken] = useState<string | null>(null);
   const [isLiveKitStream, setIsLiveKitStream] = useState(false);
@@ -62,7 +89,7 @@ const Watch = () => {
           filter: `id=eq.${streamId}`,
         },
         (payload) => {
-          setStream(payload.new);
+          setStream(payload.new as StreamData);
         }
       )
       .subscribe();
@@ -141,7 +168,7 @@ const Watch = () => {
           ended_at: assetData.ready_at,
         };
         
-        setStream(mockStream as any);
+        setStream(mockStream);
         setHasRecording(true);
         setIsLiveKitStream(false);
         // Use original stream id for reactions if available (FK constraint)
@@ -457,7 +484,7 @@ const Watch = () => {
                         <p className="text-xs text-muted-foreground">Followers</p>
                       </div>
                       <div>
-                        <p className="text-2xl font-bold">{profile.tip_count || 0}</p>
+                        <p className="text-2xl font-bold">{Math.round(profile.total_tips_received || 0)}</p>
                         <p className="text-xs text-muted-foreground">Tips</p>
                       </div>
                     </div>

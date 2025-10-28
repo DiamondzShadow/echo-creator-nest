@@ -12,14 +12,44 @@ import { Users, UserPlus, Wallet, Coins } from "lucide-react";
 import SoundCloudWidget from "@/components/SoundCloudWidget";
 import { BrandBanner } from "@/components/BrandBanner";
 import LiveStreamCard from "@/components/LiveStreamCard";
+import { User } from "@supabase/supabase-js";
+
+interface ProfileData {
+  id: string;
+  username: string;
+  display_name: string | null;
+  bio: string | null;
+  avatar_url: string | null;
+  theme_color: string | null;
+  background_image: string | null;
+  soundcloud_url: string | null;
+  wallet_address: string | null;
+  followers_count?: number;
+  following_count?: number;
+  total_tips_received?: number;
+}
+
+interface Recording {
+  id: string;
+  title: string;
+  description: string | null;
+  user_id: string;
+  created_at: string;
+  livepeer_playback_id: string | null;
+  profiles?: {
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+  } | null;
+}
  
 const Profile = () => {
   const { userId } = useParams();
-  const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isOwnProfile, setIsOwnProfile] = useState(false);
-  const [recordings, setRecordings] = useState<any[]>([]);
+  const [recordings, setRecordings] = useState<Recording[]>([]);
   const navigate = useNavigate();
 
   const fetchProfile = async () => {
@@ -89,7 +119,7 @@ const Profile = () => {
           filter: `id=eq.${profileId}`,
         },
         (payload) => {
-          setProfile(payload.new);
+          setProfile(payload.new as ProfileData);
         }
       )
       .subscribe();
@@ -182,7 +212,7 @@ const Profile = () => {
                 <Card className="border shadow-card">
                   <CardContent className="pt-6 text-center">
                     <Users className="w-8 h-8 mx-auto mb-2 text-primary" />
-                    <p className="text-2xl font-bold">{profile.follower_count || 0}</p>
+                    <p className="text-2xl font-bold">{profile.followers_count || 0}</p>
                     <p className="text-sm text-muted-foreground">Followers</p>
                   </CardContent>
                 </Card>
@@ -196,8 +226,8 @@ const Profile = () => {
                 <Card className="border shadow-card">
                   <CardContent className="pt-6 text-center">
                     <Coins className="w-8 h-8 mx-auto mb-2 text-primary" />
-                    <p className="text-2xl font-bold">{profile.tip_count || 0}</p>
-                    <p className="text-sm text-muted-foreground">Tips Received</p>
+                    <p className="text-2xl font-bold">{Math.round(profile.total_tips_received || 0)}</p>
+                    <p className="text-sm text-muted-foreground">Tips Value</p>
                   </CardContent>
                 </Card>
                 <Card className="border shadow-card">

@@ -7,6 +7,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Send, MessageCircle } from 'lucide-react';
 
+interface ChatMessage {
+  id: string;
+  message: string;
+  username: string;
+  created_at: string;
+  user_id: string;
+}
+
 interface StreamChatProps {
   streamId: string;
   currentUserId?: string;
@@ -14,7 +22,7 @@ interface StreamChatProps {
 }
 
 export const StreamChat = ({ streamId, currentUserId, currentUsername }: StreamChatProps) => {
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -35,7 +43,7 @@ export const StreamChat = ({ streamId, currentUserId, currentUsername }: StreamC
           filter: `stream_id=eq.${streamId}`,
         },
         (payload) => {
-          setMessages((prev) => [...prev, payload.new]);
+          setMessages((prev) => [...prev, payload.new as ChatMessage]);
         }
       )
       .subscribe();

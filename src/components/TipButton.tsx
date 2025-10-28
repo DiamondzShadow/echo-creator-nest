@@ -74,11 +74,11 @@ export const TipButton = ({ recipientUserId, recipientWalletAddress, recipientUs
             setOpen(false);
             setAmount('');
           }
-        } catch (error: any) {
+        } catch (error) {
           console.error('Error recording tip:', error);
           toast({
             title: "Recording Failed",
-            description: error.message || "Failed to verify and record tip",
+            description: error instanceof Error ? error.message : "Failed to verify and record tip",
             variant: "destructive",
           });
         } finally {
@@ -129,11 +129,11 @@ export const TipButton = ({ recipientUserId, recipientWalletAddress, recipientUs
         title: "Transaction Sent",
         description: "Waiting for confirmation...",
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Tip error:', error);
       toast({
         title: "Transaction Failed",
-        description: error.message || "Failed to send tip",
+        description: error instanceof Error ? error.message : "Failed to send tip",
         variant: "destructive",
       });
     }
@@ -184,7 +184,7 @@ export const TipButton = ({ recipientUserId, recipientWalletAddress, recipientUs
 
               <div>
                 <Label htmlFor="token">Token</Label>
-                <Select value={token} onValueChange={(value: any) => setToken(value)}>
+                <Select value={token} onValueChange={(value) => setToken(value as 'ETH' | 'MATIC' | 'custom')}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>

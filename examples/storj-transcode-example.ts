@@ -81,7 +81,7 @@ export async function checkTranscodeStatus(taskId: string) {
 export async function pollTranscodeCompletion(
   taskId: string,
   onProgress?: (progress: number) => void
-): Promise<any> {
+): Promise<{ status: string; storjUrl?: string; ipfsCid?: string }> {
   return new Promise((resolve, reject) => {
     const interval = setInterval(async () => {
       try {

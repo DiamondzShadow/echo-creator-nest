@@ -162,7 +162,7 @@ serve(async (req) => {
       console.log('Asset status:', data.status.phase);
 
       // Update database
-      const updateData: any = {
+      const updateData: Record<string, unknown> = {
         status: data.status.phase,
         updated_at: new Date().toISOString(),
       };

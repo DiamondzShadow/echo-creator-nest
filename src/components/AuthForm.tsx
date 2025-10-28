@@ -79,15 +79,16 @@ const AuthForm = ({ onSuccess }: AuthFormProps) => {
         });
         onSuccess();
       }
-    } catch (error: any) {
-      let errorMessage = error.message;
+    } catch (error) {
+      let errorMessage = error instanceof Error ? error.message : "An error occurred";
       
       // Handle specific database errors
-      if (error.message?.includes('duplicate key value violates unique constraint "profiles_username_key"')) {
+      const errMsg = error instanceof Error ? error.message : "";
+      if (errMsg.includes('duplicate key value violates unique constraint "profiles_username_key"')) {
         errorMessage = "This username is already taken. Please choose a different username.";
-      } else if (error.message?.includes('duplicate key value violates unique constraint')) {
+      } else if (errMsg.includes('duplicate key value violates unique constraint')) {
         errorMessage = "This email or username is already registered. Please try signing in instead.";
-      } else if (error.message?.includes('Database error saving new user')) {
+      } else if (errMsg.includes('Database error saving new user')) {
         errorMessage = "Unable to create account. The username or email may already be in use.";
       }
       

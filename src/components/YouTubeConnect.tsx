@@ -95,11 +95,11 @@ export const YouTubeConnect = ({ onSelectStream }: YouTubeConnectProps) => {
       if (data.authUrl) {
         window.location.href = data.authUrl;
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to connect YouTube:', error);
       toast({
         title: 'Connection Failed',
-        description: error.message || 'Failed to connect YouTube',
+        description: error instanceof Error ? error.message : 'Failed to connect YouTube',
         variant: 'destructive',
       });
       setLoading(false);
@@ -135,11 +135,11 @@ export const YouTubeConnect = ({ onSelectStream }: YouTubeConnectProps) => {
         title: 'YouTube Disconnected',
         description: 'Your YouTube account has been disconnected',
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to disconnect:', error);
       toast({
         title: 'Disconnect Failed',
-        description: error.message || 'Failed to disconnect YouTube',
+        description: error instanceof Error ? error.message : 'Failed to disconnect YouTube',
         variant: 'destructive',
       });
     } finally {
@@ -177,11 +177,11 @@ export const YouTubeConnect = ({ onSelectStream }: YouTubeConnectProps) => {
           description: 'Start a live stream on YouTube first',
         });
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to fetch streams:', error);
       toast({
         title: 'Failed to fetch streams',
-        description: error.message || 'Could not load your YouTube streams',
+        description: error instanceof Error ? error.message : 'Could not load your YouTube streams',
         variant: 'destructive',
       });
     } finally {

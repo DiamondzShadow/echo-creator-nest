@@ -16,7 +16,7 @@ export const LivepeerUpload = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'processing' | 'ready' | 'error'>('idle');
   const [enableIPFS, setEnableIPFS] = useState(true);
-  const [assetInfo, setAssetInfo] = useState<{ playbackId?: string; ipfs?: any } | null>(null);
+  const [assetInfo, setAssetInfo] = useState<{ playbackId?: string; ipfs?: { cid?: string; url?: string } } | null>(null);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -57,10 +57,14 @@ export const LivepeerUpload = () => {
       const { tusEndpoint, assetId, playbackId } = uploadData;
 
       // Upload using TUS protocol
-      const { default: tus } = await import('tus-js-client');
+      const tus = await import('tus-js-client');
+      const Upload = (tus as any).Upload || (tus as any).default?.Upload;
+      if (!Upload) {
+        throw new Error('Upload library not loaded');
+      }
 
       return new Promise((resolve, reject) => {
-        const upload = new tus.Upload(file, {
+        const upload = new Upload(file, {
           endpoint: tusEndpoint,
           metadata: {
             filename: file.name,
@@ -97,12 +101,12 @@ export const LivepeerUpload = () => {
 
         upload.start();
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Upload error:', error);
       setUploadStatus('error');
       toast({
         title: 'Upload failed',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'An error occurred',
         variant: 'destructive',
       });
     }
@@ -157,7 +161,7 @@ export const LivepeerUpload = () => {
             });
           }
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error('Status check error:', error);
       }
     };
@@ -182,14 +186,14 @@ export const LivepeerUpload = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Upload Video to Livepeer</CardTitle>
+        <CardTitle>Upload Video</CardTitle>
         <CardDescription>
-          Professional video hosting with optional IPFS decentralized storage
+          Select a video file to upload
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="title">Video Title</Label>
+          <Label htmlFor="title">Title</Label>
           <Input
             id="title"
             placeholder="Enter video title"
@@ -200,7 +204,7 @@ export const LivepeerUpload = () => {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="video-file">Select Video File</Label>
+          <Label htmlFor="video-file">Video File</Label>
           <Input
             id="video-file"
             type="file"
@@ -217,8 +221,8 @@ export const LivepeerUpload = () => {
             onCheckedChange={setEnableIPFS}
             disabled={uploadStatus !== 'idle'}
           />
-          <Label htmlFor="ipfs" className="cursor-pointer">
-            Store on IPFS (Decentralized Storage)
+          <Label htmlFor="ipfs" className="cursor-pointer text-sm">
+            Store permanently (decentralized)
           </Label>
         </div>
 
@@ -287,7 +291,7 @@ export const LivepeerUpload = () => {
           className="w-full"
         >
           <Upload className="mr-2 h-4 w-4" />
-          Upload to Livepeer
+          Upload Video
         </Button>
 
         {uploadStatus === 'ready' && (

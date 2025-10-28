@@ -106,28 +106,36 @@ serve(async (req) => {
       }
     };
 
-    // Create JWT token for LiveKit API authentication
-    // LiveKit requires a JWT with specific claims
+    // Create JWT token for LiveKit API authentication with video grants
     const encoder = new TextEncoder();
-    const header = { alg: 'HS256', typ: 'JWT' };
     const now = Math.floor(Date.now() / 1000);
-    const payload = {
-      iss: LIVEKIT_API_KEY,
-      exp: now + 3600, // 1 hour expiration
-      nbf: now - 60,   // Not before 1 min ago
-      sub: user.id,    // Subject (user ID)
-    };
-
+    
     // Helper to base64url encode
-    const base64url = (data: string) => {
-      return btoa(data)
+    const base64url = (bytes: Uint8Array): string => {
+      let binary = '';
+      for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return btoa(binary)
         .replace(/\+/g, '-')
         .replace(/\//g, '_')
         .replace(/=/g, '');
     };
 
-    const headerB64 = base64url(JSON.stringify(header));
-    const payloadB64 = base64url(JSON.stringify(payload));
+    const header = { alg: 'HS256', typ: 'JWT' };
+    const payload = {
+      iss: LIVEKIT_API_KEY,
+      exp: now + 3600,
+      nbf: now - 60,
+      sub: user.id,
+      video: {
+        roomRecord: true,
+        room: roomName,
+      }
+    };
+
+    const headerB64 = base64url(encoder.encode(JSON.stringify(header)));
+    const payloadB64 = base64url(encoder.encode(JSON.stringify(payload)));
     const signatureInput = `${headerB64}.${payloadB64}`;
 
     // Sign with HMAC-SHA256
@@ -140,7 +148,7 @@ serve(async (req) => {
       ['sign']
     );
     const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(signatureInput));
-    const signatureB64 = base64url(String.fromCharCode(...new Uint8Array(signature)));
+    const signatureB64 = base64url(new Uint8Array(signature));
     const jwtToken = `${signatureInput}.${signatureB64}`;
 
     console.log('Sending egress request to LiveKit...');
