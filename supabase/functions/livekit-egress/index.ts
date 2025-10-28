@@ -58,14 +58,26 @@ serve(async (req) => {
       throw new Error('LiveKit credentials not configured');
     }
 
-    // Get Storj credentials
+    // Get Storj credentials (optional - gracefully handle if missing)
     const STORJ_ACCESS_KEY_ID = Deno.env.get('STORJ_ACCESS_KEY_ID');
     const STORJ_SECRET_ACCESS_KEY = Deno.env.get('STORJ_SECRET_ACCESS_KEY');
     const STORJ_BUCKET = Deno.env.get('STORJ_BUCKET') || 'livepeer-videos';
     const STORJ_ENDPOINT = Deno.env.get('STORJ_ENDPOINT') || 'https://gateway.storjshare.io';
 
+    // If Storj credentials are not configured, return helpful error instead of crashing
     if (!STORJ_ACCESS_KEY_ID || !STORJ_SECRET_ACCESS_KEY) {
-      throw new Error('Storj credentials not configured');
+      console.warn('⚠️ Storj credentials not configured - recording disabled');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Recording requires Storj storage to be configured. Please contact admin to set up STORJ_ACCESS_KEY_ID and STORJ_SECRET_ACCESS_KEY.',
+          code: 'STORJ_NOT_CONFIGURED',
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     // Generate output filename

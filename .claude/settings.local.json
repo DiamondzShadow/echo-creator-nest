@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(supabase secrets:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

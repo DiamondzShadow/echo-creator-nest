@@ -285,9 +285,12 @@ const Live = () => {
                       description: "Viewers can now see your stream",
                     });
                     
-                    // Start recording if enabled
+                    // Start recording if enabled (non-blocking - stream continues even if recording fails)
                     if (enableRecording && roomName && !recordingStarted) {
                       console.log('📹 Attempting to start recording...');
+
+                      // CRITICAL: Recording is attempted in background - DO NOT block stream
+                      // Stream is already live and working. Recording failure should NOT stop the stream.
                       try {
                         const { data: egressData, error: egressError } = await supabase.functions.invoke('livekit-egress', {
                           body: {
@@ -295,35 +298,48 @@ const Live = () => {
                             streamId,
                           }
                         });
-                        
+
                         console.log('📹 Egress response:', { egressData, egressError });
-                        
+
                         if (egressError || !egressData?.success) {
-                          console.error('❌ Failed to start recording:', egressError || egressData);
-                          toast({
-                            title: "Recording Failed",
-                            description: `Error: ${egressError?.message || egressData?.error || 'Unknown'}`,
-                            variant: "destructive",
-                          });
+                          const errorMsg = egressData?.error || egressError?.message || 'Unknown error';
+                          console.error('❌ Recording failed (stream continues):', errorMsg);
+
+                          // Check if it's a configuration issue
+                          if (egressData?.code === 'STORJ_NOT_CONFIGURED') {
+                            toast({
+                              title: "Recording Not Available",
+                              description: "Storage not configured. Stream is live but won't be recorded. Contact admin to enable recording.",
+                              variant: "default",
+                            });
+                          } else {
+                            toast({
+                              title: "Recording Failed",
+                              description: `Stream is live but recording failed: ${errorMsg}`,
+                              variant: "destructive",
+                            });
+                          }
                         } else {
                           setRecordingStarted(true);
                           const storageLocation = saveToStorj ? "Storj (decentralized)" : "cloud storage";
                           console.log('✅ Recording started:', egressData.egressId);
                           toast({
                             title: "Recording Started",
-                            description: `ID: ${egressData.egressId} → ${storageLocation}`,
+                            description: `Saving to ${storageLocation}`,
                           });
                         }
                       } catch (error) {
-                        console.error('❌ Exception starting recording:', error);
+                        console.error('❌ Exception starting recording (stream continues):', error);
                         toast({
-                          title: "Recording Error",
-                          description: error instanceof Error ? error.message : 'Failed to start',
-                          variant: "destructive",
+                          title: "Recording Unavailable",
+                          description: "Your stream is live but recording couldn't start. Stream will continue normally.",
+                          variant: "default",
                         });
                       }
+                    } else if (enableRecording && recordingStarted) {
+                      console.log('✅ Recording already started');
                     } else {
-                      console.log('⚠️ Recording skipped:', { enableRecording, roomName, recordingStarted });
+                      console.log('⚠️ Recording disabled by user');
                     }
                   }}
                   isLive={isLive}
