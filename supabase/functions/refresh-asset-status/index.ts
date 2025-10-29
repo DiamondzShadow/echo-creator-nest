@@ -30,37 +30,47 @@ serve(async (req) => {
 
     for (const asset of assets || []) {
       try {
-        // Check status from Livepeer
-        const response = await fetch(
-          `https://livepeer.studio/api/asset/${asset.livepeer_asset_id}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${livepeerApiKey}`,
-            },
-          }
-        );
+        const url = `https://livepeer.studio/api/asset/${asset.livepeer_asset_id}`;
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${livepeerApiKey}`,
+          },
+        });
 
-        if (!response.ok) continue;
+        if (!response.ok) {
+          // If Livepeer doesn't know this asset anymore, mark as failed
+          if (response.status === 404) {
+            const { error: failErr } = await supabase
+              .from('assets')
+              .update({ status: 'failed' })
+              .eq('id', asset.id);
+            if (!failErr) {
+              updated++;
+              results.push({ title: asset.title, status: 'failed', reason: '404 from Livepeer', success: true });
+            } else {
+              results.push({ title: asset.title, success: false, error: failErr.message });
+            }
+          } else {
+            results.push({ title: asset.title, success: false, error: `Livepeer ${response.status}` });
+          }
+          continue;
+        }
 
         const livepeerAsset = await response.json();
-        
-        // Update database with current status
-        const updateData: any = {
-          status: livepeerAsset.status?.phase || 'waiting',
-        };
 
-        if (livepeerAsset.playbackId) {
-          updateData.livepeer_playback_id = livepeerAsset.playbackId;
-          updateData.thumbnail_url = `https://livepeer.studio/api/playback/${livepeerAsset.playbackId}/thumbnail.jpg`;
-        }
+        const phase = livepeerAsset?.status?.phase || 'waiting';
+        const playbackId = livepeerAsset?.playbackId || null;
+        const duration = livepeerAsset?.videoSpec?.duration || null;
+        const size = livepeerAsset?.size || null;
 
-        if (livepeerAsset.videoSpec?.duration) {
-          updateData.duration = livepeerAsset.videoSpec.duration;
+        const updateData: Record<string, unknown> = { status: phase };
+        if (playbackId) {
+          updateData['livepeer_playback_id'] = playbackId;
+          updateData['thumbnail_url'] = `https://livepeer.studio/api/playback/${playbackId}/thumbnail.jpg`;
         }
-
-        if (livepeerAsset.size) {
-          updateData.size = livepeerAsset.size;
-        }
+        if (duration) updateData['duration'] = duration;
+        if (size) updateData['size'] = size;
+        if (phase === 'ready') updateData['ready_at'] = new Date().toISOString();
 
         const { error: updateError } = await supabase
           .from('assets')
@@ -69,11 +79,9 @@ serve(async (req) => {
 
         if (!updateError) {
           updated++;
-          results.push({ 
-            title: asset.title, 
-            status: updateData.status,
-            success: true 
-          });
+          results.push({ title: asset.title, status: phase, success: true });
+        } else {
+          results.push({ title: asset.title, success: false, error: updateError.message });
         }
       } catch (err) {
         console.error(`Error updating ${asset.title}:`, err);
