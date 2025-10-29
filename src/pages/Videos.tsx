@@ -46,7 +46,20 @@ const Videos = () => {
   useEffect(() => {
     checkAuth();
     fetchAssets();
+    refreshStuckAssets();
   }, []);
+
+  const refreshStuckAssets = async () => {
+    try {
+      const { data } = await supabase.functions.invoke('refresh-asset-status');
+      if (data?.updated > 0) {
+        console.log(`Refreshed ${data.updated} stuck assets`);
+        setTimeout(() => fetchAssets(), 2000); // Refetch after update
+      }
+    } catch (error) {
+      console.error('Error refreshing assets:', error);
+    }
+  };
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
