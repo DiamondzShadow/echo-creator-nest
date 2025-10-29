@@ -46,16 +46,7 @@ const Videos = () => {
   useEffect(() => {
     checkAuth();
     fetchAssets();
-    fixMissingThumbnails();
   }, []);
-
-  const fixMissingThumbnails = async () => {
-    try {
-      await supabase.functions.invoke('fix-thumbnails');
-    } catch (error) {
-      console.error('Error fixing thumbnails:', error);
-    }
-  };
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
