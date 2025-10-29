@@ -76,7 +76,7 @@ const Videos = () => {
       const { data, error } = await supabase
         .from('assets')
         .select('*')
-        .eq('user_id', session.user.id)
+        .or(`user_id.eq.${session.user.id},is_public.eq.true`)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -191,7 +191,18 @@ const Videos = () => {
                           onClick={() => navigate(`/video/${asset.id}`)}>
                       <div className="aspect-video bg-muted relative group">
                         {asset.thumbnail_url ? (
-                          <img src={asset.thumbnail_url} alt={asset.title} className="w-full h-full object-cover" />
+                          <img
+                            src={asset.thumbnail_url}
+                            alt={`${asset.title} thumbnail`}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              if (asset.livepeer_playback_id) {
+                                (e.currentTarget as HTMLImageElement).src = `https://image-cache.livepeer.studio/thumbnail?playbackId=${asset.livepeer_playback_id}`;
+                              } else {
+                                (e.currentTarget as HTMLImageElement).style.display = 'none';
+                              }
+                            }}
+                          />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
                             <Play className="h-16 w-16 text-primary" />
