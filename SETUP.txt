@@ -1,0 +1,815 @@
+================================================================================
+   ECHO CREATOR NEST - COMPLETE SETUP GUIDE
+   Live Streaming Platform Configuration
+================================================================================
+
+TABLE OF CONTENTS
+-----------------
+1. Project Overview
+2. Prerequisites
+3. Account Creation (Required Services)
+4. Environment Variables Setup
+5. Supabase Configuration
+6. Security Setup (CRITICAL)
+7. Deployment Steps
+8. Testing & Verification
+9. Troubleshooting
+10. Support & Resources
+
+================================================================================
+1. PROJECT OVERVIEW
+================================================================================
+
+Echo Creator Nest is a live streaming platform with:
+- ✅ Instant browser streaming (LiveKit WebRTC)
+- ✅ Software streaming (OBS via Livepeer RTMP)
+- ✅ Web3 crypto tipping
+- ✅ Stream recording (optional - requires Storj)
+- ✅ Decentralized storage (Storj + IPFS)
+- ✅ Real-time chat & reactions
+
+Technology Stack:
+- Frontend: React 18 + TypeScript + Vite
+- Backend: Supabase (PostgreSQL + Edge Functions)
+- Streaming: LiveKit (instant) + Livepeer (RTMP/transcoding)
+- Storage: Storj (decentralized S3-compatible)
+- Web3: RainbowKit + wagmi + viem
+
+================================================================================
+2. PREREQUISITES
+================================================================================
+
+Before starting, install these tools:
+
+Required:
+□ Node.js 18+ (https://nodejs.org)
+□ Git (https://git-scm.com)
+□ Code editor (VS Code recommended)
+
+Optional (for deployment):
+□ Supabase CLI (npm install -g supabase)
+□ Docker (for local Supabase development)
+
+================================================================================
+3. ACCOUNT CREATION (REQUIRED SERVICES)
+================================================================================
+
+Create accounts for these services (all have free tiers):
+
+────────────────────────────────────────────────────────────────────────────
+3.1 SUPABASE (Backend & Database)
+────────────────────────────────────────────────────────────────────────────
+URL: https://supabase.com
+
+Steps:
+1. Go to https://supabase.com
+2. Click "Start your project" → Sign up with GitHub
+3. Create a new project:
+   - Name: echo-creator-nest (or your choice)
+   - Database Password: (save this securely!)
+   - Region: Choose closest to your users
+   - Pricing Plan: Free (sufficient for MVP)
+4. Wait 2-3 minutes for project to initialize
+
+What You'll Need:
+✓ Project URL (e.g., https://xxxxx.supabase.co)
+✓ Anon/Public Key (starts with "eyJ...")
+✓ Service Role Key (for edge functions - keep secret!)
+
+Where to Find:
+- Dashboard → Settings → API
+- Copy "Project URL"
+- Copy "anon public" key
+- Copy "service_role" key (NEVER expose this!)
+
+────────────────────────────────────────────────────────────────────────────
+3.2 LIVEKIT (Instant Streaming)
+────────────────────────────────────────────────────────────────────────────
+URL: https://cloud.livekit.io
+
+Steps:
+1. Go to https://cloud.livekit.io
+2. Sign up with GitHub/Google
+3. Create a new project:
+   - Name: echo-creator-nest
+   - Region: Choose closest to users
+4. In project dashboard:
+   - Copy "WebSocket URL" (wss://your-project.livekit.cloud)
+   - Go to Settings → Keys
+   - Copy "API Key" and "API Secret"
+
+What You'll Need:
+✓ WebSocket URL (wss://xxxxx.livekit.cloud)
+✓ API Key (starts with "API")
+✓ API Secret (keep this secret!)
+
+Free Tier Limits:
+- 10,000 participant minutes/month
+- Unlimited rooms
+- Perfect for MVP testing
+
+────────────────────────────────────────────────────────────────────────────
+3.3 LIVEPEER (Optional - For RTMP Streaming & Transcoding)
+────────────────────────────────────────────────────────────────────────────
+URL: https://livepeer.studio
+
+Steps:
+1. Go to https://livepeer.studio
+2. Sign up with email/GitHub
+3. Create API key:
+   - Dashboard → Developers → API Keys
+   - Click "Create API Key"
+   - Name: echo-creator-production
+   - Copy the key (starts with a long string)
+
+What You'll Need:
+✓ API Key (keep secret!)
+
+When to Use:
+- Software streaming (OBS/Streamlabs)
+- Video transcoding to multiple qualities
+- IPFS integration for recordings
+
+Free Tier:
+- 1,000 transcoding minutes/month
+- Unlimited streaming (up to 1TB bandwidth)
+
+────────────────────────────────────────────────────────────────────────────
+3.4 STORJ (Decentralized Storage - OPTIONAL)
+────────────────────────────────────────────────────────────────────────────
+URL: https://www.storj.io
+
+⚠️ IMPORTANT: Storj is ONLY needed if you want to enable stream recording.
+If you don't set up Storj, streaming will work perfectly - recordings just won't be saved.
+
+Steps:
+1. Go to https://www.storj.io
+2. Click "Get Started" → Create account
+3. Verify email
+4. Create a bucket:
+   - Dashboard → Buckets → "New Bucket"
+   - Name: livepeer-videos
+   - Click "Create Bucket"
+
+5. Generate S3 credentials:
+   - Dashboard → Access → "Create Access Grant"
+   - Choose "S3 Credentials"
+   - Name: livepeer-recording
+   - Permissions: ✓ Read, ✓ Write, ✓ List, ✓ Delete
+   - Bucket: Select "livepeer-videos"
+   - Click "Generate Credentials"
+   - ⚠️ SAVE THESE NOW - You can't see them again!
+     * Access Key ID
+     * Secret Access Key
+
+What You'll Need:
+✓ Access Key ID (like AWS_ACCESS_KEY_ID)
+✓ Secret Access Key (like AWS_SECRET_ACCESS_KEY)
+✓ Bucket name: livepeer-videos
+✓ Endpoint: https://gateway.storjshare.io
+
+Free Tier:
+- 25 GB storage
+- 25 GB download/month
+- Free uploads
+
+Cost After Free Tier:
+- $4/TB/month storage
+- $7/TB download
+- Still cheaper than AWS S3
+
+SKIP THIS IF: You don't need recording functionality yet
+
+────────────────────────────────────────────────────────────────────────────
+3.5 WALLET CONNECT (For Web3 Tipping - Optional)
+────────────────────────────────────────────────────────────────────────────
+URL: https://cloud.walletconnect.com
+
+Steps:
+1. Go to https://cloud.walletconnect.com
+2. Sign up
+3. Create a new project:
+   - Name: Echo Creator Nest
+   - Type: App
+4. Copy "Project ID"
+
+What You'll Need:
+✓ Project ID
+
+Used For:
+- Crypto wallet connections (MetaMask, Coinbase, etc.)
+- Multi-chain support (Ethereum, Polygon, Base)
+
+Free Tier:
+- Unlimited wallet connections
+- No credit card required
+
+================================================================================
+4. ENVIRONMENT VARIABLES SETUP
+================================================================================
+
+You need TWO places for environment variables:
+
+────────────────────────────────────────────────────────────────────────────
+4.1 FRONTEND ENVIRONMENT (.env file)
+────────────────────────────────────────────────────────────────────────────
+
+Location: Root of project → .env
+
+⚠️ SECURITY NOTE:
+- These are PUBLIC variables (exposed to browser)
+- Only use VITE_ prefix variables here
+- NEVER put secrets here (API keys, passwords, etc.)
+
+Create/Update .env file:
+
+```
+# Supabase Configuration (PUBLIC - Safe to expose)
+VITE_SUPABASE_PROJECT_ID="your_project_id_here"
+VITE_SUPABASE_PUBLISHABLE_KEY="eyJ..."
+VITE_SUPABASE_URL="https://xxxxx.supabase.co"
+
+# LiveKit Configuration (PUBLIC - WebSocket URL only)
+VITE_LIVEKIT_URL="wss://xxxxx.livekit.cloud"
+
+# WalletConnect (OPTIONAL - for Web3 tipping)
+VITE_WALLETCONNECT_PROJECT_ID="your_walletconnect_project_id"
+```
+
+How to Fill:
+1. VITE_SUPABASE_PROJECT_ID
+   → Supabase Dashboard → Settings → General → Reference ID
+
+2. VITE_SUPABASE_PUBLISHABLE_KEY
+   → Supabase Dashboard → Settings → API → "anon public" key
+
+3. VITE_SUPABASE_URL
+   → Supabase Dashboard → Settings → API → "Project URL"
+
+4. VITE_LIVEKIT_URL
+   → LiveKit Dashboard → Your Project → "WebSocket URL"
+
+5. VITE_WALLETCONNECT_PROJECT_ID (optional)
+   → WalletConnect Cloud → Your Project → "Project ID"
+
+────────────────────────────────────────────────────────────────────────────
+4.2 BACKEND ENVIRONMENT (Supabase Secrets)
+────────────────────────────────────────────────────────────────────────────
+
+⚠️ CRITICAL: These are SECRET keys - NEVER commit to git or expose publicly!
+
+Location: Supabase Dashboard → Project Settings → Edge Functions → Secrets
+
+Required Secrets (Must Set):
+
+1. LIVEKIT_API_KEY
+   Value: (from LiveKit dashboard → Settings → Keys)
+   Purpose: Generate streaming tokens
+
+2. LIVEKIT_API_SECRET
+   Value: (from LiveKit dashboard → Settings → Keys)
+   Purpose: Sign streaming tokens
+
+Optional Secrets (Only if using recording):
+
+3. STORJ_ACCESS_KEY_ID
+   Value: (from Storj → Access → S3 Credentials)
+   Purpose: Upload recordings to Storj
+
+4. STORJ_SECRET_ACCESS_KEY
+   Value: (from Storj → Access → S3 Credentials)
+   Purpose: Authenticate Storj uploads
+
+5. STORJ_BUCKET
+   Value: livepeer-videos (or your bucket name)
+   Purpose: Specify storage bucket
+
+6. STORJ_ENDPOINT
+   Value: https://gateway.storjshare.io
+   Purpose: Storj S3 endpoint
+
+Optional Secrets (For advanced features):
+
+7. LIVEPEER_API_KEY
+   Value: (from Livepeer Studio → API Keys)
+   Purpose: Transcode recordings, IPFS integration
+
+8. LIVEKIT_WEBHOOK_SECRET
+   Value: (from LiveKit dashboard → Settings → Webhooks → Add webhook → Copy secret)
+   Purpose: Verify webhook authenticity
+
+────────────────────────────────────────────────────────────────────────────
+4.3 HOW TO SET SUPABASE SECRETS
+────────────────────────────────────────────────────────────────────────────
+
+Method 1: Using Supabase Dashboard (Easiest)
+1. Go to your Supabase project dashboard
+2. Click Settings (bottom left) → Edge Functions
+3. Scroll to "Secrets" section
+4. Click "Add Secret"
+5. Enter name (e.g., LIVEKIT_API_KEY) and value
+6. Click "Save"
+7. Repeat for all secrets
+
+Method 2: Using Supabase CLI (Advanced)
+```bash
+# Login to Supabase
+supabase login
+
+# Link your project
+supabase link --project-ref your_project_id
+
+# Set secrets one by one
+supabase secrets set LIVEKIT_API_KEY=your_api_key_here
+supabase secrets set LIVEKIT_API_SECRET=your_api_secret_here
+supabase secrets set STORJ_ACCESS_KEY_ID=your_storj_key
+supabase secrets set STORJ_SECRET_ACCESS_KEY=your_storj_secret
+supabase secrets set STORJ_BUCKET=livepeer-videos
+supabase secrets set STORJ_ENDPOINT=https://gateway.storjshare.io
+
+# Verify secrets are set
+supabase secrets list
+```
+
+================================================================================
+5. SUPABASE CONFIGURATION
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────
+5.1 DATABASE SETUP (Migrations)
+────────────────────────────────────────────────────────────────────────────
+
+The project includes database migrations in supabase/migrations/
+
+To apply migrations:
+
+Option A: Using Supabase Dashboard (Easiest)
+1. Go to Supabase Dashboard → SQL Editor
+2. Click "New Query"
+3. Copy contents of each migration file (in order by date)
+4. Paste and run each one
+
+Option B: Using Supabase CLI (Recommended)
+```bash
+# Link project
+supabase link --project-ref your_project_id
+
+# Push all migrations
+supabase db push
+
+# Verify tables created
+supabase db reset --linked
+```
+
+Expected Tables:
+✓ profiles (user profiles)
+✓ live_streams (stream records)
+✓ assets (recordings)
+✓ stream_messages (chat)
+✓ stream_reactions (emoji reactions)
+✓ tip_transactions (crypto tips)
+✓ followers (follow system)
+
+────────────────────────────────────────────────────────────────────────────
+5.2 EDGE FUNCTIONS DEPLOYMENT
+────────────────────────────────────────────────────────────────────────────
+
+Deploy Supabase edge functions:
+
+```bash
+# Deploy all functions
+supabase functions deploy livekit-token
+supabase functions deploy livekit-egress
+supabase functions deploy livekit-webhook
+supabase functions deploy livepeer-asset
+supabase functions deploy save-to-storj
+supabase functions deploy record-tip
+
+# Verify deployments
+supabase functions list
+```
+
+Expected Functions:
+✓ livekit-token (generate streaming tokens)
+✓ livekit-egress (start recording)
+✓ livekit-webhook (handle recording completion)
+✓ livepeer-asset (transcode videos)
+✓ save-to-storj (upload to Storj)
+✓ record-tip (log crypto tips)
+
+────────────────────────────────────────────────────────────────────────────
+5.3 AUTHENTICATION SETUP
+────────────────────────────────────────────────────────────────────────────
+
+Configure Supabase Auth:
+
+1. Go to Supabase Dashboard → Authentication → Providers
+2. Enable Email provider:
+   - Toggle "Email" to ON
+   - Enable "Confirm email": OFF (for MVP - enable for production)
+3. (Optional) Enable OAuth providers:
+   - Google, GitHub, Discord, etc.
+
+Site URL Configuration:
+1. Go to Authentication → URL Configuration
+2. Set "Site URL": http://localhost:5173 (development)
+3. Add redirect URLs:
+   - http://localhost:5173/**
+   - https://your-production-domain.com/** (when deployed)
+
+================================================================================
+6. SECURITY SETUP (CRITICAL - DO THIS NOW!)
+================================================================================
+
+⚠️ URGENT: Your .env file was accidentally committed to git. Fix this now!
+
+────────────────────────────────────────────────────────────────────────────
+6.1 REMOVE .env FROM GIT HISTORY
+────────────────────────────────────────────────────────────────────────────
+
+Run these commands in your project directory:
+
+```bash
+# Stage the updated .gitignore (already done by fixes)
+git add .gitignore
+
+# Remove .env from git tracking (keeps local file)
+git rm --cached .env
+
+# Commit the changes
+git commit -m "Security: Remove .env from version control"
+
+# Push to remote
+git push origin main
+```
+
+⚠️ IMPORTANT: After this, you MUST rotate (change) all exposed credentials!
+
+────────────────────────────────────────────────────────────────────────────
+6.2 ROTATE EXPOSED CREDENTIALS
+────────────────────────────────────────────────────────────────────────────
+
+Since .env was in git, rotate these keys:
+
+1. Supabase:
+   - Dashboard → Settings → API
+   - Scroll to "Service Role Key"
+   - Click "Reset" (if exposed)
+   - Update in Supabase secrets
+
+2. LiveKit:
+   - Dashboard → Settings → Keys
+   - Delete old key
+   - Generate new key
+   - Update LIVEKIT_API_KEY and LIVEKIT_API_SECRET
+
+3. Storj (if configured):
+   - Dashboard → Access → S3 Credentials
+   - Delete old credentials
+   - Generate new ones
+   - Update STORJ_ACCESS_KEY_ID and STORJ_SECRET_ACCESS_KEY
+
+────────────────────────────────────────────────────────────────────────────
+6.3 VERIFY .env IS IGNORED
+────────────────────────────────────────────────────────────────────────────
+
+```bash
+# Check git status (should NOT show .env)
+git status
+
+# Try adding .env (should be ignored)
+git add .env
+# Should show: "The following paths are ignored by one of your .gitignore files"
+
+# Verify .gitignore content
+cat .gitignore | grep ".env"
+# Should show: .env
+```
+
+────────────────────────────────────────────────────────────────────────────
+6.4 CREATE .env.example (Template for Team)
+────────────────────────────────────────────────────────────────────────────
+
+Create a safe template file:
+
+```bash
+# Copy .env to .env.example
+cp .env .env.example
+
+# Edit .env.example and replace all values with placeholders
+```
+
+.env.example content:
+```
+# Supabase Configuration
+VITE_SUPABASE_PROJECT_ID="your_project_id_here"
+VITE_SUPABASE_PUBLISHABLE_KEY="your_anon_public_key_here"
+VITE_SUPABASE_URL="https://your-project.supabase.co"
+
+# LiveKit Configuration
+VITE_LIVEKIT_URL="wss://your-project.livekit.cloud"
+
+# WalletConnect (Optional)
+VITE_WALLETCONNECT_PROJECT_ID="your_walletconnect_project_id"
+```
+
+Commit .env.example:
+```bash
+git add .env.example
+git commit -m "Add .env.example template"
+git push
+```
+
+================================================================================
+7. DEPLOYMENT STEPS
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────
+7.1 LOCAL DEVELOPMENT
+────────────────────────────────────────────────────────────────────────────
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+
+# Open browser
+# http://localhost:5173
+```
+
+────────────────────────────────────────────────────────────────────────────
+7.2 PRODUCTION DEPLOYMENT
+────────────────────────────────────────────────────────────────────────────
+
+Recommended Platforms:
+- Vercel (easiest)
+- Netlify
+- Cloudflare Pages
+
+Example: Deploy to Vercel
+```bash
+# Install Vercel CLI
+npm install -g vercel
+
+# Login
+vercel login
+
+# Deploy
+vercel
+
+# Set environment variables in Vercel dashboard:
+# 1. Go to project settings
+# 2. Environment Variables
+# 3. Add all VITE_ variables from .env
+```
+
+================================================================================
+8. TESTING & VERIFICATION
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────
+8.1 BASIC FUNCTIONALITY TEST
+────────────────────────────────────────────────────────────────────────────
+
+✓ Test Authentication:
+  1. Go to /auth
+  2. Sign up with email
+  3. Check if redirected to home
+
+✓ Test Streaming WITHOUT Recording:
+  1. Go to /live
+  2. Create stream (DISABLE "Record Stream" toggle)
+  3. Allow camera/microphone
+  4. Stream should go live within 2-3 seconds
+  5. Check if "LIVE" badge appears
+  6. Open /watch/[stream-id] in incognito window
+  7. Verify viewer can see stream
+
+✓ Test Streaming WITH Recording (only if Storj configured):
+  1. Go to /live
+  2. Create stream (ENABLE "Record Stream" toggle)
+  3. Stream should go live
+  4. Check for "Recording Started" toast
+  5. End stream after 30 seconds
+  6. Wait 2-3 minutes for processing
+  7. Go to /discover → Recordings tab
+  8. Verify recording appears
+
+────────────────────────────────────────────────────────────────────────────
+8.2 VERIFY CREDENTIALS
+────────────────────────────────────────────────────────────────────────────
+
+Check Frontend .env:
+```bash
+cat .env
+# Should show all VITE_ variables with correct values
+```
+
+Check Supabase Secrets:
+1. Supabase Dashboard → Edge Functions → Secrets
+2. Verify these exist:
+   - LIVEKIT_API_KEY ✓
+   - LIVEKIT_API_SECRET ✓
+   - (Optional) STORJ_ACCESS_KEY_ID
+   - (Optional) STORJ_SECRET_ACCESS_KEY
+
+Check Edge Functions:
+```bash
+supabase functions list
+# Should show all deployed functions
+```
+
+────────────────────────────────────────────────────────────────────────────
+8.3 BROWSER CONSOLE LOGS
+────────────────────────────────────────────────────────────────────────────
+
+During streaming, you should see:
+
+✅ Good Logs:
+```
+🔌 Connecting to LiveKit room...
+✅ Connected to LiveKit room: stream-xxx
+📹 Publishing camera and microphone...
+📤 Local track published: video
+📤 Local track published: audio
+🔴 Stream connected! Recording: true
+✅ Stream marked as live in database
+📹 Attempting to start recording...
+✅ Recording started: egress-xxx
+```
+
+❌ Bad Logs (if Storj not configured - but stream still works):
+```
+❌ Recording failed (stream continues): Storj credentials not configured
+```
+
+This is NORMAL if you haven't set up Storj. Stream still works!
+
+================================================================================
+9. TROUBLESHOOTING
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────
+Problem: Stream doesn't connect
+────────────────────────────────────────────────────────────────────────────
+Cause: LiveKit credentials missing/incorrect
+
+Fix:
+1. Verify LIVEKIT_API_KEY and LIVEKIT_API_SECRET in Supabase secrets
+2. Check VITE_LIVEKIT_URL in .env matches LiveKit dashboard
+3. Redeploy livekit-token function:
+   ```bash
+   supabase functions deploy livekit-token
+   ```
+
+────────────────────────────────────────────────────────────────────────────
+Problem: Recording fails with "Storj credentials not configured"
+────────────────────────────────────────────────────────────────────────────
+Cause: Storj not set up (this is OK!)
+
+Fix Options:
+A. Disable recording: Uncheck "Record Stream" when creating stream
+B. Set up Storj: Follow section 3.4 and 4.2
+
+Note: Stream will work perfectly without recording!
+
+────────────────────────────────────────────────────────────────────────────
+Problem: "Stream stops when multiple viewers join"
+────────────────────────────────────────────────────────────────────────────
+Cause: FIXED in latest code! This was caused by recording errors blocking stream.
+
+Verify Fix:
+1. Update code (git pull latest changes)
+2. Redeploy functions:
+   ```bash
+   supabase functions deploy livekit-egress
+   ```
+3. Test stream with recording disabled
+4. If works, issue was recording-related
+
+────────────────────────────────────────────────────────────────────────────
+Problem: .env changes not taking effect
+────────────────────────────────────────────────────────────────────────────
+Cause: Vite caches environment variables
+
+Fix:
+```bash
+# Stop dev server (Ctrl+C)
+# Delete cache
+rm -rf node_modules/.vite
+# Restart
+npm run dev
+```
+
+────────────────────────────────────────────────────────────────────────────
+Problem: Supabase secrets not working
+────────────────────────────────────────────────────────────────────────────
+Cause: Secrets not propagated to edge functions
+
+Fix:
+1. Wait 1-2 minutes after setting secrets
+2. Redeploy ALL functions:
+   ```bash
+   supabase functions deploy livekit-token
+   supabase functions deploy livekit-egress
+   ```
+3. Check function logs:
+   ```bash
+   supabase functions logs livekit-token
+   ```
+
+================================================================================
+10. SUPPORT & RESOURCES
+================================================================================
+
+Documentation:
+- LiveKit: https://docs.livekit.io
+- Supabase: https://supabase.com/docs
+- Livepeer: https://docs.livepeer.org
+- Storj: https://docs.storj.io
+
+Community Support:
+- LiveKit Discord: https://livekit.io/discord
+- Supabase Discord: https://discord.supabase.com
+- Livepeer Discord: https://discord.gg/livepeer
+
+Project Documentation:
+- README.md (project overview)
+- LIVEKIT_SETUP.md (LiveKit details)
+- STORJ_SETUP.md (Storj details)
+- DEPLOYMENT_CHECKLIST.md (production deployment)
+
+================================================================================
+QUICK START CHECKLIST
+================================================================================
+
+Minimal setup to get streaming working (no recording):
+
+□ 1. Create Supabase account & project
+□ 2. Create LiveKit account & project
+□ 3. Update .env with Supabase & LiveKit URLs
+□ 4. Set Supabase secrets (LIVEKIT_API_KEY, LIVEKIT_API_SECRET)
+□ 5. Run database migrations
+□ 6. Deploy edge functions (livekit-token)
+□ 7. Remove .env from git (git rm --cached .env)
+□ 8. npm install && npm run dev
+□ 9. Test: Create stream WITHOUT recording enabled
+□ 10. Verify stream works in /watch page
+
+Optional (for recording):
+□ 11. Create Storj account & bucket
+□ 12. Generate Storj S3 credentials
+□ 13. Set Storj secrets in Supabase
+□ 14. Deploy livekit-egress function
+□ 15. Test: Create stream WITH recording enabled
+
+================================================================================
+CONFIGURATION SUMMARY
+================================================================================
+
+Frontend (.env) - 4 variables:
+├── VITE_SUPABASE_PROJECT_ID
+├── VITE_SUPABASE_PUBLISHABLE_KEY
+├── VITE_SUPABASE_URL
+└── VITE_LIVEKIT_URL
+
+Backend (Supabase Secrets) - Minimum 2, Recommended 6:
+├── LIVEKIT_API_KEY ✓ Required
+├── LIVEKIT_API_SECRET ✓ Required
+├── STORJ_ACCESS_KEY_ID (optional - for recording)
+├── STORJ_SECRET_ACCESS_KEY (optional - for recording)
+├── STORJ_BUCKET (optional - default: livepeer-videos)
+└── STORJ_ENDPOINT (optional - default: https://gateway.storjshare.io)
+
+Database Tables: 7 (auto-created by migrations)
+Edge Functions: 6 (deploy via Supabase CLI)
+
+================================================================================
+NEED HELP?
+================================================================================
+
+If you're stuck:
+1. Check browser console for errors (F12)
+2. Check Supabase edge function logs
+3. Verify all secrets are set correctly
+4. Try disabling recording first (simplest test)
+5. Check this file's troubleshooting section
+
+Common Issue: "Stream works but recording fails"
+→ This is NORMAL without Storj. Stream will work fine!
+
+Common Issue: ".env changes not applying"
+→ Restart dev server: Ctrl+C, then npm run dev
+
+Common Issue: "Unauthorized" errors
+→ Check Supabase URL and keys are correct in .env
+
+================================================================================
+END OF SETUP GUIDE
+================================================================================
+
+Last Updated: 2025-10-25
+Project: Echo Creator Nest
+Version: 1.0 (Production-Ready MVP)
