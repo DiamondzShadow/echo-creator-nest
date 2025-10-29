@@ -19,6 +19,58 @@ serve(async (req) => {
     const body = await req.json();
     console.log('Livepeer webhook received:', JSON.stringify(body, null, 2));
 
+    // Handle asset.created event - when a new asset is created
+    if (body.event === 'asset.created' && body.payload?.asset) {
+      const asset = body.payload.asset;
+      console.log('Processing asset.created event for:', asset.id);
+
+      // Asset should already be in database from the upload function
+      // Just update status to 'processing' if needed
+      const { error } = await supabase
+        .from('assets')
+        .update({ 
+          status: 'processing',
+          livepeer_playback_id: asset.playbackId || null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('livepeer_asset_id', asset.id);
+
+      if (error) {
+        console.error('Error updating asset on creation:', error);
+      }
+    }
+
+    // Handle asset.updated event - when asset metadata is updated
+    if (body.event === 'asset.updated' && body.payload?.asset) {
+      const asset = body.payload.asset;
+      console.log('Processing asset.updated event for:', asset.id);
+
+      const updateData: Record<string, unknown> = {
+        updated_at: new Date().toISOString(),
+      };
+
+      // Update playback ID if available
+      if (asset.playbackId) {
+        updateData.livepeer_playback_id = asset.playbackId;
+        // Update thumbnail URL with playback ID
+        updateData.thumbnail_url = `https://livepeer.studio/api/playback/${asset.playbackId}/thumbnail.jpg`;
+      }
+
+      // Update status if it's in the payload
+      if (asset.status?.phase) {
+        updateData.status = asset.status.phase;
+      }
+
+      const { error } = await supabase
+        .from('assets')
+        .update(updateData)
+        .eq('livepeer_asset_id', asset.id);
+
+      if (error) {
+        console.error('Error updating asset on update event:', error);
+      }
+    }
+
     // Handle asset.ready event - when video processing is complete
     if (body.event === 'asset.ready' && body.payload?.asset) {
       const asset = body.payload.asset;
@@ -85,6 +137,32 @@ serve(async (req) => {
       if (error) {
         console.error('Error updating failed asset:', error);
         throw error;
+      }
+    }
+
+    // Handle asset.deleted event
+    if (body.event === 'asset.deleted' && body.payload?.asset) {
+      const asset = body.payload.asset;
+      console.log('Processing asset.deleted event for:', asset.id);
+
+      // Mark as deleted or remove from database based on your preference
+      // Option 1: Soft delete (update status)
+      const { error } = await supabase
+        .from('assets')
+        .update({ 
+          status: 'deleted',
+          updated_at: new Date().toISOString()
+        })
+        .eq('livepeer_asset_id', asset.id);
+
+      // Option 2: Hard delete (uncomment if you prefer to remove records)
+      // const { error } = await supabase
+      //   .from('assets')
+      //   .delete()
+      //   .eq('livepeer_asset_id', asset.id);
+
+      if (error) {
+        console.error('Error handling deleted asset:', error);
       }
     }
 
