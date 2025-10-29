@@ -31,6 +31,22 @@ serve(async (req) => {
         livepeer_playback_id: asset.playbackId,
       };
 
+      // Add thumbnail URL - Livepeer auto-generates thumbnails
+      if (asset.playbackId) {
+        updateData.thumbnail_url = `https://livepeer.studio/api/playback/${asset.playbackId}/thumbnail.jpg`;
+        console.log('Thumbnail URL set:', updateData.thumbnail_url);
+      }
+
+      // Add video duration if available
+      if (asset.videoSpec?.duration) {
+        updateData.duration = asset.videoSpec.duration;
+      }
+
+      // Add file size if available
+      if (asset.size) {
+        updateData.size = asset.size;
+      }
+
       // Add IPFS data if available
       if (asset.storage?.ipfs) {
         updateData.ipfs_cid = asset.storage.ipfs.cid;
