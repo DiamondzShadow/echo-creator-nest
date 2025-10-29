@@ -171,13 +171,20 @@ serve(async (req) => {
         updateData.ready_at = new Date().toISOString();
         updateData.duration = data.videoSpec?.duration;
         updateData.size = data.size;
+        
+        // Add thumbnail URL - Livepeer auto-generates thumbnails
+        if (data.playbackId) {
+          updateData.thumbnail_url = `https://livepeer.studio/api/playback/${data.playbackId}/thumbnail.jpg`;
+          console.log('Thumbnail URL set:', updateData.thumbnail_url);
+        }
       }
 
       // Add IPFS URL if available
       if (data.storage?.ipfs?.cid) {
-        updateData.description = updateData.description 
-          ? `${updateData.description}\n\nIPFS: ipfs://${data.storage.ipfs.cid}`
-          : `IPFS: ipfs://${data.storage.ipfs.cid}`;
+        updateData.ipfs_cid = data.storage.ipfs.cid;
+        updateData.ipfs_url = data.storage.ipfs.url;
+        updateData.ipfs_gateway_url = data.storage.ipfs.gatewayUrl || `https://ipfs.io/ipfs/${data.storage.ipfs.cid}`;
+        console.log('IPFS data available:', data.storage.ipfs.cid);
       }
 
       await supabase
