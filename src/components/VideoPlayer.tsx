@@ -57,14 +57,30 @@ export const VideoPlayer = ({
   }, [assetId, hasRecordedView]);
 
   const handleShare = async () => {
-    const shareUrl = `${window.location.origin}/watch/${assetId}`;
+    const shareUrl = `${window.location.origin}/video/${assetId}`;
     
-    if (navigator.share) {
-      try {
+    try {
+      if (navigator.share) {
         await navigator.share({
           title: title,
           url: shareUrl,
         });
+        
+        // Increment share count on successful share
+        await supabase
+          .from('assets')
+          .update({ shares: (shares || 0) + 1 })
+          .eq('id', assetId);
+          
+        if (onShare) onShare();
+        
+        toast({
+          title: 'Shared!',
+          description: 'Video shared successfully',
+        });
+      } else {
+        // Fallback: copy to clipboard
+        await navigator.clipboard.writeText(shareUrl);
         
         // Increment share count
         await supabase
@@ -73,16 +89,36 @@ export const VideoPlayer = ({
           .eq('id', assetId);
           
         if (onShare) onShare();
-      } catch (error) {
-        console.error('Error sharing:', error);
+        
+        toast({
+          title: 'Link copied!',
+          description: 'Video link copied to clipboard',
+        });
       }
-    } else {
-      // Fallback: copy to clipboard
-      navigator.clipboard.writeText(shareUrl);
-      toast({
-        title: 'Link copied!',
-        description: 'Video link copied to clipboard',
-      });
+    } catch (error) {
+      // If share API fails, fallback to clipboard
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        
+        // Increment share count
+        await supabase
+          .from('assets')
+          .update({ shares: (shares || 0) + 1 })
+          .eq('id', assetId);
+          
+        if (onShare) onShare();
+        
+        toast({
+          title: 'Link copied!',
+          description: 'Video link copied to clipboard',
+        });
+      } catch (clipboardError) {
+        toast({
+          title: 'Share failed',
+          description: 'Unable to share or copy link',
+          variant: 'destructive',
+        });
+      }
     }
   };
 
