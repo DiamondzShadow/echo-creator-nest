@@ -122,7 +122,8 @@ contract CreatorNFT is ERC721URIStorage, ERC721Enumerable, ReentrancyGuard, Owna
         view
         returns (address creator, uint256 royaltyAmount)
     {
-        require(ownerOf(tokenId) != address(0), "Token does not exist");
+        // Token existence check - ownerOf will revert if token doesn't exist
+        ownerOf(tokenId);
         
         creator = tokenCreator[tokenId];
         royaltyAmount = (salePrice * tokenRoyalty[tokenId]) / ROYALTY_DENOMINATOR;
