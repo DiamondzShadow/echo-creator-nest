@@ -4,6 +4,7 @@ import Navbar from '@/components/Navbar';
 import { BrandBanner } from '@/components/BrandBanner';
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { VideoComments } from '@/components/VideoComments';
+import { VideoTipButton } from '@/components/VideoTipButton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -32,6 +33,7 @@ interface Asset {
     username: string;
     display_name: string;
     avatar_url: string;
+    wallet_address: string | null;
   };
 }
 
@@ -70,7 +72,7 @@ const VideoWatch = () => {
       // Fetch profile separately
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('username, display_name, avatar_url')
+        .select('username, display_name, avatar_url, wallet_address')
         .eq('id', data.user_id)
         .single();
       
@@ -80,6 +82,7 @@ const VideoWatch = () => {
           username: 'user',
           display_name: 'Anonymous',
           avatar_url: '',
+          wallet_address: null,
         },
       });
     } catch (error) {
@@ -218,14 +221,21 @@ const VideoWatch = () => {
                   <div className="flex-1">
                     <h3 className="font-semibold">{asset.profiles?.display_name}</h3>
                     <p className="text-sm text-muted-foreground">@{asset.profiles?.username}</p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-2"
-                      onClick={() => navigate(`/profile/${asset.user_id}`)}
-                    >
-                      View Profile
-                    </Button>
+                    <div className="flex gap-2 mt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/profile/${asset.user_id}`)}
+                      >
+                        View Profile
+                      </Button>
+                      <VideoTipButton
+                        videoId={asset.id}
+                        creatorUserId={asset.user_id}
+                        creatorWalletAddress={asset.profiles?.wallet_address}
+                        creatorUsername={asset.profiles?.username || 'Creator'}
+                      />
+                    </div>
                   </div>
                 </div>
 

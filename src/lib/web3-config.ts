@@ -52,6 +52,12 @@ export const TOKEN_GATE_THRESHOLDS = {
 // TipJar contract addresses - Handles tips with 3% platform fee
 export const TIPJAR_CONTRACT_ADDRESS = "0x8B0e8894B16d685A7586A55cb9e76B0fFcEb096c";
 
+// VideoTipping contract address - Handles video-specific tips with custom fees
+export const VIDEO_TIPPING_CONTRACT_ADDRESS = "0x61801bC99d1A8CBb80EBE2b4171c1C6dC1B684f8";
+
+// NFT Marketplace contract address - Handles NFT listings and sales
+export const NFT_MARKETPLACE_CONTRACT_ADDRESS = "0x2c4aFDfEB45d2b05A33aDb8B96e8a275b54Ccb16";
+
 // Platform fee wallet (receives 3% of all tips)
 export const PLATFORM_WALLET = "0x18b2b2ce7d05Bfe0883Ff874ba0C536A89D07363";
 
