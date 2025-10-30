@@ -255,12 +255,14 @@ const Videos = () => {
                               <Heart className="h-3 w-3" />{asset.likes.toLocaleString()}
                             </span>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                             {asset.is_public ? <Unlock className="h-3 w-3 text-muted-foreground" /> : <Lock className="h-3 w-3 text-muted-foreground" />}
                             <Switch
                               checked={asset.is_public}
-                              onCheckedChange={() => togglePublic(asset.id, asset.is_public, event as any)}
-                              onClick={(e) => e.stopPropagation()}
+                              onCheckedChange={(checked) => {
+                                const syntheticEvent = { stopPropagation: () => {} } as React.MouseEvent;
+                                togglePublic(asset.id, asset.is_public, syntheticEvent);
+                              }}
                             />
                           </div>
                         </div>
