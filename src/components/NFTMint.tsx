@@ -75,10 +75,20 @@ export const NFTMint = () => {
       return;
     }
 
+    // Check if contract is deployed
+    if (!CREATOR_NFT_CONTRACT_ADDRESS || CREATOR_NFT_CONTRACT_ADDRESS === "0x...") {
+      toast({
+        title: "Contract Not Deployed",
+        description: "The CreatorNFT contract has not been deployed yet. Please contact the platform administrator.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!name || !description || !imageUrl) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all required fields",
+        description: "Please fill in all required fields (Name, Description, and Image)",
         variant: "destructive",
       });
       return;
@@ -160,7 +170,16 @@ export const NFTMint = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {!isConnected ? (
+        {!CREATOR_NFT_CONTRACT_ADDRESS || CREATOR_NFT_CONTRACT_ADDRESS === "0x..." ? (
+          <div className="text-center py-8 space-y-2">
+            <p className="text-destructive font-semibold">
+              CreatorNFT Contract Not Deployed
+            </p>
+            <p className="text-muted-foreground text-sm">
+              The NFT minting contract has not been deployed yet. Please contact the platform administrator to deploy the CreatorNFT.sol contract.
+            </p>
+          </div>
+        ) : !isConnected ? (
           <div className="text-center py-8">
             <p className="text-muted-foreground">
               Please connect your wallet to mint NFTs
@@ -256,7 +275,7 @@ export const NFTMint = () => {
 
             <Button
               onClick={handleMint}
-              disabled={isConfirming || isUploading || !name || !description || !imageUrl}
+              disabled={isConfirming || isUploading || !name || !description || !imageUrl || !CREATOR_NFT_CONTRACT_ADDRESS || CREATOR_NFT_CONTRACT_ADDRESS === "0x..."}
               className="w-full"
             >
               {isConfirming ? (

@@ -282,8 +282,8 @@ export const TIPJAR_ABI = [
 // ============================================================================
 
 // CreatorNFT contract address (ERC721 for minting NFTs)
-// TODO: Deploy and update with actual contract address
-export const CREATOR_NFT_CONTRACT_ADDRESS = "0x..."; // Deploy CreatorNFT.sol
+// Deployed on Arbitrum One: https://arbiscan.io/address/0xc4a19fA378816a7FC1ae79B924940232448e8400
+export const CREATOR_NFT_CONTRACT_ADDRESS = "0xc4a19fA378816a7FC1ae79B924940232448e8400";
 
 // CreatorNFT contract ABI (ERC721)
 export const CREATOR_NFT_ABI = [
