@@ -8,17 +8,32 @@ const OPENSEA_API_BASE = 'https://api.opensea.io/api/v2';
 
 // Chain mapping for OpenSea API
 export const CHAIN_MAP: Record<string, string> = {
-  'ethereum': 'ethereum',
-  'polygon': 'matic',
+  'abstract': 'abstract',
   'arbitrum': 'arbitrum',
   'arbitrum-nova': 'arbitrum_nova',
+  'arbitrum-sepolia': 'arbitrum_sepolia',
   'avalanche': 'avalanche',
+  'avalanche-fuji': 'avalanche_fuji',
   'base': 'base',
+  'base-sepolia': 'base_sepolia',
+  'blast': 'blast',
+  'blast-sepolia': 'blast_sepolia',
   'bsc': 'bsc',
+  'bsc-testnet': 'bsc_testnet',
+  'ethereum': 'ethereum',
+  'gunzilla': 'gunzilla',
   'klaytn': 'klaytn',
+  'klaytn-baobab': 'klaytn_baobab',
+  'matic': 'matic',
+  'polygon': 'matic',
+  'mumbai': 'mumbai',
   'optimism': 'optimism',
+  'optimism-sepolia': 'optimism_sepolia',
+  'sepolia': 'sepolia',
   'solana': 'solana',
+  'solana-devnet': 'soldev',
   'zora': 'zora',
+  'zora-sepolia': 'zora_sepolia',
 };
 
 export interface OpenSeaNFT {
@@ -90,6 +105,159 @@ export interface NFTActivity {
     decimals: number;
     symbol: string;
   } | null;
+}
+
+export type EventType = 'sale' | 'order' | 'cancel' | 'transfer' | 'redemption';
+
+export interface EventsResponse {
+  asset_events: AssetEvent[];
+  next: string | null;
+}
+
+export interface AssetEvent {
+  event_type: EventType;
+  order_hash?: string;
+  maker?: string;
+  event_timestamp: number;
+  nft?: {
+    identifier: string;
+    collection: string;
+    contract: string;
+    token_standard: string;
+    name: string;
+    description: string;
+    image_url: string;
+    display_image_url?: string;
+    display_animation_url?: string;
+    metadata_url: string;
+    opensea_url: string;
+    updated_at: string;
+    is_disabled: boolean;
+    is_nsfw: boolean;
+  };
+}
+
+export interface TraitCategory {
+  [key: string]: 'string' | 'number' | 'date';
+}
+
+export interface TraitCounts {
+  [category: string]: {
+    [value: string]: number;
+  } | {
+    min: number;
+    max: number;
+  };
+}
+
+export interface TraitsResponse {
+  categories: TraitCategory;
+  counts: TraitCounts;
+}
+
+export interface SeaportOrder {
+  created_date: string;
+  closing_date: string;
+  listing_time: number;
+  expiration_time: number;
+  order_hash: string;
+  protocol_data: {
+    parameters: {
+      offerer: string;
+      offer: Array<{
+        itemType: number;
+        token: string;
+        identifierOrCriteria: string;
+        startAmount: string;
+        endAmount: string;
+      }>;
+      consideration: Array<{
+        itemType: number;
+        token: string;
+        identifierOrCriteria: string;
+        startAmount: string;
+        endAmount: string;
+        recipient: string;
+      }>;
+      startTime: string;
+      endTime: string;
+      orderType: number;
+      zone: string;
+      zoneHash: string;
+      salt: string;
+      conduitKey: string;
+      totalOriginalConsiderationItems: number;
+      counter: number;
+    };
+    signature: string;
+  };
+  protocol_address: string;
+  maker: {
+    user: number;
+    profile_img_url: string;
+    address: string;
+    config: string;
+  };
+  taker: {
+    user: number;
+    profile_img_url: string;
+    address: string;
+    config: string;
+  } | null;
+  current_price: string;
+  maker_fees: Array<{
+    account: {
+      user: number | null;
+      profile_img_url: string;
+      address: string;
+      config: string;
+    };
+    basis_points: string;
+  }>;
+  taker_fees: Array<{
+    account: {
+      user: number | null;
+      profile_img_url: string;
+      address: string;
+      config: string;
+    };
+    basis_points: string;
+  }>;
+  side: 'ask' | 'bid';
+  order_type: 'basic' | 'english' | 'dutch' | 'criteria';
+  cancelled: boolean;
+  finalized: boolean;
+  marked_invalid: boolean;
+}
+
+export interface Listing extends SeaportOrder {
+  type: 'listing';
+}
+
+export interface Offer extends SeaportOrder {
+  type: 'offer';
+  criteria?: {
+    collection: {
+      slug: string;
+    };
+    contract: {
+      address: string;
+    };
+    trait?: {
+      type: string;
+      value: string;
+    };
+  };
+}
+
+export interface ListingsResponse {
+  listings: Listing[];
+  next?: string;
+}
+
+export interface OffersResponse {
+  offers: Offer[];
+  next?: string;
 }
 
 export interface WalletNFT {
@@ -344,5 +512,550 @@ export async function getTrendingCollections(limit: number = 10): Promise<any[]>
   } catch (error) {
     console.error('Error fetching trending collections from OpenSea:', error);
     return [];
+  }
+}
+
+/**
+ * Get events based on before and after timestamps
+ */
+export async function getEvents(
+  options: {
+    after?: number;
+    before?: number;
+    event_type?: EventType[];
+    limit?: number;
+    next?: string;
+  } = {}
+): Promise<EventsResponse> {
+  try {
+    const params = new URLSearchParams();
+    if (options.after) params.append('after', options.after.toString());
+    if (options.before) params.append('before', options.before.toString());
+    if (options.event_type) {
+      options.event_type.forEach(type => params.append('event_type', type));
+    }
+    if (options.limit) params.append('limit', options.limit.toString());
+    if (options.next) params.append('next', options.next);
+
+    const response = await fetch(
+      `${OPENSEA_API_BASE}/events?${params.toString()}`,
+      {
+        headers: {
+          'X-API-KEY': OPENSEA_API_KEY,
+          'Accept': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`OpenSea API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return {
+      asset_events: data.asset_events || [],
+      next: data.next || null,
+    };
+  } catch (error) {
+    console.error('Error fetching events from OpenSea:', error);
+    return { asset_events: [], next: null };
+  }
+}
+
+/**
+ * Get events by account
+ */
+export async function getEventsByAccount(
+  accountAddress: string,
+  options: {
+    after?: number;
+    before?: number;
+    event_type?: EventType[];
+    limit?: number;
+    next?: string;
+  } = {}
+): Promise<EventsResponse> {
+  try {
+    const params = new URLSearchParams();
+    if (options.after) params.append('after', options.after.toString());
+    if (options.before) params.append('before', options.before.toString());
+    if (options.event_type) {
+      options.event_type.forEach(type => params.append('event_type', type));
+    }
+    if (options.limit) params.append('limit', options.limit.toString());
+    if (options.next) params.append('next', options.next);
+
+    const response = await fetch(
+      `${OPENSEA_API_BASE}/events/account/${accountAddress}?${params.toString()}`,
+      {
+        headers: {
+          'X-API-KEY': OPENSEA_API_KEY,
+          'Accept': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`OpenSea API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return {
+      asset_events: data.asset_events || [],
+      next: data.next || null,
+    };
+  } catch (error) {
+    console.error('Error fetching account events from OpenSea:', error);
+    return { asset_events: [], next: null };
+  }
+}
+
+/**
+ * Get events by collection
+ */
+export async function getEventsByCollection(
+  collectionSlug: string,
+  options: {
+    after?: number;
+    before?: number;
+    event_type?: EventType[];
+    limit?: number;
+    next?: string;
+  } = {}
+): Promise<EventsResponse> {
+  try {
+    const params = new URLSearchParams();
+    if (options.after) params.append('after', options.after.toString());
+    if (options.before) params.append('before', options.before.toString());
+    if (options.event_type) {
+      options.event_type.forEach(type => params.append('event_type', type));
+    }
+    if (options.limit) params.append('limit', options.limit.toString());
+    if (options.next) params.append('next', options.next);
+
+    const response = await fetch(
+      `${OPENSEA_API_BASE}/events/collection/${collectionSlug}?${params.toString()}`,
+      {
+        headers: {
+          'X-API-KEY': OPENSEA_API_KEY,
+          'Accept': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`OpenSea API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return {
+      asset_events: data.asset_events || [],
+      next: data.next || null,
+    };
+  } catch (error) {
+    console.error('Error fetching collection events from OpenSea:', error);
+    return { asset_events: [], next: null };
+  }
+}
+
+/**
+ * Get events by NFT
+ */
+export async function getEventsByNFT(
+  chain: string,
+  contractAddress: string,
+  identifier: string,
+  options: {
+    after?: number;
+    before?: number;
+    event_type?: EventType[];
+    limit?: number;
+    next?: string;
+  } = {}
+): Promise<EventsResponse> {
+  try {
+    const params = new URLSearchParams();
+    if (options.after) params.append('after', options.after.toString());
+    if (options.before) params.append('before', options.before.toString());
+    if (options.event_type) {
+      options.event_type.forEach(type => params.append('event_type', type));
+    }
+    if (options.limit) params.append('limit', options.limit.toString());
+    if (options.next) params.append('next', options.next);
+
+    const response = await fetch(
+      `${OPENSEA_API_BASE}/events/chain/${CHAIN_MAP[chain]}/contract/${contractAddress}/nfts/${identifier}?${params.toString()}`,
+      {
+        headers: {
+          'X-API-KEY': OPENSEA_API_KEY,
+          'Accept': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`OpenSea API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return {
+      asset_events: data.asset_events || [],
+      next: data.next || null,
+    };
+  } catch (error) {
+    console.error('Error fetching NFT events from OpenSea:', error);
+    return { asset_events: [], next: null };
+  }
+}
+
+/**
+ * Get traits in a collection
+ */
+export async function getTraits(collectionSlug: string): Promise<TraitsResponse | null> {
+  try {
+    const response = await fetch(
+      `${OPENSEA_API_BASE}/traits/${collectionSlug}`,
+      {
+        headers: {
+          'X-API-KEY': OPENSEA_API_KEY,
+          'Accept': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`OpenSea API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching traits from OpenSea:', error);
+    return null;
+  }
+}
+
+/**
+ * Get all listings by collection
+ */
+export async function getAllListingsByCollection(
+  collectionSlug: string,
+  limit: number = 50,
+  next?: string
+): Promise<ListingsResponse> {
+  try {
+    const params = new URLSearchParams();
+    params.append('limit', limit.toString());
+    if (next) params.append('next', next);
+
+    const response = await fetch(
+      `${OPENSEA_API_BASE}/listings/collection/${collectionSlug}/all?${params.toString()}`,
+      {
+        headers: {
+          'X-API-KEY': OPENSEA_API_KEY,
+          'Accept': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`OpenSea API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return {
+      listings: data.listings || [],
+      next: data.next,
+    };
+  } catch (error) {
+    console.error('Error fetching collection listings from OpenSea:', error);
+    return { listings: [] };
+  }
+}
+
+/**
+ * Get best listing by NFT
+ */
+export async function getBestListingByNFT(
+  chain: string,
+  contractAddress: string,
+  identifier: string
+): Promise<Listing | null> {
+  try {
+    const response = await fetch(
+      `${OPENSEA_API_BASE}/listings/chain/${CHAIN_MAP[chain]}/contract/${contractAddress}/nfts/${identifier}/best`,
+      {
+        headers: {
+          'X-API-KEY': OPENSEA_API_KEY,
+          'Accept': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`OpenSea API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching best NFT listing from OpenSea:', error);
+    return null;
+  }
+}
+
+/**
+ * Get best listings by collection
+ */
+export async function getBestListingsByCollection(
+  collectionSlug: string,
+  limit: number = 50,
+  next?: string
+): Promise<ListingsResponse> {
+  try {
+    const params = new URLSearchParams();
+    params.append('limit', limit.toString());
+    if (next) params.append('next', next);
+
+    const response = await fetch(
+      `${OPENSEA_API_BASE}/listings/collection/${collectionSlug}/best?${params.toString()}`,
+      {
+        headers: {
+          'X-API-KEY': OPENSEA_API_KEY,
+          'Accept': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`OpenSea API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return {
+      listings: data.listings || [],
+      next: data.next,
+    };
+  } catch (error) {
+    console.error('Error fetching best collection listings from OpenSea:', error);
+    return { listings: [] };
+  }
+}
+
+/**
+ * Get all offers by collection
+ */
+export async function getAllOffersByCollection(
+  collectionSlug: string,
+  limit: number = 50,
+  next?: string
+): Promise<OffersResponse> {
+  try {
+    const params = new URLSearchParams();
+    params.append('limit', limit.toString());
+    if (next) params.append('next', next);
+
+    const response = await fetch(
+      `${OPENSEA_API_BASE}/offers/collection/${collectionSlug}/all?${params.toString()}`,
+      {
+        headers: {
+          'X-API-KEY': OPENSEA_API_KEY,
+          'Accept': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`OpenSea API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return {
+      offers: data.offers || [],
+      next: data.next,
+    };
+  } catch (error) {
+    console.error('Error fetching collection offers from OpenSea:', error);
+    return { offers: [] };
+  }
+}
+
+/**
+ * Get best offer by NFT
+ */
+export async function getBestOfferByNFT(
+  chain: string,
+  contractAddress: string,
+  identifier: string
+): Promise<Offer | null> {
+  try {
+    const response = await fetch(
+      `${OPENSEA_API_BASE}/offers/chain/${CHAIN_MAP[chain]}/contract/${contractAddress}/nfts/${identifier}/best`,
+      {
+        headers: {
+          'X-API-KEY': OPENSEA_API_KEY,
+          'Accept': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`OpenSea API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching best NFT offer from OpenSea:', error);
+    return null;
+  }
+}
+
+/**
+ * Get collection offers
+ */
+export async function getCollectionOffers(
+  collectionSlug: string,
+  limit: number = 50,
+  next?: string
+): Promise<OffersResponse> {
+  try {
+    const params = new URLSearchParams();
+    params.append('limit', limit.toString());
+    if (next) params.append('next', next);
+
+    const response = await fetch(
+      `${OPENSEA_API_BASE}/offers/collection/${collectionSlug}?${params.toString()}`,
+      {
+        headers: {
+          'X-API-KEY': OPENSEA_API_KEY,
+          'Accept': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`OpenSea API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return {
+      offers: data.offers || [],
+      next: data.next,
+    };
+  } catch (error) {
+    console.error('Error fetching collection offers from OpenSea:', error);
+    return { offers: [] };
+  }
+}
+
+/**
+ * Get item offers
+ */
+export async function getItemOffers(
+  chain: string,
+  contractAddress: string,
+  identifier: string,
+  limit: number = 50,
+  next?: string
+): Promise<OffersResponse> {
+  try {
+    const params = new URLSearchParams();
+    params.append('limit', limit.toString());
+    if (next) params.append('next', next);
+
+    const response = await fetch(
+      `${OPENSEA_API_BASE}/offers/chain/${CHAIN_MAP[chain]}/contract/${contractAddress}/nfts/${identifier}?${params.toString()}`,
+      {
+        headers: {
+          'X-API-KEY': OPENSEA_API_KEY,
+          'Accept': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`OpenSea API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return {
+      offers: data.offers || [],
+      next: data.next,
+    };
+  } catch (error) {
+    console.error('Error fetching item offers from OpenSea:', error);
+    return { offers: [] };
+  }
+}
+
+/**
+ * Get trait offers
+ */
+export async function getTraitOffers(
+  collectionSlug: string,
+  type: string,
+  value: string,
+  limit: number = 50,
+  next?: string
+): Promise<OffersResponse> {
+  try {
+    const params = new URLSearchParams();
+    params.append('limit', limit.toString());
+    if (next) params.append('next', next);
+
+    const response = await fetch(
+      `${OPENSEA_API_BASE}/offers/collection/${collectionSlug}/traits/${type}/${value}?${params.toString()}`,
+      {
+        headers: {
+          'X-API-KEY': OPENSEA_API_KEY,
+          'Accept': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`OpenSea API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return {
+      offers: data.offers || [],
+      next: data.next,
+    };
+  } catch (error) {
+    console.error('Error fetching trait offers from OpenSea:', error);
+    return { offers: [] };
+  }
+}
+
+/**
+ * Get order by order hash
+ */
+export async function getOrder(
+  chain: string,
+  protocol: string,
+  orderHash: string
+): Promise<SeaportOrder | null> {
+  try {
+    const response = await fetch(
+      `${OPENSEA_API_BASE}/orders/chain/${CHAIN_MAP[chain]}/protocol/${protocol}/${orderHash}`,
+      {
+        headers: {
+          'X-API-KEY': OPENSEA_API_KEY,
+          'Accept': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`OpenSea API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching order from OpenSea:', error);
+    return null;
   }
 }
