@@ -4,11 +4,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useAccount, useSendTransaction, useWaitForTransactionReceipt } from 'wagmi';
-import { parseEther } from 'viem';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { parseEther, formatEther } from 'viem';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Coins, Loader2 } from 'lucide-react';
+import { TIPJAR_CONTRACT_ADDRESS, TIPJAR_ABI } from '@/lib/web3-config';
 
 interface TipButtonProps {
   recipientUserId: string;
@@ -22,9 +23,18 @@ export const TipButton = ({ recipientUserId, recipientWalletAddress, recipientUs
   const [token, setToken] = useState<'ETH' | 'MATIC' | 'custom'>('ETH');
   const [isRecording, setIsRecording] = useState(false);
   const { address, isConnected, chain } = useAccount();
-  const { sendTransaction, data: hash } = useSendTransaction();
+  const { writeContract, data: hash } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
   const { toast } = useToast();
+  
+  // Calculate fee split (3% platform, 97% creator)
+  const calculateSplit = (tipAmount: string) => {
+    if (!tipAmount || parseFloat(tipAmount) <= 0) return { platformFee: '0', creatorAmount: '0' };
+    const total = parseFloat(tipAmount);
+    const platformFee = (total * 0.03).toFixed(6);
+    const creatorAmount = (total * 0.97).toFixed(6);
+    return { platformFee, creatorAmount };
+  };
 
   // Record tip after transaction is confirmed
   useEffect(() => {
@@ -67,9 +77,10 @@ export const TipButton = ({ recipientUserId, recipientWalletAddress, recipientUs
               variant: "destructive",
             });
           } else {
+            const { platformFee, creatorAmount } = calculateSplit(amount);
             toast({
               title: "Tip Sent! 🎉",
-              description: `Successfully sent ${amount} ${token} to ${recipientUsername}`,
+              description: `${recipientUsername} received ${creatorAmount} ${token} (3% platform fee: ${platformFee} ${token})`,
             });
             setOpen(false);
             setAmount('');
@@ -119,9 +130,12 @@ export const TipButton = ({ recipientUserId, recipientWalletAddress, recipientUs
     }
 
     try {
-      // Send transaction
-      sendTransaction({
-        to: recipientWalletAddress as `0x${string}`,
+      // Call TipJar contract - automatically takes 3% platform fee
+      writeContract({
+        address: TIPJAR_CONTRACT_ADDRESS as `0x${string}`,
+        abi: TIPJAR_ABI,
+        functionName: 'tipWithNative',
+        args: [recipientWalletAddress as `0x${string}`],
         value: parseEther(amount),
       });
 
@@ -151,7 +165,7 @@ export const TipButton = ({ recipientUserId, recipientWalletAddress, recipientUs
         <DialogHeader>
           <DialogTitle>Tip {recipientUsername}</DialogTitle>
           <DialogDescription>
-            Send crypto directly to support this creator
+            Send crypto to support this creator (3% platform fee)
           </DialogDescription>
         </DialogHeader>
 
@@ -194,6 +208,23 @@ export const TipButton = ({ recipientUserId, recipientWalletAddress, recipientUs
                   </SelectContent>
                 </Select>
               </div>
+
+              {amount && parseFloat(amount) > 0 && (
+                <div className="bg-muted p-3 rounded-lg space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Creator receives:</span>
+                    <span className="font-medium">{calculateSplit(amount).creatorAmount} {token}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Platform fee (3%):</span>
+                    <span className="font-medium">{calculateSplit(amount).platformFee} {token}</span>
+                  </div>
+                  <div className="border-t pt-1 flex justify-between font-semibold">
+                    <span>Total:</span>
+                    <span>{amount} {token}</span>
+                  </div>
+                </div>
+              )}
 
               <Button 
                 onClick={handleTip} 
