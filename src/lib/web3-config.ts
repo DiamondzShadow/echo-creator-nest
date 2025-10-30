@@ -49,13 +49,20 @@ export const TOKEN_GATE_THRESHOLDS = {
   VIP_ACCESS: BigInt(10000 * 10 ** 18), // 10000 tokens
 } as const;
 
-// TipJar contract addresses - Handles tips with 3% platform fee
+// ============================================================================
+// DEPLOYED CONTRACTS ON ARBITRUM ONE (MAINNET - CHAIN ID 42161)
+// ============================================================================
+
+// TipJar contract - Handles tips with 3% platform fee
+// Deployed on Arbitrum One: https://arbiscan.io/address/0x8B0e8894B16d685A7586A55cb9e76B0fFcEb096c
 export const TIPJAR_CONTRACT_ADDRESS = "0x8B0e8894B16d685A7586A55cb9e76B0fFcEb096c";
 
-// VideoTipping contract address - Handles video-specific tips with custom fees
+// VideoTipping contract - Handles video-specific tips with custom fees
+// Deployed on Arbitrum One: https://arbiscan.io/address/0x61801bC99d1A8CBb80EBE2b4171c1C6dC1B684f8
 export const VIDEO_TIPPING_CONTRACT_ADDRESS = "0x61801bC99d1A8CBb80EBE2b4171c1C6dC1B684f8";
 
-// NFT Marketplace contract address - Handles NFT listings and sales
+// NFT Marketplace contract - Handles NFT listings and sales
+// Deployed on Arbitrum One: https://arbiscan.io/address/0x2c4aFDfEB45d2b05A33aDb8B96e8a275b54Ccb16
 export const NFT_MARKETPLACE_CONTRACT_ADDRESS = "0x2c4aFDfEB45d2b05A33aDb8B96e8a275b54Ccb16";
 
 // Platform fee wallet (receives 3% of all tips)
