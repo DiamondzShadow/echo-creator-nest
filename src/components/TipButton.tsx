@@ -137,6 +137,8 @@ export const TipButton = ({ recipientUserId, recipientWalletAddress, recipientUs
         functionName: 'tipWithNative',
         args: [recipientWalletAddress as `0x${string}`],
         value: parseEther(amount),
+        account: address as `0x${string}`,
+        chain,
       });
 
       toast({

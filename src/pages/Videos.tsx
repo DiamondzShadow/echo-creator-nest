@@ -9,7 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Play, Clock, CheckCircle, AlertCircle, ExternalLink, Eye, Heart, Search, Filter, Trash2, Upload } from 'lucide-react';
+import { Play, Clock, CheckCircle, AlertCircle, ExternalLink, Eye, Heart, Search, Filter, Trash2, Upload, Lock, Unlock } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
@@ -130,6 +132,34 @@ const Videos = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const togglePublic = async (assetId: string, currentIsPublic: boolean, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const { error } = await supabase
+        .from('assets')
+        .update({ is_public: !currentIsPublic })
+        .eq('id', assetId);
+
+      if (error) throw error;
+
+      setAssets(prev => prev.map(a => 
+        a.id === assetId ? { ...a, is_public: !currentIsPublic } : a
+      ));
+
+      toast({
+        title: !currentIsPublic ? 'Video is now public' : 'Video is now private',
+        description: !currentIsPublic ? 'This video will appear on the landing page' : 'Only you can see this video',
+      });
+    } catch (error) {
+      console.error('Error toggling public:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update video visibility',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -214,13 +244,23 @@ const Videos = () => {
                           <h3 className="font-semibold line-clamp-2 flex-1">{asset.title}</h3>
                           {getStatusBadge(asset.status)}
                         </div>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Eye className="h-3 w-3" />{asset.views.toLocaleString()}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Heart className="h-3 w-3" />{asset.likes.toLocaleString()}
-                          </span>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Eye className="h-3 w-3" />{asset.views.toLocaleString()}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Heart className="h-3 w-3" />{asset.likes.toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                            {asset.is_public ? <Unlock className="h-3 w-3 text-muted-foreground" /> : <Lock className="h-3 w-3 text-muted-foreground" />}
+                            <Switch
+                              checked={asset.is_public}
+                              onCheckedChange={() => togglePublic(asset.id, asset.is_public, event as any)}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </div>
                         </div>
                         <p className="text-xs text-muted-foreground">
                           {formatDistanceToNow(new Date(asset.created_at), { addSuffix: true })}
