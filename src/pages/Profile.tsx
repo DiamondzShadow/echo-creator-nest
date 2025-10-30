@@ -255,6 +255,7 @@ const Profile = () => {
                           },
                         }}
                         isRecording
+                        isOwner={isOwnProfile}
                       />
                     ))}
                   </div>
