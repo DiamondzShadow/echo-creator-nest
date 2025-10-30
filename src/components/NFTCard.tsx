@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, ExternalLink, ShoppingCart, Tag, User } from 'lucide-react';
 import { NFT_MARKETPLACE_CONTRACT_ADDRESS, NFT_MARKETPLACE_ABI, CREATOR_NFT_CONTRACT_ADDRESS } from '@/lib/web3-config';
 import { OpenSeaLinkButton } from './OpenSeaLinkButton';
+import { formatImageUrl } from '@/lib/nft-metadata';
 
 interface NFTCardProps {
   listingId: number;
@@ -126,7 +127,7 @@ export const NFTCard = ({
       <CardHeader className="p-0">
         <div className="relative aspect-square overflow-hidden bg-muted">
           <img
-            src={imageUrl || '/placeholder.svg'}
+            src={formatImageUrl(imageUrl) || '/placeholder.svg'}
             alt={name}
             className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
             onError={(e) => {
@@ -196,9 +197,12 @@ export const NFTCard = ({
               <div className="space-y-4 mt-4">
                 <div className="aspect-square rounded-lg overflow-hidden bg-muted">
                   <img
-                    src={imageUrl || '/placeholder.svg'}
+                    src={formatImageUrl(imageUrl) || '/placeholder.svg'}
                     alt={name}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/placeholder.svg';
+                    }}
                   />
                 </div>
                 

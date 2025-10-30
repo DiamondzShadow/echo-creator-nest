@@ -157,18 +157,39 @@ contract CreatorNFT is ERC721URIStorage, ERC721Enumerable, ReentrancyGuard, Owna
     }
     
     /**
-     * @dev Get all NFTs owned by an address (paginated to avoid gas limits)
+     * @dev Get all NFTs owned by an address (simple version for wallets/OpenSea)
+     * @param owner The owner address
+     */
+    function tokensOfOwner(address owner) external view returns (uint256[] memory) {
+        uint256 tokenCount = balanceOf(owner);
+        uint256[] memory tokens = new uint256[](tokenCount);
+        
+        for (uint256 i = 0; i < tokenCount; i++) {
+            tokens[i] = tokenOfOwnerByIndex(owner, i);
+        }
+        
+        return tokens;
+    }
+    
+    /**
+     * @dev Get NFTs owned by an address (paginated to avoid gas limits)
      * @param owner The owner address
      * @param start Starting index
      * @param limit Maximum number of tokens to return
      */
-    function tokensOfOwner(
+    function tokensOfOwnerPaginated(
         address owner,
         uint256 start,
         uint256 limit
     ) external view returns (uint256[] memory) {
         uint256 tokenCount = balanceOf(owner);
-        require(start < tokenCount, "Start index out of bounds");
+        if (tokenCount == 0) {
+            return new uint256[](0);
+        }
+        
+        if (start >= tokenCount) {
+            return new uint256[](0);
+        }
         
         uint256 end = start + limit;
         if (end > tokenCount) {
@@ -191,6 +212,13 @@ contract CreatorNFT is ERC721URIStorage, ERC721Enumerable, ReentrancyGuard, Owna
      */
     function getOwnerTokenCount(address owner) external view returns (uint256) {
         return balanceOf(owner);
+    }
+    
+    /**
+     * @dev Returns the contract-level metadata URI for OpenSea
+     */
+    function contractURI() external pure returns (string memory) {
+        return "https://creatorhub.io/api/contract-metadata";
     }
     
     // Required overrides for multiple inheritance (v5.x)
