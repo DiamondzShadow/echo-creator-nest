@@ -162,7 +162,20 @@ export const VideoEditDialog = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="thumbnail">Thumbnail</Label>
+            <Label htmlFor="thumbnail">Custom Thumbnail (Optional)</Label>
+            <p className="text-sm text-muted-foreground">
+              A thumbnail is auto-generated from your video. Upload a custom one only if you want to override it.
+            </p>
+            {currentThumbnail && !thumbnailPreview && (
+              <div className="mt-2">
+                <p className="text-xs text-muted-foreground mb-1">Current thumbnail:</p>
+                <img 
+                  src={currentThumbnail} 
+                  alt="Current thumbnail" 
+                  className="w-full max-w-md rounded-lg border"
+                />
+              </div>
+            )}
             <Input
               id="thumbnail"
               type="file"
@@ -171,6 +184,7 @@ export const VideoEditDialog = ({
             />
             {thumbnailPreview && (
               <div className="mt-2">
+                <p className="text-xs text-muted-foreground mb-1">New thumbnail:</p>
                 <img 
                   src={thumbnailPreview} 
                   alt="Thumbnail preview" 
