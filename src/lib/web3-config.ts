@@ -49,13 +49,20 @@ export const TOKEN_GATE_THRESHOLDS = {
   VIP_ACCESS: BigInt(10000 * 10 ** 18), // 10000 tokens
 } as const;
 
-// TipJar contract addresses - Handles tips with 3% platform fee
+// ============================================================================
+// DEPLOYED CONTRACTS ON ARBITRUM ONE (MAINNET - CHAIN ID 42161)
+// ============================================================================
+
+// TipJar contract - Handles tips with 3% platform fee
+// Deployed on Arbitrum One: https://arbiscan.io/address/0x8B0e8894B16d685A7586A55cb9e76B0fFcEb096c
 export const TIPJAR_CONTRACT_ADDRESS = "0x8B0e8894B16d685A7586A55cb9e76B0fFcEb096c";
 
-// VideoTipping contract address - Handles video-specific tips with custom fees
+// VideoTipping contract - Handles video-specific tips with custom fees
+// Deployed on Arbitrum One: https://arbiscan.io/address/0x61801bC99d1A8CBb80EBE2b4171c1C6dC1B684f8
 export const VIDEO_TIPPING_CONTRACT_ADDRESS = "0x61801bC99d1A8CBb80EBE2b4171c1C6dC1B684f8";
 
-// NFT Marketplace contract address - Handles NFT listings and sales
+// NFT Marketplace contract - Handles NFT listings and sales
+// Deployed on Arbitrum One: https://arbiscan.io/address/0x2c4aFDfEB45d2b05A33aDb8B96e8a275b54Ccb16
 export const NFT_MARKETPLACE_CONTRACT_ADDRESS = "0x2c4aFDfEB45d2b05A33aDb8B96e8a275b54Ccb16";
 
 // Platform fee wallet (receives 3% of all tips)
@@ -278,14 +285,6 @@ export const TIPJAR_ABI = [
 // TODO: Deploy and update with actual contract address
 export const CREATOR_NFT_CONTRACT_ADDRESS = "0x..."; // Deploy CreatorNFT.sol
 
-// NFTMarketplace contract address
-// TODO: Deploy and update with actual contract address
-export const NFT_MARKETPLACE_CONTRACT_ADDRESS = "0x..."; // Deploy NFTMarketplace.sol
-
-// VideoTipping contract address (for custom tip fees)
-// TODO: Deploy and update with actual contract address
-export const VIDEO_TIPPING_CONTRACT_ADDRESS = "0x..."; // Deploy VideoTipping.sol
-
 // CreatorNFT contract ABI (ERC721)
 export const CREATOR_NFT_ABI = [
   // Mint function
@@ -453,70 +452,529 @@ export const NFT_MARKETPLACE_ABI = [
   }
 ] as const;
 
-// VideoTipping contract ABI
+// VideoTipping contract ABI (Complete deployed contract)
 export const VIDEO_TIPPING_ABI = [
-  // Set video tip settings
+  {
+    "inputs": [],
+    "name": "emergencyWithdraw",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
   {
     "inputs": [
-      {"internalType": "string", "name": "videoId", "type": "string"},
-      {"internalType": "uint256", "name": "customFeePercentage", "type": "uint256"}
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      }
+    ],
+    "name": "emergencyWithdrawToken",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_platformWallet",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [],
+    "name": "EnforcedPause",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ExpectedPause",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      }
+    ],
+    "name": "OwnableInvalidOwner",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "OwnableUnauthorizedAccount",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "pause",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "ReentrancyGuardReentrantCall",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      }
+    ],
+    "name": "SafeERC20FailedOperation",
+    "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "oldFee",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newFee",
+        "type": "uint256"
+      }
+    ],
+    "name": "DefaultPlatformFeeUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousOwner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "OwnershipTransferred",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "Paused",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "renounceOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "videoId",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "customFeePercentage",
+        "type": "uint256"
+      }
     ],
     "name": "setVideoTipSettings",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },
-  // Tip video with native currency
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "string",
+        "name": "videoId",
+        "type": "string"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "tipper",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "creator",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "totalAmount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "platformFee",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "customFee",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "creatorAmount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      }
+    ],
+    "name": "TipSentToVideo",
+    "type": "event"
+  },
   {
     "inputs": [
-      {"internalType": "string", "name": "videoId", "type": "string"},
-      {"internalType": "address payable", "name": "creator", "type": "address"}
+      {
+        "internalType": "string",
+        "name": "videoId",
+        "type": "string"
+      },
+      {
+        "internalType": "address payable",
+        "name": "creator",
+        "type": "address"
+      }
     ],
     "name": "tipVideoWithNative",
     "outputs": [],
     "stateMutability": "payable",
     "type": "function"
   },
-  // Tip video with token
   {
     "inputs": [
-      {"internalType": "string", "name": "videoId", "type": "string"},
-      {"internalType": "address", "name": "creator", "type": "address"},
-      {"internalType": "address", "name": "token", "type": "address"},
-      {"internalType": "uint256", "name": "amount", "type": "uint256"}
+      {
+        "internalType": "string",
+        "name": "videoId",
+        "type": "string"
+      },
+      {
+        "internalType": "address",
+        "name": "creator",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
     ],
     "name": "tipVideoWithToken",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },
-  // View functions
   {
     "inputs": [
-      {"internalType": "string", "name": "videoId", "type": "string"},
-      {"internalType": "uint256", "name": "amount", "type": "uint256"}
+      {
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "unpause",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "Unpaused",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "newFee",
+        "type": "uint256"
+      }
+    ],
+    "name": "updateDefaultPlatformFee",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newWallet",
+        "type": "address"
+      }
+    ],
+    "name": "updatePlatformWallet",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "string",
+        "name": "videoId",
+        "type": "string"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "creator",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "customFeePercentage",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      }
+    ],
+    "name": "VideoTipSettingsCreated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "string",
+        "name": "videoId",
+        "type": "string"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "creator",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "oldFeePercentage",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newFeePercentage",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      }
+    ],
+    "name": "VideoTipSettingsUpdated",
+    "type": "event"
+  },
+  {
+    "stateMutability": "payable",
+    "type": "receive"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "videoId",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
     ],
     "name": "calculateTipBreakdown",
     "outputs": [
-      {"internalType": "uint256", "name": "platformFee", "type": "uint256"},
-      {"internalType": "uint256", "name": "customFee", "type": "uint256"},
-      {"internalType": "uint256", "name": "creatorAmount", "type": "uint256"},
-      {"internalType": "uint256", "name": "totalCreatorAmount", "type": "uint256"}
+      {
+        "internalType": "uint256",
+        "name": "platformFee",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "customFee",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "creatorAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalCreatorAmount",
+        "type": "uint256"
+      }
     ],
     "stateMutability": "view",
     "type": "function"
   },
   {
-    "inputs": [{"internalType": "string", "name": "videoId", "type": "string"}],
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "creatorEarnings",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "defaultPlatformFee",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "FEE_DENOMINATOR",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "videoId",
+        "type": "string"
+      }
+    ],
     "name": "getVideoTipSettings",
     "outputs": [
       {
         "components": [
-          {"internalType": "address", "name": "creator", "type": "address"},
-          {"internalType": "uint256", "name": "customFeePercentage", "type": "uint256"},
-          {"internalType": "bool", "name": "hasCustomFee", "type": "bool"},
-          {"internalType": "uint256", "name": "createdAt", "type": "uint256"},
-          {"internalType": "uint256", "name": "updatedAt", "type": "uint256"}
+          {
+            "internalType": "address",
+            "name": "creator",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "customFeePercentage",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "hasCustomFee",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256",
+            "name": "createdAt",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "updatedAt",
+            "type": "uint256"
+          }
         ],
         "internalType": "struct VideoTipping.VideoTipSettings",
         "name": "",
@@ -527,9 +985,145 @@ export const VIDEO_TIPPING_ABI = [
     "type": "function"
   },
   {
-    "inputs": [{"internalType": "address", "name": "creator", "type": "address"}],
-    "name": "creatorEarnings",
-    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "inputs": [],
+    "name": "MAX_CUSTOM_FEE",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "paused",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "platformWallet",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "totalCreatorFees",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "totalPlatformFees",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "totalTips",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "totalVolume",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "name": "videoTipSettings",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "creator",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "customFeePercentage",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "hasCustomFee",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint256",
+        "name": "createdAt",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "updatedAt",
+        "type": "uint256"
+      }
+    ],
     "stateMutability": "view",
     "type": "function"
   }

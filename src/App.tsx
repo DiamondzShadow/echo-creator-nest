@@ -17,6 +17,7 @@ import VideoWatch from "./pages/VideoWatch";
 import About from "./pages/About";
 import Meet from "./pages/Meet";
 import FVM from "./pages/FVM";
+import NFTMarketplace from "./pages/NFTMarketplace";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,6 +44,7 @@ const App = () => (
             <Route path="/about" element={<About />} />
             <Route path="/meet" element={<Meet />} />
             <Route path="/fvm" element={<FVM />} />
+            <Route path="/marketplace" element={<NFTMarketplace />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
