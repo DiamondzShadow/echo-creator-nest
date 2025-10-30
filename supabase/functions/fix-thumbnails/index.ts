@@ -19,9 +19,8 @@ serve(async (req) => {
     // Get all assets without thumbnails that are ready
     const { data: assets, error: fetchError } = await supabase
       .from('assets')
-      .select('id, livepeer_playback_id')
+      .select('id, livepeer_playback_id, title, thumbnail_url')
       .eq('status', 'ready')
-      .is('thumbnail_url', null)
       .not('livepeer_playback_id', 'is', null);
 
     if (fetchError) {
@@ -29,17 +28,42 @@ serve(async (req) => {
       throw fetchError;
     }
 
+    console.log(`Found ${assets?.length || 0} ready assets with playback IDs`);
+
     if (!assets || assets.length === 0) {
       return new Response(
-        JSON.stringify({ message: 'No assets need thumbnail updates', count: 0 }),
+        JSON.stringify({ message: 'No assets found with playback IDs', count: 0 }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Filter assets that need thumbnail updates (null or empty thumbnail_url)
+    const assetsNeedingThumbnails = assets.filter(asset => 
+      !asset.thumbnail_url || asset.thumbnail_url.trim() === ''
+    );
+
+    console.log(`${assetsNeedingThumbnails.length} assets need thumbnail updates`);
+
+    if (assetsNeedingThumbnails.length === 0) {
+      return new Response(
+        JSON.stringify({ 
+          message: 'All assets already have thumbnails', 
+          count: 0,
+          total: assets.length 
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     // Update each asset with thumbnail URL
     let updatedCount = 0;
-    for (const asset of assets) {
+    let errorCount = 0;
+    const errors: string[] = [];
+
+    for (const asset of assetsNeedingThumbnails) {
       const thumbnailUrl = `https://livepeer.studio/api/playback/${asset.livepeer_playback_id}/thumbnail.jpg`;
+      
+      console.log(`Updating asset ${asset.id} (${asset.title}) with thumbnail: ${thumbnailUrl}`);
       
       const { error: updateError } = await supabase
         .from('assets')
@@ -47,18 +71,24 @@ serve(async (req) => {
         .eq('id', asset.id);
 
       if (updateError) {
-        console.error(`Error updating asset ${asset.id}:`, updateError);
+        errorCount++;
+        const errorMsg = `Error updating asset ${asset.id}: ${updateError.message}`;
+        console.error(errorMsg);
+        errors.push(errorMsg);
       } else {
         updatedCount++;
-        console.log(`Updated thumbnail for asset ${asset.id}`);
+        console.log(`✓ Updated thumbnail for asset ${asset.id}: ${asset.title}`);
       }
     }
 
     return new Response(
       JSON.stringify({ 
-        message: `Updated ${updatedCount} out of ${assets.length} assets`,
+        message: `Updated ${updatedCount} out of ${assetsNeedingThumbnails.length} assets`,
         updated: updatedCount,
-        total: assets.length
+        errors: errorCount,
+        errorMessages: errors,
+        totalReady: assets.length,
+        needingUpdate: assetsNeedingThumbnails.length
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
