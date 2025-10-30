@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
 import { BrandBanner } from '@/components/BrandBanner';
+import { VideoThumbnail } from '@/components/VideoThumbnail';
 import { LivepeerUpload } from '@/components/LivepeerUpload';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -47,6 +48,7 @@ const Videos = () => {
     checkAuth();
     fetchAssets();
     refreshStuckAssets();
+    fixThumbnails();
   }, []);
 
   const refreshStuckAssets = async () => {
@@ -58,6 +60,18 @@ const Videos = () => {
       }
     } catch (error) {
       console.error('Error refreshing assets:', error);
+    }
+  };
+
+  const fixThumbnails = async () => {
+    try {
+      const { data } = await supabase.functions.invoke('fix-thumbnails');
+      if (data?.updated > 0) {
+        console.log(`Fixed ${data.updated} thumbnails`);
+        setTimeout(() => fetchAssets(), 1500);
+      }
+    } catch (error) {
+      console.error('Error fixing thumbnails:', error);
     }
   };
 
@@ -189,36 +203,12 @@ const Videos = () => {
                     .map((asset) => (
                     <Card key={asset.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
                           onClick={() => navigate(`/video/${asset.id}`)}>
-                      <div className="aspect-video bg-muted relative group">
-                        {asset.thumbnail_url ? (
-                          <img
-                            src={asset.thumbnail_url}
-                            alt={`${asset.title} thumbnail`}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              if (asset.livepeer_playback_id) {
-                                (e.currentTarget as HTMLImageElement).src = `https://image-cache.livepeer.studio/thumbnail?playbackId=${asset.livepeer_playback_id}`;
-                              } else {
-                                (e.currentTarget as HTMLImageElement).style.display = 'none';
-                              }
-                            }}
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
-                            <Play className="h-16 w-16 text-primary" />
-                          </div>
-                        )}
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center">
-                          <Button variant="secondary" size="lg" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Play className="h-5 w-5 mr-2" />Watch
-                          </Button>
-                        </div>
-                        {asset.duration > 0 && (
-                          <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
-                            {formatDuration(asset.duration)}
-                          </div>
-                        )}
-                      </div>
+                      <VideoThumbnail
+                        title={asset.title}
+                        thumbnailUrl={asset.thumbnail_url}
+                        playbackId={asset.livepeer_playback_id}
+                        duration={asset.duration}
+                      />
                       <CardContent className="p-4 space-y-3">
                         <div className="flex items-start justify-between gap-2">
                           <h3 className="font-semibold line-clamp-2 flex-1">{asset.title}</h3>
