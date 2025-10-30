@@ -270,529 +270,253 @@ export const TIPJAR_ABI = [
   }
 ] as const;
 
-// VideoTipping contract ABI - Handles video-specific tips with custom fees
+// ============================================================================
+// NFT Marketplace Contracts
+// ============================================================================
+
+// CreatorNFT contract address (ERC721 for minting NFTs)
+// TODO: Deploy and update with actual contract address
+export const CREATOR_NFT_CONTRACT_ADDRESS = "0x..."; // Deploy CreatorNFT.sol
+
+// NFTMarketplace contract address
+// TODO: Deploy and update with actual contract address
+export const NFT_MARKETPLACE_CONTRACT_ADDRESS = "0x..."; // Deploy NFTMarketplace.sol
+
+// VideoTipping contract address (for custom tip fees)
+// TODO: Deploy and update with actual contract address
+export const VIDEO_TIPPING_CONTRACT_ADDRESS = "0x..."; // Deploy VideoTipping.sol
+
+// CreatorNFT contract ABI (ERC721)
+export const CREATOR_NFT_ABI = [
+  // Mint function
+  {
+    "inputs": [
+      {"internalType": "address", "name": "to", "type": "address"},
+      {"internalType": "string", "name": "uri", "type": "string"},
+      {"internalType": "uint256", "name": "royaltyPercentage", "type": "uint256"}
+    ],
+    "name": "mintNFT",
+    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  // Calculate royalty
+  {
+    "inputs": [
+      {"internalType": "uint256", "name": "tokenId", "type": "uint256"},
+      {"internalType": "uint256", "name": "salePrice", "type": "uint256"}
+    ],
+    "name": "calculateRoyalty",
+    "outputs": [
+      {"internalType": "address", "name": "creator", "type": "address"},
+      {"internalType": "uint256", "name": "royaltyAmount", "type": "uint256"}
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  // View functions
+  {
+    "inputs": [],
+    "name": "totalMinted",
+    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "address", "name": "owner", "type": "address"}],
+    "name": "tokensOfOwner",
+    "outputs": [{"internalType": "uint256[]", "name": "", "type": "uint256[]"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "uint256", "name": "tokenId", "type": "uint256"}],
+    "name": "tokenURI",
+    "outputs": [{"internalType": "string", "name": "", "type": "string"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "uint256", "name": "tokenId", "type": "uint256"}],
+    "name": "ownerOf",
+    "outputs": [{"internalType": "address", "name": "", "type": "address"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  // Approval functions
+  {
+    "inputs": [
+      {"internalType": "address", "name": "to", "type": "address"},
+      {"internalType": "uint256", "name": "tokenId", "type": "uint256"}
+    ],
+    "name": "approve",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {"internalType": "address", "name": "operator", "type": "address"},
+      {"internalType": "bool", "name": "approved", "type": "bool"}
+    ],
+    "name": "setApprovalForAll",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+] as const;
+
+// NFTMarketplace contract ABI
+export const NFT_MARKETPLACE_ABI = [
+  // List NFT
+  {
+    "inputs": [
+      {"internalType": "address", "name": "nftContract", "type": "address"},
+      {"internalType": "uint256", "name": "tokenId", "type": "uint256"},
+      {"internalType": "uint256", "name": "price", "type": "uint256"},
+      {"internalType": "address", "name": "paymentToken", "type": "address"}
+    ],
+    "name": "listNFT",
+    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  // Buy NFT
+  {
+    "inputs": [{"internalType": "uint256", "name": "listingId", "type": "uint256"}],
+    "name": "buyNFT",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  // Cancel listing
+  {
+    "inputs": [{"internalType": "uint256", "name": "listingId", "type": "uint256"}],
+    "name": "cancelListing",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  // Update price
+  {
+    "inputs": [
+      {"internalType": "uint256", "name": "listingId", "type": "uint256"},
+      {"internalType": "uint256", "name": "newPrice", "type": "uint256"}
+    ],
+    "name": "updatePrice",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  // View functions
+  {
+    "inputs": [{"internalType": "uint256", "name": "listingId", "type": "uint256"}],
+    "name": "getListing",
+    "outputs": [
+      {
+        "components": [
+          {"internalType": "uint256", "name": "listingId", "type": "uint256"},
+          {"internalType": "address", "name": "nftContract", "type": "address"},
+          {"internalType": "uint256", "name": "tokenId", "type": "uint256"},
+          {"internalType": "address", "name": "seller", "type": "address"},
+          {"internalType": "uint256", "name": "price", "type": "uint256"},
+          {"internalType": "address", "name": "paymentToken", "type": "address"},
+          {"internalType": "bool", "name": "active", "type": "bool"},
+          {"internalType": "uint256", "name": "listedAt", "type": "uint256"}
+        ],
+        "internalType": "struct NFTMarketplace.Listing",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "uint256", "name": "listingId", "type": "uint256"}],
+    "name": "calculateSaleBreakdown",
+    "outputs": [
+      {"internalType": "uint256", "name": "price", "type": "uint256"},
+      {"internalType": "uint256", "name": "platformFee", "type": "uint256"},
+      {"internalType": "uint256", "name": "royaltyAmount", "type": "uint256"},
+      {"internalType": "uint256", "name": "sellerAmount", "type": "uint256"}
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "totalListings",
+    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  }
+] as const;
+
+// VideoTipping contract ABI
 export const VIDEO_TIPPING_ABI = [
+  // Set video tip settings
   {
     "inputs": [
-      {
-        "internalType": "address",
-        "name": "_platformWallet",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
-  },
-  {
-    "inputs": [],
-    "name": "EnforcedPause",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "ExpectedPause",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "owner",
-        "type": "address"
-      }
-    ],
-    "name": "OwnableInvalidOwner",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "account",
-        "type": "address"
-      }
-    ],
-    "name": "OwnableUnauthorizedAccount",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "ReentrancyGuardReentrantCall",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "token",
-        "type": "address"
-      }
-    ],
-    "name": "SafeERC20FailedOperation",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "emergencyWithdraw",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "token",
-        "type": "address"
-      }
-    ],
-    "name": "emergencyWithdrawToken",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "pause",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "oldFee",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "newFee",
-        "type": "uint256"
-      }
-    ],
-    "name": "DefaultPlatformFeeUpdated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "previousOwner",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "newOwner",
-        "type": "address"
-      }
-    ],
-    "name": "OwnershipTransferred",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "account",
-        "type": "address"
-      }
-    ],
-    "name": "Paused",
-    "type": "event"
-  },
-  {
-    "inputs": [],
-    "name": "renounceOwnership",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "string",
-        "name": "videoId",
-        "type": "string"
-      },
-      {
-        "internalType": "uint256",
-        "name": "customFeePercentage",
-        "type": "uint256"
-      }
+      {"internalType": "string", "name": "videoId", "type": "string"},
+      {"internalType": "uint256", "name": "customFeePercentage", "type": "uint256"}
     ],
     "name": "setVideoTipSettings",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "string",
-        "name": "videoId",
-        "type": "string"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "tipper",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "creator",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "totalAmount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "platformFee",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "customFee",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "creatorAmount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "token",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "timestamp",
-        "type": "uint256"
-      }
-    ],
-    "name": "TipSentToVideo",
-    "type": "event"
-  },
+  // Tip video with native currency
   {
     "inputs": [
-      {
-        "internalType": "string",
-        "name": "videoId",
-        "type": "string"
-      },
-      {
-        "internalType": "address payable",
-        "name": "creator",
-        "type": "address"
-      }
+      {"internalType": "string", "name": "videoId", "type": "string"},
+      {"internalType": "address payable", "name": "creator", "type": "address"}
     ],
     "name": "tipVideoWithNative",
     "outputs": [],
     "stateMutability": "payable",
     "type": "function"
   },
+  // Tip video with token
   {
     "inputs": [
-      {
-        "internalType": "string",
-        "name": "videoId",
-        "type": "string"
-      },
-      {
-        "internalType": "address",
-        "name": "creator",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "token",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      }
+      {"internalType": "string", "name": "videoId", "type": "string"},
+      {"internalType": "address", "name": "creator", "type": "address"},
+      {"internalType": "address", "name": "token", "type": "address"},
+      {"internalType": "uint256", "name": "amount", "type": "uint256"}
     ],
     "name": "tipVideoWithToken",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },
+  // View functions
   {
     "inputs": [
-      {
-        "internalType": "address",
-        "name": "newOwner",
-        "type": "address"
-      }
-    ],
-    "name": "transferOwnership",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "unpause",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "account",
-        "type": "address"
-      }
-    ],
-    "name": "Unpaused",
-    "type": "event"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "newFee",
-        "type": "uint256"
-      }
-    ],
-    "name": "updateDefaultPlatformFee",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "newWallet",
-        "type": "address"
-      }
-    ],
-    "name": "updatePlatformWallet",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "string",
-        "name": "videoId",
-        "type": "string"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "creator",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "customFeePercentage",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "timestamp",
-        "type": "uint256"
-      }
-    ],
-    "name": "VideoTipSettingsCreated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "string",
-        "name": "videoId",
-        "type": "string"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "creator",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "oldFeePercentage",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "newFeePercentage",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "timestamp",
-        "type": "uint256"
-      }
-    ],
-    "name": "VideoTipSettingsUpdated",
-    "type": "event"
-  },
-  {
-    "stateMutability": "payable",
-    "type": "receive"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "string",
-        "name": "videoId",
-        "type": "string"
-      },
-      {
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      }
+      {"internalType": "string", "name": "videoId", "type": "string"},
+      {"internalType": "uint256", "name": "amount", "type": "uint256"}
     ],
     "name": "calculateTipBreakdown",
     "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "platformFee",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "customFee",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "creatorAmount",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "totalCreatorAmount",
-        "type": "uint256"
-      }
+      {"internalType": "uint256", "name": "platformFee", "type": "uint256"},
+      {"internalType": "uint256", "name": "customFee", "type": "uint256"},
+      {"internalType": "uint256", "name": "creatorAmount", "type": "uint256"},
+      {"internalType": "uint256", "name": "totalCreatorAmount", "type": "uint256"}
     ],
     "stateMutability": "view",
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "creatorEarnings",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "defaultPlatformFee",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "FEE_DENOMINATOR",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "string",
-        "name": "videoId",
-        "type": "string"
-      }
-    ],
+    "inputs": [{"internalType": "string", "name": "videoId", "type": "string"}],
     "name": "getVideoTipSettings",
     "outputs": [
       {
         "components": [
-          {
-            "internalType": "address",
-            "name": "creator",
-            "type": "address"
-          },
-          {
-            "internalType": "uint256",
-            "name": "customFeePercentage",
-            "type": "uint256"
-          },
-          {
-            "internalType": "bool",
-            "name": "hasCustomFee",
-            "type": "bool"
-          },
-          {
-            "internalType": "uint256",
-            "name": "createdAt",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "updatedAt",
-            "type": "uint256"
-          }
+          {"internalType": "address", "name": "creator", "type": "address"},
+          {"internalType": "uint256", "name": "customFeePercentage", "type": "uint256"},
+          {"internalType": "bool", "name": "hasCustomFee", "type": "bool"},
+          {"internalType": "uint256", "name": "createdAt", "type": "uint256"},
+          {"internalType": "uint256", "name": "updatedAt", "type": "uint256"}
         ],
         "internalType": "struct VideoTipping.VideoTipSettings",
         "name": "",
@@ -803,149 +527,10 @@ export const VIDEO_TIPPING_ABI = [
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "MAX_CUSTOM_FEE",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "owner",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "paused",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "platformWallet",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "totalCreatorFees",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "totalPlatformFees",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "totalTips",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "totalVolume",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "string",
-        "name": "",
-        "type": "string"
-      }
-    ],
-    "name": "videoTipSettings",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "creator",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "customFeePercentage",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bool",
-        "name": "hasCustomFee",
-        "type": "bool"
-      },
-      {
-        "internalType": "uint256",
-        "name": "createdAt",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "updatedAt",
-        "type": "uint256"
-      }
-    ],
+    "inputs": [{"internalType": "address", "name": "creator", "type": "address"}],
+    "name": "creatorEarnings",
+    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
     "stateMutability": "view",
     "type": "function"
   }
 ] as const;
-
-// Export NFT Marketplace ABI from separate file (kept separate due to size)
-export { NFT_MARKETPLACE_ABI } from './nft-marketplace-abi';
