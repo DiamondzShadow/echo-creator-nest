@@ -80,9 +80,15 @@ contract CreatorNFT is ERC721URIStorage, ERC721Enumerable, ReentrancyGuard, Owna
         require(royaltyPercentage <= MAX_ROYALTY_PERCENTAGE, "Royalty too high");
         require(msg.value >= mintingFee, "Insufficient minting fee");
         
-        // Transfer minting fee to platform
-        (bool success, ) = platformWallet.call{value: msg.value}("");
+        // Transfer only the minting fee to platform
+        (bool success, ) = platformWallet.call{value: mintingFee}("");
         require(success, "Fee transfer failed");
+        
+        // Refund excess payment
+        if (msg.value > mintingFee) {
+            (bool refundSuccess, ) = payable(msg.sender).call{value: msg.value - mintingFee}("");
+            require(refundSuccess, "Refund failed");
+        }
         
         _tokenIdCounter.increment();
         uint256 newTokenId = _tokenIdCounter.current();
@@ -151,18 +157,40 @@ contract CreatorNFT is ERC721URIStorage, ERC721Enumerable, ReentrancyGuard, Owna
     }
     
     /**
-     * @dev Get all NFTs owned by an address
+     * @dev Get all NFTs owned by an address (paginated to avoid gas limits)
      * @param owner The owner address
+     * @param start Starting index
+     * @param limit Maximum number of tokens to return
      */
-    function tokensOfOwner(address owner) external view returns (uint256[] memory) {
+    function tokensOfOwner(
+        address owner,
+        uint256 start,
+        uint256 limit
+    ) external view returns (uint256[] memory) {
         uint256 tokenCount = balanceOf(owner);
-        uint256[] memory tokens = new uint256[](tokenCount);
+        require(start < tokenCount, "Start index out of bounds");
         
-        for (uint256 i = 0; i < tokenCount; i++) {
-            tokens[i] = tokenOfOwnerByIndex(owner, i);
+        uint256 end = start + limit;
+        if (end > tokenCount) {
+            end = tokenCount;
+        }
+        
+        uint256 resultLength = end - start;
+        uint256[] memory tokens = new uint256[](resultLength);
+        
+        for (uint256 i = 0; i < resultLength; i++) {
+            tokens[i] = tokenOfOwnerByIndex(owner, start + i);
         }
         
         return tokens;
+    }
+    
+    /**
+     * @dev Get total token count for an owner (helper for pagination)
+     * @param owner The owner address
+     */
+    function getOwnerTokenCount(address owner) external view returns (uint256) {
+        return balanceOf(owner);
     }
     
     // Required overrides for multiple inheritance

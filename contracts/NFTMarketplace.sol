@@ -55,6 +55,10 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
     uint256 public totalVolume;
     uint256 public totalPlatformFees;
     
+    // Whitelist for trusted NFT contracts (optional security measure)
+    mapping(address => bool) public trustedNFTContracts;
+    bool public whitelistEnabled;
+    
     // Events
     event NFTListed(
         uint256 indexed listingId,
@@ -94,6 +98,10 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
     
     event PlatformFeeUpdated(uint256 oldFee, uint256 newFee);
     
+    event NFTContractWhitelisted(address indexed nftContract, bool status);
+    
+    event WhitelistStatusChanged(bool enabled);
+    
     /**
      * @dev Constructor
      * @param _platformWallet Address that receives platform fees
@@ -101,6 +109,7 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
     constructor(address _platformWallet) Ownable(msg.sender) {
         require(_platformWallet != address(0), "Invalid platform wallet");
         platformWallet = _platformWallet;
+        whitelistEnabled = false; // Disabled by default for flexibility
     }
     
     /**
@@ -118,6 +127,11 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
     ) external nonReentrant whenNotPaused returns (uint256) {
         require(price > 0, "Price must be greater than 0");
         require(nftContract != address(0), "Invalid NFT contract");
+        
+        // Check whitelist if enabled
+        if (whitelistEnabled) {
+            require(trustedNFTContracts[nftContract], "NFT contract not whitelisted");
+        }
         
         IERC721 nft = IERC721(nftContract);
         require(nft.ownerOf(tokenId) == msg.sender, "Not the owner");
@@ -193,11 +207,16 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
             returns (address creator, uint256 royalty) {
             royaltyRecipient = creator;
             royaltyAmount = royalty;
+            
+            // CRITICAL: Validate royalty doesn't exceed price
+            require(royaltyAmount <= price, "Royalty exceeds price");
+            require(platformFee + royaltyAmount <= price, "Total fees exceed price");
         } catch {
             // No royalty support, continue without it
         }
         
         uint256 sellerAmount = price - platformFee - royaltyAmount;
+        require(sellerAmount > 0, "Seller amount must be positive");
         
         // Handle payment
         if (listing.paymentToken == address(0)) {
@@ -314,6 +333,37 @@ contract NFTMarketplace is ReentrancyGuard, Pausable, Ownable {
     function updatePlatformWallet(address newWallet) external onlyOwner {
         require(newWallet != address(0), "Invalid wallet address");
         platformWallet = newWallet;
+    }
+    
+    /**
+     * @dev Add or remove NFT contract from whitelist (only owner)
+     * @param nftContract NFT contract address
+     * @param status True to whitelist, false to remove
+     */
+    function setTrustedNFTContract(address nftContract, bool status) external onlyOwner {
+        require(nftContract != address(0), "Invalid NFT contract");
+        trustedNFTContracts[nftContract] = status;
+        emit NFTContractWhitelisted(nftContract, status);
+    }
+    
+    /**
+     * @dev Enable or disable whitelist requirement (only owner)
+     * @param enabled True to enable whitelist, false to disable
+     */
+    function setWhitelistEnabled(bool enabled) external onlyOwner {
+        whitelistEnabled = enabled;
+        emit WhitelistStatusChanged(enabled);
+    }
+    
+    /**
+     * @dev Check if NFT contract is trusted
+     * @param nftContract NFT contract address
+     */
+    function isNFTContractTrusted(address nftContract) external view returns (bool) {
+        if (!whitelistEnabled) {
+            return true; // All contracts trusted when whitelist disabled
+        }
+        return trustedNFTContracts[nftContract];
     }
     
     /**

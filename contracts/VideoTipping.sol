@@ -87,13 +87,20 @@ contract VideoTipping is ReentrancyGuard, Pausable, Ownable {
      * @dev Set custom tip fee for a video
      * @param videoId Unique identifier for the video
      * @param customFeePercentage Custom fee percentage (0-5000, i.e., 0-50%)
+     * @notice This function can be front-run. For high-security use cases, consider
+     * implementing off-chain signing or commit-reveal patterns.
      */
     function setVideoTipSettings(
         string memory videoId,
         uint256 customFeePercentage
     ) external nonReentrant {
         require(bytes(videoId).length > 0, "Invalid video ID");
+        require(bytes(videoId).length <= 256, "Video ID too long"); // Gas optimization
         require(customFeePercentage <= MAX_CUSTOM_FEE, "Custom fee too high");
+        
+        // Validate that combined fees don't exceed 100%
+        uint256 totalFees = defaultPlatformFee + customFeePercentage;
+        require(totalFees < FEE_DENOMINATOR, "Combined fees too high");
         
         VideoTipSettings storage settings = videoTipSettings[videoId];
         
@@ -135,6 +142,7 @@ contract VideoTipping is ReentrancyGuard, Pausable, Ownable {
      * @dev Tip a video with native currency
      * @param videoId The video to tip
      * @param creator The video creator address
+     * @notice Fee precision: Integer division may result in minor rounding (< 1 wei difference)
      */
     function tipVideoWithNative(
         string memory videoId,
@@ -153,6 +161,9 @@ contract VideoTipping is ReentrancyGuard, Pausable, Ownable {
         if (settings.hasCustomFee && settings.creator == creator) {
             customFee = (msg.value * settings.customFeePercentage) / FEE_DENOMINATOR;
         }
+        
+        // Validate fee amounts
+        require(platformFee + customFee < msg.value, "Fees exceed tip amount");
         
         uint256 creatorAmount = msg.value - platformFee - customFee;
         require(creatorAmount > 0, "Invalid fee configuration");
@@ -193,6 +204,7 @@ contract VideoTipping is ReentrancyGuard, Pausable, Ownable {
      * @param creator The video creator address
      * @param token The ERC20 token address
      * @param amount The tip amount
+     * @notice Fee precision: Integer division may result in minor rounding (< 1 token unit difference)
      */
     function tipVideoWithToken(
         string memory videoId,
@@ -216,6 +228,9 @@ contract VideoTipping is ReentrancyGuard, Pausable, Ownable {
         if (settings.hasCustomFee && settings.creator == creator) {
             customFee = (amount * settings.customFeePercentage) / FEE_DENOMINATOR;
         }
+        
+        // Validate fee amounts
+        require(platformFee + customFee < amount, "Fees exceed tip amount");
         
         uint256 creatorAmount = amount - platformFee - customFee;
         require(creatorAmount > 0, "Invalid fee configuration");
