@@ -40,7 +40,11 @@ export const NFTMint = () => {
       // In production, upload to IPFS or Storj
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result as string);
+        const dataUrl = reader.result as string;
+        setImagePreview(dataUrl);
+        // Set imageUrl to enable the mint button
+        // In production, this will be replaced with the IPFS URL
+        setImageUrl(dataUrl);
       };
       reader.readAsDataURL(file);
 
