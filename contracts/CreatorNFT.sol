@@ -3,9 +3,8 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
 
 /**
  * @title CreatorNFT
@@ -13,9 +12,8 @@ import "@openzeppelin/contracts/utils/Counters.sol";
  * @notice Allows creators to mint NFTs that can be listed on the marketplace
  */
 contract CreatorNFT is ERC721URIStorage, ERC721Enumerable, ReentrancyGuard, Ownable {
-    using Counters for Counters.Counter;
-    
-    Counters.Counter private _tokenIdCounter;
+    // Token ID counter (replaces OpenZeppelin Counters which was removed in v5.x)
+    uint256 private _tokenIdCounter;
     
     // Mapping from token ID to creator address
     mapping(uint256 => address) public tokenCreator;
@@ -90,8 +88,11 @@ contract CreatorNFT is ERC721URIStorage, ERC721Enumerable, ReentrancyGuard, Owna
             require(refundSuccess, "Refund failed");
         }
         
-        _tokenIdCounter.increment();
-        uint256 newTokenId = _tokenIdCounter.current();
+        // Increment token ID counter
+        unchecked {
+            _tokenIdCounter++;
+        }
+        uint256 newTokenId = _tokenIdCounter;
         
         _safeMint(to, newTokenId);
         _setTokenURI(newTokenId, uri);
@@ -122,7 +123,8 @@ contract CreatorNFT is ERC721URIStorage, ERC721Enumerable, ReentrancyGuard, Owna
         view
         returns (address creator, uint256 royaltyAmount)
     {
-        require(_exists(tokenId), "Token does not exist");
+        // Check if token exists by calling ownerOf (will revert if doesn't exist)
+        ownerOf(tokenId);
         
         creator = tokenCreator[tokenId];
         royaltyAmount = (salePrice * tokenRoyalty[tokenId]) / ROYALTY_DENOMINATOR;
@@ -153,7 +155,7 @@ contract CreatorNFT is ERC721URIStorage, ERC721Enumerable, ReentrancyGuard, Owna
      * @dev Get total number of minted NFTs
      */
     function totalMinted() external view returns (uint256) {
-        return _tokenIdCounter.current();
+        return _tokenIdCounter;
     }
     
     /**
@@ -194,13 +196,19 @@ contract CreatorNFT is ERC721URIStorage, ERC721Enumerable, ReentrancyGuard, Owna
     }
     
     // Required overrides for multiple inheritance
-    function _beforeTokenTransfer(
-        address from,
+    function _update(
         address to,
         uint256 tokenId,
-        uint256 batchSize
+        address auth
+    ) internal override(ERC721, ERC721Enumerable) returns (address) {
+        return super._update(to, tokenId, auth);
+    }
+    
+    function _increaseBalance(
+        address account,
+        uint128 value
     ) internal override(ERC721, ERC721Enumerable) {
-        super._beforeTokenTransfer(from, to, tokenId, batchSize);
+        super._increaseBalance(account, value);
     }
     
     function _burn(uint256 tokenId) internal override(ERC721, ERC721URIStorage) {
