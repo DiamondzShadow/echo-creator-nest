@@ -9,16 +9,8 @@ import { parseEther } from 'viem';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, ImagePlus, Upload } from 'lucide-react';
 import { CREATOR_NFT_CONTRACT_ADDRESS, CREATOR_NFT_ABI } from '@/lib/web3-config';
-
-interface NFTMetadata {
-  name: string;
-  description: string;
-  image: string;
-  attributes?: Array<{
-    trait_type: string;
-    value: string;
-  }>;
-}
+import { createNFTMetadata, createMetadataURI, prepareImageForNFT } from '@/lib/nft-metadata';
+import type { NFTMetadata } from '@/lib/nft-metadata';
 
 export const NFTMint = () => {
   const [name, setName] = useState('');
@@ -36,22 +28,15 @@ export const NFTMint = () => {
   const handleImageUpload = async (file: File) => {
     setIsUploading(true);
     try {
-      // For now, use a placeholder or integrate with IPFS/Storj
-      // In production, upload to IPFS or Storj
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const dataUrl = reader.result as string;
-        setImagePreview(dataUrl);
-        // Set imageUrl to enable the mint button
-        // In production, this will be replaced with the IPFS URL
-        setImageUrl(dataUrl);
-      };
-      reader.readAsDataURL(file);
+      // Prepare image - converts to data URI for now
+      // In production, this should upload to IPFS/Storj
+      const imageDataUrl = await prepareImageForNFT(file);
+      setImagePreview(imageDataUrl);
+      setImageUrl(imageDataUrl);
 
-      // TODO: Upload to IPFS/Storj and get the URL
       toast({
         title: "Image Uploaded",
-        description: "Image preview loaded. In production, this will upload to IPFS.",
+        description: "Image loaded successfully. Ready to mint!",
       });
     } catch (error) {
       console.error('Error uploading image:', error);
@@ -105,16 +90,28 @@ export const NFTMint = () => {
     }
 
     try {
-      // Create metadata object
-      const metadata: NFTMetadata = {
+      // Create OpenSea-compatible metadata
+      const metadata = createNFTMetadata(
         name,
         description,
-        image: imageUrl,
-      };
+        imageUrl,
+        address, // creator address
+        royalty,
+        [
+          {
+            trait_type: 'Royalty',
+            value: `${royalty}%`,
+          },
+          {
+            trait_type: 'Creator',
+            value: address,
+          },
+        ]
+      );
 
-      // TODO: Upload metadata to IPFS and get URI
-      // For now, use a placeholder URI
-      const metadataUri = `ipfs://placeholder/${Date.now()}`;
+      // Create metadata URI (embedded as data URI)
+      // In production, upload to IPFS and use the IPFS URI
+      const metadataUri = createMetadataURI(metadata);
       
       // Convert royalty percentage to basis points (10% = 1000)
       const royaltyBasisPoints = Math.floor(royalty * 100);

@@ -329,6 +329,52 @@ export const CREATOR_NFT_ABI = [
     "type": "function"
   },
   {
+    "inputs": [
+      {"internalType": "address", "name": "owner", "type": "address"},
+      {"internalType": "uint256", "name": "start", "type": "uint256"},
+      {"internalType": "uint256", "name": "limit", "type": "uint256"}
+    ],
+    "name": "tokensOfOwnerPaginated",
+    "outputs": [{"internalType": "uint256[]", "name": "", "type": "uint256[]"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "address", "name": "owner", "type": "address"}],
+    "name": "getOwnerTokenCount",
+    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "contractURI",
+    "outputs": [{"internalType": "string", "name": "", "type": "string"}],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "name",
+    "outputs": [{"internalType": "string", "name": "", "type": "string"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "symbol",
+    "outputs": [{"internalType": "string", "name": "", "type": "string"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "address", "name": "owner", "type": "address"}],
+    "name": "balanceOf",
+    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [{"internalType": "uint256", "name": "tokenId", "type": "uint256"}],
     "name": "tokenURI",
     "outputs": [{"internalType": "string", "name": "", "type": "string"}],
@@ -367,13 +413,14 @@ export const CREATOR_NFT_ABI = [
 
 // NFTMarketplace contract ABI
 export const NFT_MARKETPLACE_ABI = [
-  // List NFT
+  // List NFT (updated with duration parameter)
   {
     "inputs": [
       {"internalType": "address", "name": "nftContract", "type": "address"},
       {"internalType": "uint256", "name": "tokenId", "type": "uint256"},
       {"internalType": "uint256", "name": "price", "type": "uint256"},
-      {"internalType": "address", "name": "paymentToken", "type": "address"}
+      {"internalType": "address", "name": "paymentToken", "type": "address"},
+      {"internalType": "uint256", "name": "duration", "type": "uint256"}
     ],
     "name": "listNFT",
     "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
@@ -438,9 +485,17 @@ export const NFT_MARKETPLACE_ABI = [
       {"internalType": "uint256", "name": "price", "type": "uint256"},
       {"internalType": "uint256", "name": "platformFee", "type": "uint256"},
       {"internalType": "uint256", "name": "royaltyAmount", "type": "uint256"},
-      {"internalType": "uint256", "name": "sellerAmount", "type": "uint256"}
+      {"internalType": "uint256", "name": "sellerAmount", "type": "uint256"},
+      {"internalType": "bool", "name": "isExpired", "type": "bool"}
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "withdraw",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
