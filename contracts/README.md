@@ -1,72 +1,152 @@
-# YouTube Smart Contract for FVM
+# CreatorHub Smart Contracts
 
-This directory contains the Solidity smart contract for the decentralized YouTube clone built on FVM (Filecoin Virtual Machine).
+This directory contains the smart contracts for the CreatorHub decentralized platform.
 
-## Contract: YouTube.sol
+## 📜 Contracts
 
-A decentralized video sharing platform that stores video metadata on-chain while actual video files are stored on IPFS.
+### 1. YouTube.sol
+Decentralized video metadata storage on Filecoin Virtual Machine (FVM).
 
-### Features
+**Features:**
+- Store video metadata on-chain
+- IPFS hash storage
+- Video categorization
+- Author attribution
 
-- Upload video metadata to blockchain
-- Store video hash, title, description, location, category, and thumbnail hash
-- Track video count and authors
-- Emit events for video uploads
+**Status:** ✅ Ready for deployment
 
-### Deployment Instructions
+---
 
-1. **Using Remix IDE** (Recommended for quick deployment):
-   - Go to [remix.ethereum.org](https://remix.ethereum.org)
-   - Create a new workspace
-   - Copy `YouTube.sol` into the editor
-   - Switch to the Deploy tab
-   - Add Hyperspace testnet to your Metamask:
-     - Network Name: Filecoin Hyperspace
-     - RPC URL: https://api.hyperspace.node.glif.io/rpc/v1
-     - Chain ID: 3141
-     - Currency Symbol: tFIL
-     - Block Explorer: https://hyperspace.filscan.io/
-   - Select your network from the Environment tab
-   - Deploy the contract
-   - Copy the contract address
+### 2. TipJar.sol ⭐ NEW
+Professional tipping contract with automatic platform fee distribution.
 
-2. **After Deployment**:
-   - Save your contract address
-   - Download the artifacts folder from Remix (backup icon -> .workspace directory)
-   - Copy the ABI from the artifacts to use in your frontend
-   - Update the contract address in `src/lib/fvm-config.ts`
+**Features:**
+- ✅ **3% Platform Fee** - Automatically sent to platform wallet
+- ✅ **97% to Creator** - Direct transfer, no holding
+- ✅ **Native Currency Tips** - ETH, MATIC, etc.
+- ✅ **ERC20 Token Tips** - Support for any token
+- ✅ **Security Features** - ReentrancyGuard, Pausable, Ownable
+- ✅ **Event Tracking** - Full transaction history
+- ✅ **Emergency Controls** - Pause functionality
 
-### Contract Structure
+**Platform Fee Wallet:** `0x18b2b2ce7d05Bfe0883Ff874ba0C536A89D07363`
 
-```solidity
-struct Video {
-    uint256 id;
-    string hash;          // IPFS hash of the video
-    string title;
-    string description;
-    string location;
-    string category;
-    string thumbnailHash; // IPFS hash of the thumbnail
-    string date;
-    address author;
-}
+**Status:** ✅ Ready for deployment
+
+**Deployment Guide:** See [TIPJAR_DEPLOYMENT.md](./TIPJAR_DEPLOYMENT.md)
+
+---
+
+## 🚀 Quick Start
+
+### Deploy TipJar (Recommended First)
+
+1. **Using Remix IDE** (Easiest):
+   ```
+   1. Go to https://remix.ethereum.org
+   2. Copy TipJar.sol into Remix
+   3. Compile with Solidity 0.8.20+
+   4. Deploy with constructor arg: 0x18b2b2ce7d05Bfe0883Ff874ba0C536A89D07363
+   5. Confirm transaction
+   ```
+
+2. **Networks**:
+   - **Test:** Polygon Mumbai (free test tokens)
+   - **Production:** Polygon mainnet (~$0.50 deploy, $0.01 per tip)
+
+3. **After Deployment**:
+   - Copy contract address
+   - Update `src/lib/web3-config.ts`
+   - Test with small tip
+   - Verify on block explorer
+
+### Deploy YouTube.sol (For FVM/IPFS Features)
+
+1. Deploy to Filecoin Calibration testnet
+2. Test video upload
+3. Deploy to Filecoin mainnet
+
+---
+
+## 🔐 Security
+
+All contracts use OpenZeppelin libraries:
+- `@openzeppelin/contracts/security/ReentrancyGuard.sol`
+- `@openzeppelin/contracts/security/Pausable.sol`
+- `@openzeppelin/contracts/access/Ownable.sol`
+- `@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol`
+
+---
+
+## 💡 Integration
+
+### Frontend Integration Example
+
+```typescript
+// Tip with native currency (ETH/MATIC)
+const tx = await contract.tipWithNative(creatorAddress, {
+  value: ethers.utils.parseEther("0.1") // 0.1 ETH
+});
+
+// Platform automatically gets 0.003 ETH (3%)
+// Creator receives 0.097 ETH (97%)
 ```
 
-### Functions
+### Event Monitoring
 
-- `uploadVideo()`: Upload a new video to the platform
-- `videos()`: Get video details by ID
-- `videoCount`: Get the total number of videos
+```typescript
+contract.on("TipSent", (tipper, creator, amount, platformFee, creatorAmount, token, timestamp) => {
+  console.log(`Tip: ${amount}`);
+  console.log(`Platform Fee: ${platformFee}`);
+  console.log(`Creator Received: ${creatorAmount}`);
+});
+```
 
-### Events
+---
 
-- `VideoUploaded`: Emitted when a new video is uploaded
+## 📊 Gas Costs
 
-### Testing Networks
+| Contract | Network | Deployment | Per Transaction |
+|----------|---------|------------|-----------------|
+| TipJar | Polygon | ~$0.50 | ~$0.01 |
+| TipJar | Base | ~$2.00 | ~$0.05 |
+| YouTube | FVM | ~$1.00 | ~$0.05 |
 
-- **Filecoin Hyperspace Testnet**: For testing FVM smart contracts
-- Get test FIL from: https://hyperspace.yoga/#faucet
+---
 
-### Integration
+## 🧪 Testing
 
-See `src/lib/fvm-config.ts` for frontend integration with this contract.
+### Test on Mumbai Testnet
+
+1. Get test MATIC: https://faucet.polygon.technology
+2. Deploy TipJar
+3. Send test tip
+4. Verify fee went to platform wallet
+5. Verify creator received 97%
+
+---
+
+## 📚 Resources
+
+- [TipJar Deployment Guide](./TIPJAR_DEPLOYMENT.md)
+- [OpenZeppelin Docs](https://docs.openzeppelin.com/contracts)
+- [Remix IDE](https://remix.ethereum.org)
+- [Polygon Docs](https://docs.polygon.technology)
+
+---
+
+## 🎯 Next Steps
+
+1. **Deploy TipJar** to Polygon Mumbai (testnet)
+2. **Test tipping** with small amounts
+3. **Deploy to mainnet** when ready
+4. **Update frontend** with contract address
+5. **Monitor platform fees** in your wallet
+
+---
+
+**Platform Fee Wallet:** `0x18b2b2ce7d05Bfe0883Ff874ba0C536A89D07363`  
+**Automatic Fee:** 3% on every tip  
+**Creator Receives:** 97% directly
+
+**Questions?** See [TIPJAR_DEPLOYMENT.md](./TIPJAR_DEPLOYMENT.md) for detailed instructions.
