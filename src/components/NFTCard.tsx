@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { parseEther } from 'viem';
+import { arbitrum } from 'wagmi/chains';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, ExternalLink, ShoppingCart, Tag, User } from 'lucide-react';
 import { NFT_MARKETPLACE_CONTRACT_ADDRESS, NFT_MARKETPLACE_ABI, CREATOR_NFT_CONTRACT_ADDRESS } from '@/lib/web3-config';
@@ -84,12 +85,16 @@ export const NFTCard = ({
     }
 
     try {
+      if (!address) return;
+      
       writeContract({
         address: NFT_MARKETPLACE_CONTRACT_ADDRESS as `0x${string}`,
         abi: NFT_MARKETPLACE_ABI,
         functionName: 'buyNFT',
         args: [BigInt(listingId)],
         value: parseEther(price),
+        account: address,
+        chain: arbitrum,
       });
 
       toast({

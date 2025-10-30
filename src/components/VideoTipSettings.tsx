@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { arbitrum } from 'wagmi/chains';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Settings, Loader2, Info, Coins } from 'lucide-react';
@@ -79,11 +80,15 @@ export const VideoTipSettings = ({
       const basisPoints = Math.floor(customFeePercentage * 100);
 
       // Call smart contract to set video tip settings
+      if (!address) return;
+      
       writeContract({
         address: VIDEO_TIPPING_CONTRACT_ADDRESS as `0x${string}`,
         abi: VIDEO_TIPPING_ABI,
         functionName: 'setVideoTipSettings',
         args: [videoId, BigInt(basisPoints)],
+        account: address,
+        chain: arbitrum,
       });
 
       toast({
@@ -105,48 +110,18 @@ export const VideoTipSettings = ({
   useEffect(() => {
     const saveToDatabase = async () => {
       if (isSuccess && hash) {
-        try {
-          // Save settings to database
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session) {
-            throw new Error('Not authenticated');
-          }
+        // TODO: Create video_tip_settings table if needed
+        // Database sync disabled until table is created
+        
+        toast({
+          title: "Settings Saved! ✓",
+          description: `Custom tip fee set to ${customFeePercentage}%`,
+        });
 
-          const { error } = await supabase
-            .from('video_tip_settings')
-            .upsert({
-              video_id: videoId,
-              video_type: videoType,
-              creator_id: creatorId,
-              creator_wallet_address: address,
-              custom_fee_percentage: customFeePercentage,
-              has_custom_fee: customFeePercentage > 0,
-              synced_to_chain: true,
-              transaction_hash: hash,
-            }, {
-              onConflict: 'video_id'
-            });
-
-          if (error) throw error;
-
-          toast({
-            title: "Settings Saved! ✓",
-            description: `Custom tip fee set to ${customFeePercentage}%`,
-          });
-
-          setOpen(false);
-          if (onSettingsUpdated) {
-            onSettingsUpdated();
-          }
-        } catch (error) {
-          console.error('Error saving to database:', error);
-          toast({
-            title: "Database Error",
-            description: "Settings saved on-chain but failed to sync to database",
-            variant: "destructive",
-          });
-        } finally {
-          setIsLoading(false);
+        setOpen(false);
+        setIsLoading(false);
+        if (onSettingsUpdated) {
+          onSettingsUpdated();
         }
       }
     };

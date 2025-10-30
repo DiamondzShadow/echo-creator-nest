@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { parseEther } from 'viem';
+import { arbitrum } from 'wagmi/chains';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, ImagePlus, Upload } from 'lucide-react';
 import { CREATOR_NFT_CONTRACT_ADDRESS, CREATOR_NFT_ABI } from '@/lib/web3-config';
@@ -61,7 +62,7 @@ export const NFTMint = () => {
     }
 
     // Check if contract is deployed
-    if (!CREATOR_NFT_CONTRACT_ADDRESS || CREATOR_NFT_CONTRACT_ADDRESS === "0x...") {
+    if (!CREATOR_NFT_CONTRACT_ADDRESS || CREATOR_NFT_CONTRACT_ADDRESS.startsWith("0x...")) {
       toast({
         title: "Contract Not Deployed",
         description: "The CreatorNFT contract has not been deployed yet. Please contact the platform administrator.",
@@ -123,6 +124,8 @@ export const NFTMint = () => {
         functionName: 'mintNFT',
         args: [address, metadataUri, BigInt(royaltyBasisPoints)],
         value: parseEther('0.001'), // Minting fee
+        account: address,
+        chain: arbitrum,
       });
 
       toast({
@@ -167,7 +170,7 @@ export const NFTMint = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {!CREATOR_NFT_CONTRACT_ADDRESS || CREATOR_NFT_CONTRACT_ADDRESS === "0x..." ? (
+        {!CREATOR_NFT_CONTRACT_ADDRESS || CREATOR_NFT_CONTRACT_ADDRESS.startsWith("0x...") ? (
           <div className="text-center py-8 space-y-2">
             <p className="text-destructive font-semibold">
               CreatorNFT Contract Not Deployed
@@ -272,7 +275,7 @@ export const NFTMint = () => {
 
             <Button
               onClick={handleMint}
-              disabled={isConfirming || isUploading || !name || !description || !imageUrl || !CREATOR_NFT_CONTRACT_ADDRESS || CREATOR_NFT_CONTRACT_ADDRESS === "0x..."}
+              disabled={isConfirming || isUploading || !name || !description || !imageUrl || !CREATOR_NFT_CONTRACT_ADDRESS || CREATOR_NFT_CONTRACT_ADDRESS.startsWith("0x...")}
               className="w-full"
             >
               {isConfirming ? (

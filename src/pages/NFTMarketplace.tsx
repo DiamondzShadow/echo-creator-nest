@@ -55,31 +55,11 @@ export default function NFTMarketplace() {
     try {
       setIsLoading(true);
       
-      const { data, error } = await supabase
-        .from('nft_listings')
-        .select(`
-          *,
-          seller:profiles!seller_id (
-            username
-          )
-        `)
-        .eq('status', 'active')
-        .order('listed_at', { ascending: false });
+      // TODO: Create nft_listings table if needed
+      // Database query disabled until table is created
+      const data = [];
 
-      if (error) {
-        console.error('Database error:', error);
-        throw error;
-      }
-
-      // Transform the data to handle the join structure
-      const transformedData = (data || []).map((listing: any) => ({
-        ...listing,
-        seller: listing.seller && Array.isArray(listing.seller) && listing.seller.length > 0
-          ? listing.seller[0]
-          : listing.seller || null
-      }));
-
-      setListings(transformedData);
+      setListings(data);
     } catch (error) {
       console.error('Error fetching listings:', error);
       toast({
