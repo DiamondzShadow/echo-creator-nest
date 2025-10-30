@@ -57,23 +57,36 @@ export default function NFTMarketplace() {
         .from('nft_listings')
         .select(`
           *,
-          seller:seller_id (
+          seller:profiles!seller_id (
             username
           )
         `)
         .eq('status', 'active')
         .order('listed_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
 
-      setListings(data || []);
+      // Transform the data to handle the join structure
+      const transformedData = (data || []).map((listing: any) => ({
+        ...listing,
+        seller: listing.seller && Array.isArray(listing.seller) && listing.seller.length > 0
+          ? listing.seller[0]
+          : listing.seller || null
+      }));
+
+      setListings(transformedData);
     } catch (error) {
       console.error('Error fetching listings:', error);
       toast({
-        title: "Error",
-        description: "Failed to load NFT listings",
+        title: "Error Loading NFTs",
+        description: error instanceof Error ? error.message : "Failed to load NFT listings. Please try again.",
         variant: "destructive",
       });
+      // Set empty array so UI doesn't break
+      setListings([]);
     } finally {
       setIsLoading(false);
     }
