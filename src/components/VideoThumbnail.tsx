@@ -21,11 +21,16 @@ export const VideoThumbnail = ({ title, thumbnailUrl, playbackId, duration }: Vi
   const [imgSrc, setImgSrc] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
-  const [fallbackStep, setFallbackStep] = useState<0 | 1 | 2>(0);
+  const [fallbackStep, setFallbackStep] = useState<0 | 1 | 2 | 3>(0);
 
+  // Generate all possible thumbnail URLs
   const simpleUrl = useMemo(() => (playbackId ? getSimpleThumbnailUrl(playbackId) : null), [playbackId]);
   const imageCacheUrl = useMemo(
     () => (playbackId ? `https://image-cache.livepeer.studio/thumbnail?playbackId=${playbackId}` : null),
+    [playbackId]
+  );
+  const directUrl = useMemo(
+    () => (playbackId ? `https://livepeer.studio/api/playback/${playbackId}/thumbnail.jpg` : null),
     [playbackId]
   );
 
@@ -35,31 +40,53 @@ export const VideoThumbnail = ({ title, thumbnailUrl, playbackId, duration }: Vi
     setFailed(false);
     setFallbackStep(0);
 
-    if (thumbnailUrl) {
+    // Debug logging
+    console.log('VideoThumbnail:', { title, thumbnailUrl, playbackId, simpleUrl, directUrl });
+
+    // Try thumbnailUrl first if it exists and is not null/undefined
+    if (thumbnailUrl && thumbnailUrl.trim() !== '') {
       setImgSrc(thumbnailUrl);
-    } else if (simpleUrl) {
-      setImgSrc(simpleUrl);
+      setFallbackStep(0);
+    } else if (directUrl) {
+      // Try direct Livepeer URL as first fallback
+      setImgSrc(directUrl);
       setFallbackStep(1);
-    } else if (imageCacheUrl) {
-      setImgSrc(imageCacheUrl);
+    } else if (simpleUrl) {
+      // Try simple URL next
+      setImgSrc(simpleUrl);
       setFallbackStep(2);
+    } else if (imageCacheUrl) {
+      // Try image cache URL last
+      setImgSrc(imageCacheUrl);
+      setFallbackStep(3);
     } else {
+      // No valid thumbnail sources available
       setImgSrc(null);
       setFailed(true);
     }
-  }, [thumbnailUrl, simpleUrl, imageCacheUrl]);
+  }, [thumbnailUrl, simpleUrl, imageCacheUrl, directUrl, title, playbackId]);
 
-  const handleError: React.ReactEventHandler<HTMLImageElement> = () => {
-    // Progress through fallbacks exactly once to avoid loops/flashing
-    if (fallbackStep === 0 && simpleUrl && imgSrc !== simpleUrl) {
-      setImgSrc(simpleUrl);
+  const handleError: React.ReactEventHandler<HTMLImageElement> = (e) => {
+    console.error('Thumbnail load error:', imgSrc, 'Step:', fallbackStep);
+    
+    // Progress through fallbacks to find a working source
+    if (fallbackStep === 0 && directUrl && imgSrc !== directUrl) {
+      console.log('Trying direct URL:', directUrl);
+      setImgSrc(directUrl);
       setFallbackStep(1);
       setLoaded(false);
-    } else if (fallbackStep <= 1 && imageCacheUrl && imgSrc !== imageCacheUrl) {
-      setImgSrc(imageCacheUrl);
+    } else if (fallbackStep <= 1 && simpleUrl && imgSrc !== simpleUrl) {
+      console.log('Trying simple URL:', simpleUrl);
+      setImgSrc(simpleUrl);
       setFallbackStep(2);
       setLoaded(false);
+    } else if (fallbackStep <= 2 && imageCacheUrl && imgSrc !== imageCacheUrl) {
+      console.log('Trying image cache URL:', imageCacheUrl);
+      setImgSrc(imageCacheUrl);
+      setFallbackStep(3);
+      setLoaded(false);
     } else {
+      console.error('All thumbnail sources failed for:', title);
       setFailed(true);
     }
   };
@@ -73,10 +100,14 @@ export const VideoThumbnail = ({ title, thumbnailUrl, playbackId, duration }: Vi
           src={imgSrc}
           alt={`${title} thumbnail`}
           className={`w-full h-full object-cover transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
-          onLoad={() => setLoaded(true)}
+          onLoad={() => {
+            console.log('Thumbnail loaded successfully:', imgSrc);
+            setLoaded(true);
+          }}
           onError={handleError}
           loading="lazy"
           decoding="async"
+          crossOrigin="anonymous"
         />
       )}
 
