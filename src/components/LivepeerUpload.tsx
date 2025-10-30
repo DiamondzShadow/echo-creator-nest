@@ -12,6 +12,8 @@ import { supabase } from '@/integrations/supabase/client';
 export const LivepeerUpload = () => {
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState<string>('');
   const [title, setTitle] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'processing' | 'ready' | 'error'>('idle');
@@ -33,6 +35,49 @@ export const LivepeerUpload = () => {
       if (!title) {
         setTitle(selectedFile.name.replace(/\.[^/.]+$/, ''));
       }
+    }
+  };
+
+  const handleThumbnailSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      if (!selectedFile.type.startsWith('image/')) {
+        toast({
+          title: 'Invalid file type',
+          description: 'Please select an image file',
+          variant: 'destructive',
+        });
+        return;
+      }
+      setThumbnailFile(selectedFile);
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(selectedFile);
+      setThumbnailPreview(previewUrl);
+    }
+  };
+
+  const uploadThumbnail = async (assetId: string): Promise<string | null> => {
+    if (!thumbnailFile) return null;
+
+    try {
+      const fileExt = thumbnailFile.name.split('.').pop();
+      const fileName = `${assetId}.${fileExt}`;
+      const filePath = `thumbnails/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, thumbnailFile, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Thumbnail upload error:', error);
+      return null;
     }
   };
 
@@ -88,13 +133,17 @@ export const LivepeerUpload = () => {
           onSuccess: async () => {
             console.log('Upload completed!');
             setUploadStatus('processing');
+            
+            // Upload thumbnail if provided
+            const thumbnailUrl = await uploadThumbnail(assetId);
+            
             toast({
               title: 'Upload complete',
               description: 'Processing your video...',
             });
 
             // Poll for processing status
-            pollAssetStatus(assetId, playbackId);
+            pollAssetStatus(assetId, playbackId, thumbnailUrl);
             resolve(null);
           },
         });
@@ -112,7 +161,7 @@ export const LivepeerUpload = () => {
     }
   };
 
-  const pollAssetStatus = async (assetId: string, playbackId: string) => {
+  const pollAssetStatus = async (assetId: string, playbackId: string, customThumbnail?: string | null) => {
     const maxAttempts = 60; // 5 minutes max
     let attempts = 0;
 
@@ -130,6 +179,14 @@ export const LivepeerUpload = () => {
         console.log('Asset status:', data.status, 'Progress:', data.progress);
 
         if (data.status === 'ready') {
+          // Update thumbnail in database if custom thumbnail was uploaded
+          if (customThumbnail) {
+            await supabase
+              .from('assets')
+              .update({ thumbnail_url: customThumbnail })
+              .eq('livepeer_asset_id', assetId);
+          }
+          
           setUploadStatus('ready');
           setAssetInfo({
             playbackId: data.playbackId || playbackId,
@@ -212,6 +269,26 @@ export const LivepeerUpload = () => {
             onChange={handleFileSelect}
             disabled={uploadStatus !== 'idle'}
           />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="thumbnail-file">Custom Thumbnail (Optional)</Label>
+          <Input
+            id="thumbnail-file"
+            type="file"
+            accept="image/*"
+            onChange={handleThumbnailSelect}
+            disabled={uploadStatus !== 'idle'}
+          />
+          {thumbnailPreview && (
+            <div className="mt-2 relative w-full max-w-xs">
+              <img 
+                src={thumbnailPreview} 
+                alt="Thumbnail preview" 
+                className="w-full rounded-lg border"
+              />
+            </div>
+          )}
         </div>
 
         <div className="flex items-center space-x-2">
@@ -298,6 +375,8 @@ export const LivepeerUpload = () => {
           <Button
             onClick={() => {
               setFile(null);
+              setThumbnailFile(null);
+              setThumbnailPreview('');
               setTitle('');
               setUploadProgress(0);
               setUploadStatus('idle');
