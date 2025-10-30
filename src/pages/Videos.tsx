@@ -93,7 +93,7 @@ const Videos = () => {
       const { data, error } = await supabase
         .from('assets')
         .select('*')
-        .or(`user_id.eq.${session.user.id},is_public.eq.true`)
+        .eq('user_id', session.user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
