@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Navbar } from '@/components/Navbar';
+import Navbar from '@/components/Navbar';
 import { NFTCard } from '@/components/NFTCard';
 import { NFTMint } from '@/components/NFTMint';
 import { Button } from '@/components/ui/button';
