@@ -278,14 +278,6 @@ export const TIPJAR_ABI = [
 // TODO: Deploy and update with actual contract address
 export const CREATOR_NFT_CONTRACT_ADDRESS = "0x..."; // Deploy CreatorNFT.sol
 
-// NFTMarketplace contract address
-// TODO: Deploy and update with actual contract address
-export const NFT_MARKETPLACE_CONTRACT_ADDRESS = "0x..."; // Deploy NFTMarketplace.sol
-
-// VideoTipping contract address (for custom tip fees)
-// TODO: Deploy and update with actual contract address
-export const VIDEO_TIPPING_CONTRACT_ADDRESS = "0x..."; // Deploy VideoTipping.sol
-
 // CreatorNFT contract ABI (ERC721)
 export const CREATOR_NFT_ABI = [
   // Mint function
