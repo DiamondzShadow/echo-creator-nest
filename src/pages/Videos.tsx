@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
 import { BrandBanner } from '@/components/BrandBanner';
 import { VideoThumbnail } from '@/components/VideoThumbnail';
+import { VideoEditDialog } from '@/components/VideoEditDialog';
 import { LivepeerUpload } from '@/components/LivepeerUpload';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -231,14 +232,15 @@ const Videos = () => {
                       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
                     })
                     .map((asset) => (
-                    <Card key={asset.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
-                          onClick={() => navigate(`/video/${asset.id}`)}>
-                      <VideoThumbnail
-                        title={asset.title}
-                        thumbnailUrl={asset.thumbnail_url}
-                        playbackId={asset.livepeer_playback_id}
-                        duration={asset.duration}
-                      />
+                    <Card key={asset.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                      <div onClick={() => navigate(`/video/${asset.id}`)} className="cursor-pointer">
+                        <VideoThumbnail
+                          title={asset.title}
+                          thumbnailUrl={asset.thumbnail_url}
+                          playbackId={asset.livepeer_playback_id}
+                          duration={asset.duration}
+                        />
+                      </div>
                       <CardContent className="p-4 space-y-3">
                         <div className="flex items-start justify-between gap-2">
                           <h3 className="font-semibold line-clamp-2 flex-1">{asset.title}</h3>
@@ -253,7 +255,7 @@ const Videos = () => {
                               <Heart className="h-3 w-3" />{asset.likes.toLocaleString()}
                             </span>
                           </div>
-                          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center gap-2">
                             {asset.is_public ? <Unlock className="h-3 w-3 text-muted-foreground" /> : <Lock className="h-3 w-3 text-muted-foreground" />}
                             <Switch
                               checked={asset.is_public}
@@ -262,9 +264,19 @@ const Videos = () => {
                             />
                           </div>
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(asset.created_at), { addSuffix: true })}
-                        </p>
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(asset.created_at), { addSuffix: true })}
+                          </p>
+                          <VideoEditDialog
+                            videoId={asset.id}
+                            currentTitle={asset.title}
+                            currentDescription={asset.description}
+                            currentThumbnail={asset.thumbnail_url}
+                            currentIsPublic={asset.is_public}
+                            onUpdate={fetchAssets}
+                          />
+                        </div>
                       </CardContent>
                     </Card>
                   ))}
