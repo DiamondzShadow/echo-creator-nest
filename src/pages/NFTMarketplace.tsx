@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { NFTCard } from '@/components/NFTCard';
 import { NFTMint } from '@/components/NFTMint';
+import { CollectionStatsCard } from '@/components/CollectionStatsCard';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
@@ -10,6 +11,7 @@ import { useAccount } from 'wagmi';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Search, Store, Plus } from 'lucide-react';
+import { CREATOR_NFT_CONTRACT_ADDRESS } from '@/lib/web3-config';
 
 interface NFTListing {
   id: string;
@@ -144,6 +146,15 @@ export default function NFTMarketplace() {
           <p className="text-muted-foreground">
             Buy, sell, and trade unique NFTs from creators with built-in royalties
           </p>
+        </div>
+
+        {/* Collection Stats */}
+        <div className="mb-8">
+          <CollectionStatsCard
+            contractAddress={CREATOR_NFT_CONTRACT_ADDRESS}
+            collectionName="Creator NFTs"
+            chain="arbitrum"
+          />
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">

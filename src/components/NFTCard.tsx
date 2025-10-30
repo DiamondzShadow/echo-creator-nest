@@ -7,7 +7,8 @@ import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagm
 import { parseEther } from 'viem';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, ExternalLink, ShoppingCart, Tag, User } from 'lucide-react';
-import { NFT_MARKETPLACE_CONTRACT_ADDRESS, NFT_MARKETPLACE_ABI } from '@/lib/web3-config';
+import { NFT_MARKETPLACE_CONTRACT_ADDRESS, NFT_MARKETPLACE_ABI, CREATOR_NFT_CONTRACT_ADDRESS } from '@/lib/web3-config';
+import { OpenSeaLinkButton } from './OpenSeaLinkButton';
 
 interface NFTCardProps {
   listingId: number;
@@ -175,14 +176,15 @@ export const NFTCard = ({
         </div>
       </CardContent>
       
-      <CardFooter className="p-4 pt-0">
+      <CardFooter className="p-4 pt-0 flex flex-col gap-2">
         {isActive ? (
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button className="w-full" disabled={isOwnNFT}>
-                {isOwnNFT ? 'Your NFT' : 'Buy Now'}
-              </Button>
-            </DialogTrigger>
+          <>
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button className="w-full" disabled={isOwnNFT}>
+                  {isOwnNFT ? 'Your NFT' : 'Buy Now'}
+                </Button>
+              </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Purchase NFT</DialogTitle>
@@ -265,10 +267,29 @@ export const NFTCard = ({
               </div>
             </DialogContent>
           </Dialog>
+          <OpenSeaLinkButton
+            contractAddress={CREATOR_NFT_CONTRACT_ADDRESS}
+            tokenId={tokenId}
+            chain="arbitrum"
+            variant="ghost"
+            size="sm"
+            className="w-full"
+          />
+          </>
         ) : (
-          <Button variant="outline" disabled className="w-full">
-            Sold
-          </Button>
+          <>
+            <Button variant="outline" disabled className="w-full">
+              Sold
+            </Button>
+            <OpenSeaLinkButton
+              contractAddress={CREATOR_NFT_CONTRACT_ADDRESS}
+              tokenId={tokenId}
+              chain="arbitrum"
+              variant="ghost"
+              size="sm"
+              className="w-full"
+            />
+          </>
         )}
       </CardFooter>
     </Card>

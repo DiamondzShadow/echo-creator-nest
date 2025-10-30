@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { LogOut, Video, User as UserIcon, Trophy, Menu, Users, Film, HardDrive, Store } from "lucide-react";
+import { LogOut, Video, User as UserIcon, Trophy, Menu, Users, Film, HardDrive, Store, Wallet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -91,6 +91,14 @@ const Navbar = () => {
                         NFT Marketplace
                       </Button>
                       <Button
+                        onClick={() => handleNavigate("/nft-portfolio")}
+                        className="w-full justify-start"
+                        variant="ghost"
+                      >
+                        <Wallet className="w-4 h-4 mr-2" />
+                        My NFTs
+                      </Button>
+                      <Button
                         onClick={() => handleNavigate("/live")}
                         className="w-full justify-start"
                         variant="ghost"
@@ -133,6 +141,10 @@ const Navbar = () => {
                   <Button variant="ghost" onClick={() => navigate("/marketplace")}>
                     <Store className="w-4 h-4 mr-2" />
                     Marketplace
+                  </Button>
+                  <Button variant="ghost" onClick={() => navigate("/nft-portfolio")}>
+                    <Wallet className="w-4 h-4 mr-2" />
+                    My NFTs
                   </Button>
                   <Button
                     onClick={() => navigate("/live")}
