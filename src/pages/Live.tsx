@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Video, StopCircle, Loader2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
-import { LivepeerBroadcaster } from "@/components/LivepeerBroadcaster";
+import { InstantLiveStreamLiveKit } from "@/components/InstantLiveStreamLiveKit";
 import { StreamChat } from "@/components/StreamChat";
 import { BrandBanner } from "@/components/BrandBanner";
 import { User } from "@supabase/supabase-js";
@@ -22,11 +22,11 @@ const Live = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [streamId, setStreamId] = useState<string | null>(null);
-  const [livepeerStreamId, setLivepeerStreamId] = useState<string>("");
-  const [streamKey, setStreamKey] = useState<string>("");
-  const [playbackId, setPlaybackId] = useState<string>("");
-  const [ingestUrl, setIngestUrl] = useState<string>("");
+  const [livekitToken, setLivekitToken] = useState<string>("");
+  const [roomName, setRoomName] = useState<string>("");
   const [enableRecording, setEnableRecording] = useState(true);
+  const [saveToStorj, setSaveToStorj] = useState(false);
+  const [recordingStarted, setRecordingStarted] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -45,42 +45,23 @@ const Live = () => {
     setLoading(true);
 
     try {
-      console.log('Creating Livepeer stream...');
+      console.log('Creating LiveKit room for instant browser streaming...');
+      
+      // Generate unique room name
+      const roomId = `stream-${user.id}-${Date.now()}`;
+      setRoomName(roomId);
 
-      // Create Livepeer stream via edge function
-      const { data: streamData, error: streamError } = await supabase.functions.invoke('create-livepeer-stream', {
-        body: {
-          name: title.trim().substring(0, 200),
-          record: enableRecording,
-        }
-      });
-
-      if (streamError || !streamData?.stream) {
-        console.error('Livepeer stream creation error:', streamError);
-        throw new Error(streamError?.message || 'Failed to create Livepeer stream');
-      }
-
-      console.log('Livepeer stream created:', streamData.stream);
-
-      const stream = streamData.stream;
-      setLivepeerStreamId(stream.id);
-      setStreamKey(stream.streamKey);
-      setPlaybackId(stream.playbackId);
-      setIngestUrl(`rtmp://rtmp.livepeer.com/live`);
-
-      // Create stream record in database
+      // First create stream record in database (NOT live yet - will be set when tracks are published)
       const { data, error } = await supabase
         .from("live_streams")
         .insert({
           user_id: user.id,
           title: title.trim().substring(0, 200),
           description: description?.trim().substring(0, 2000),
-          is_live: false, // Will be set to true when stream starts
+          is_live: false, // Don't mark as live until broadcaster publishes tracks
           started_at: new Date().toISOString(),
-          livepeer_stream_id: stream.id,
-          livepeer_playback_id: stream.playbackId,
-          stream_key: stream.streamKey,
-          enable_recording: enableRecording,
+          livepeer_stream_id: roomId,
+          livepeer_playback_id: roomId,
         })
         .select()
         .single();
@@ -92,11 +73,30 @@ const Live = () => {
 
       console.log('Stream record created:', data);
       setStreamId(data.id);
+
+      // Get LiveKit token for broadcaster
+      const { data: tokenData, error: tokenError } = await supabase.functions.invoke('livekit-token', {
+        body: {
+          action: 'create_token',
+          roomName: roomId,
+          streamId: data.id,
+          enableRecording,
+          saveToStorj,
+        }
+      });
+
+      if (tokenError || !tokenData?.token) {
+        console.error('Token error:', tokenError);
+        throw new Error('Failed to get streaming token');
+      }
+
+      console.log('LiveKit token obtained');
+      setLivekitToken(tokenData.token);
       setIsLive(true);
 
       toast({
         title: "Stream created!",
-        description: "Your Livepeer stream is ready. Use the RTMP credentials to broadcast.",
+        description: "Your browser stream is ready - camera and mic will activate next!",
       });
     } catch (error) {
       console.error('Stream creation error:', error);
@@ -136,10 +136,9 @@ const Live = () => {
       setStreamId(null);
       setTitle("");
       setDescription("");
-      setLivepeerStreamId("");
-      setStreamKey("");
-      setPlaybackId("");
-      setIngestUrl("");
+      setLivekitToken("");
+      setRoomName("");
+      setRecordingStarted(false);
       
       toast({
         title: "Stream ended",
@@ -206,7 +205,7 @@ const Live = () => {
                             Record Stream
                           </Label>
                           <p className="text-sm text-muted-foreground">
-                            Save your stream for viewers to watch later (saved to Livepeer)
+                            Save your stream for viewers to watch later
                           </p>
                         </div>
                         <Switch
@@ -215,6 +214,24 @@ const Live = () => {
                           onCheckedChange={setEnableRecording}
                         />
                       </div>
+
+                      {enableRecording && (
+                        <div className="flex items-center justify-between pl-4 border-l-2 border-primary/30">
+                          <div className="space-y-0.5">
+                            <Label htmlFor="save-to-storj" className="text-sm">
+                              Save to Storj (Decentralized)
+                            </Label>
+                            <p className="text-xs text-muted-foreground">
+                              Permanently store on decentralized storage
+                            </p>
+                          </div>
+                          <Switch
+                            id="save-to-storj"
+                            checked={saveToStorj}
+                            onCheckedChange={setSaveToStorj}
+                          />
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                   
@@ -241,16 +258,14 @@ const Live = () => {
             </Card>
           ) : (
             <div className="space-y-6">
-              {playbackId && streamKey && (
-                <LivepeerBroadcaster
-                  streamKey={streamKey}
-                  ingestUrl={ingestUrl}
-                  playbackId={playbackId}
+              {livekitToken && (
+                <InstantLiveStreamLiveKit
+                  roomToken={livekitToken}
                   onStreamEnd={handleEndStream}
                   onStreamConnected={async () => {
-                    console.log('🔴 Stream connected to Livepeer!');
+                    console.log('🔴 Stream connected! Recording:', enableRecording, 'Room:', roomName, 'Already started:', recordingStarted);
                     
-                    // Mark stream as live in database
+                    // CRITICAL: Now mark stream as live since broadcaster has published tracks
                     try {
                       const { error: updateError } = await supabase
                         .from("live_streams")
@@ -268,11 +283,80 @@ const Live = () => {
                     
                     toast({
                       title: "🎉 You're Live!",
-                      description: "Viewers can now see your stream on Livepeer",
+                      description: "Viewers can now see your stream",
                     });
+                    
+                    // CRITICAL FIX: Delay recording start to stabilize broadcaster connection
+                    // Starting egress immediately can cause connection issues when viewers join
+                    // Wait 3 seconds to ensure broadcaster's connection is stable
+                    if (enableRecording && roomName && !recordingStarted) {
+                      console.log('📹 Recording will start in 3 seconds to stabilize connection...');
+                      
+                      // Show early toast so user knows recording is queued
+                      toast({
+                        title: "Recording Queued",
+                        description: "Recording will start in a few seconds once connection stabilizes",
+                      });
+                      
+                      // Delay to let broadcaster connection stabilize before adding egress participant
+                      setTimeout(async () => {
+                        console.log('📹 Now starting recording...');
+
+                        // Recording is attempted in background - DO NOT block stream
+                        // Stream is already live and working. Recording failure should NOT stop the stream.
+                        try {
+                          const { data: egressData, error: egressError } = await supabase.functions.invoke('livekit-egress', {
+                            body: {
+                              roomName,
+                              streamId,
+                            }
+                          });
+
+                          console.log('📹 Egress response:', { egressData, egressError });
+
+                          if (egressError || !egressData?.success) {
+                            const errorMsg = egressData?.error || egressError?.message || 'Unknown error';
+                            console.error('❌ Recording failed (stream continues):', errorMsg);
+
+                            // Check if it's a configuration issue
+                            if (egressData?.code === 'STORJ_NOT_CONFIGURED') {
+                              toast({
+                                title: "Recording Not Available",
+                                description: "Storage not configured. Stream is live but won't be recorded. Contact admin to enable recording.",
+                                variant: "default",
+                              });
+                            } else {
+                              toast({
+                                title: "Recording Failed",
+                                description: `Stream is live but recording failed: ${errorMsg}`,
+                                variant: "destructive",
+                              });
+                            }
+                          } else {
+                            setRecordingStarted(true);
+                            const storageLocation = saveToStorj ? "Storj (decentralized)" : "cloud storage";
+                            console.log('✅ Recording started:', egressData.egressId);
+                            toast({
+                              title: "Recording Started",
+                              description: `Saving to ${storageLocation}`,
+                            });
+                          }
+                        } catch (error) {
+                          console.error('❌ Exception starting recording (stream continues):', error);
+                          toast({
+                            title: "Recording Unavailable",
+                            description: "Your stream is live but recording couldn't start. Stream will continue normally.",
+                            variant: "default",
+                          });
+                        }
+                      }, 3000); // 3 second delay to stabilize connection
+                    } else if (enableRecording && recordingStarted) {
+                      console.log('✅ Recording already started');
+                    } else {
+                      console.log('⚠️ Recording disabled by user');
+                    }
                   }}
                   isLive={isLive}
-                  creatorId={user.id}
                 />
               )}
 

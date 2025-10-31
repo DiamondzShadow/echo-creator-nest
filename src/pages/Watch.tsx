@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/Navbar";
-import { LivepeerViewer } from "@/components/LivepeerViewer";
+import { LiveKitViewer } from "@/components/LiveKitViewer";
 import { TipButton } from "@/components/TipButton";
 import FollowButton from "@/components/FollowButton";
 import { StreamChat } from "@/components/StreamChat";
@@ -338,14 +338,13 @@ const Watch = () => {
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-4 gap-6">
             <div className="lg:col-span-3 space-y-4">
-              {stream.livepeer_playback_id && stream.is_live ? (
-                <LivepeerViewer
-                  playbackId={stream.livepeer_playback_id}
+              {isLiveKitStream && stream.is_live && livekitToken ? (
+                <LiveKitViewer
+                  roomToken={livekitToken}
                   title={stream.title}
                   isLive={stream.is_live}
-                  viewerCount={stream.viewer_count || 0}
                 />
-              ) : !stream.is_live ? (
+              ) : isLiveKitStream && !stream.is_live ? (
                 <Card className="border-0 shadow-glow bg-gradient-card">
                   <CardContent className="pt-6">
                     <div className="aspect-video bg-muted rounded-lg flex flex-col items-center justify-center p-8">
