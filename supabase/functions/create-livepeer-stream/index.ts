@@ -103,10 +103,13 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error creating Livepeer stream:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
+    const errorDetails = error instanceof Error ? error.toString() : String(error);
+    
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'Internal server error',
-        details: error.toString()
+        error: errorMessage,
+        details: errorDetails
       }),
       { 
         status: 500,

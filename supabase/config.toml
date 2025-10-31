@@ -1,5 +1,8 @@
 project_id = "woucixqbnzmvlvnaaelb"
 
+[functions.create-livepeer-stream]
+verify_jwt = true
+
 [functions.livepeer-stream]
 verify_jwt = true
 
