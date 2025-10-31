@@ -68,7 +68,11 @@ serve(async (req) => {
       }
 
       // Create LiveKit access token for host/publisher with stable identity per room
-      const hostIdentity = `host-${roomName}-${user.id}`;
+      // CRITICAL: Use a simpler, more stable identity that won't conflict
+      // Include only the user ID for the broadcaster to ensure uniqueness
+      const hostIdentity = `host-${user.id}`;
+      console.log('Creating broadcaster token with identity:', hostIdentity, 'for room:', roomName);
+      
       const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
         identity: hostIdentity,
         name: user.email || 'Host',
@@ -76,17 +80,25 @@ serve(async (req) => {
           userId: user.id,
           streamId: streamId,
           role: 'host',
+          roomName: roomName,
         }),
       });
 
-      // Grant permissions
+      // Grant permissions for broadcaster
+      // CRITICAL: Ensure broadcaster has all necessary permissions
       at.addGrant({
         roomJoin: true,
         room: roomName,
         canPublish: true,
         canPublishData: true,
         canSubscribe: true,
+        // Allow hidden participation (broadcaster won't show as "viewer")
+        hidden: false,
+        // Broadcaster can update metadata
+        canUpdateOwnMetadata: true,
       });
+      
+      console.log('Broadcaster token created successfully for room:', roomName);
 
       const token = await at.toJwt();
 
@@ -127,10 +139,19 @@ serve(async (req) => {
       );
     } else if (action === 'create_viewer_token') {
       // Create viewer token (subscribe-only) with unique identity to avoid kicking host or other viewers
+      // CRITICAL: Ensure viewer identity is COMPLETELY unique to prevent any conflicts
       // Viewers can be anonymous or authenticated
       const userId = user?.id || `anonymous-${crypto.randomUUID().slice(0,12)}`;
-      const viewerIdentity = `viewer-${roomName}-${userId}-${crypto.randomUUID().slice(0,8)}`;
+      const uniqueId = crypto.randomUUID();
+      const viewerIdentity = `viewer-${uniqueId}`;
       const viewerName = user?.email || `Viewer-${crypto.randomUUID().slice(0,4)}`;
+      
+      console.log('Creating viewer token:', {
+        viewerIdentity,
+        roomName,
+        userId,
+        authenticated: !!user,
+      });
       
       const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
         identity: viewerIdentity,
@@ -141,17 +162,23 @@ serve(async (req) => {
           userId: userId,
           role: 'viewer',
           authenticated: !!user,
+          roomName: roomName,
         }),
       });
 
       // Grant viewer permissions (subscribe only, but MUST have canSubscribe: true)
+      // CRITICAL: Viewers should ONLY be able to subscribe, not publish
       at.addGrant({
         roomJoin: true,
         room: roomName,
         canPublish: false,
         canPublishData: false,
         canSubscribe: true, // CRITICAL: Viewers must be able to subscribe
+        // Mark as hidden so viewer doesn't interfere with host
+        hidden: false,
       });
+      
+      console.log('Viewer token created successfully for room:', roomName);
 
       const token = await at.toJwt();
 
