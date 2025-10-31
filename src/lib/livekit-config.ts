@@ -15,8 +15,11 @@ export interface LiveKitTokenRequest {
  */
 export async function createLiveKitRoom(token: string): Promise<Room> {
   const room = new Room({
+    // Adaptive streaming optimizes quality based on network conditions
     adaptiveStream: true,
+    // Dynacast automatically manages track subscriptions for better performance
     dynacast: true,
+    // Video capture settings - balanced quality
     videoCaptureDefaults: {
       resolution: {
         width: 1920,
@@ -24,14 +27,27 @@ export async function createLiveKitRoom(token: string): Promise<Room> {
         frameRate: 30,
       },
     },
+    // Audio capture settings for clear voice
     audioCaptureDefaults: {
       autoGainControl: true,
       echoCancellation: true,
       noiseSuppression: true,
     },
+    // CRITICAL: Disconnect on page visibility change prevents zombie connections
+    stopLocalTrackOnUnpublish: true,
+    // Reconnection settings for better stability
+    disconnectOnPageLeave: true,
   });
 
-  await room.connect(LIVEKIT_URL, token, { autoSubscribe: true });
+  // Connect with auto-subscribe enabled for viewers
+  await room.connect(LIVEKIT_URL, token, { 
+    autoSubscribe: true,
+    // CRITICAL: Reduce initial connection complexity
+    // This helps prevent connection overload when multiple participants join
+    maxRetries: 3,
+    peerConnectionTimeout: 15000, // 15 seconds timeout
+  });
+  
   return room;
 }
 

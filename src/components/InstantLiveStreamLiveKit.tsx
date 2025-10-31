@@ -122,13 +122,27 @@ export const InstantLiveStreamLiveKit = ({
         // Track participant joins/leaves for viewer count (non-intrusive)
         newRoom.on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
           console.log('👤 Viewer joined:', participant.identity);
+          
+          // CRITICAL FIX: Ignore egress participants to get accurate viewer count
+          // Egress joins as a hidden participant for recording
+          const isEgressParticipant = participant.identity?.startsWith('EG_') || 
+                                       participant.metadata?.includes('egress');
+          
+          if (isEgressParticipant) {
+            console.log('📹 Egress recorder joined (not counted as viewer)');
+          }
+          
           // CRITICAL: Use the room instance from the event, not the closure variable
           // This prevents stale closures from causing issues
           if (mounted) {
             // Use requestAnimationFrame instead of setTimeout for more reliable updates
             requestAnimationFrame(() => {
               if (mounted && newRoom) {
-                setViewerCount(newRoom.remoteParticipants.size);
+                // Filter out egress participants from viewer count
+                const actualViewers = Array.from(newRoom.remoteParticipants.values())
+                  .filter(p => !p.identity?.startsWith('EG_') && !p.metadata?.includes('egress'))
+                  .length;
+                setViewerCount(actualViewers);
               }
             });
           }
@@ -136,13 +150,25 @@ export const InstantLiveStreamLiveKit = ({
 
         newRoom.on(RoomEvent.ParticipantDisconnected, (participant: RemoteParticipant) => {
           console.log('👤 Viewer left:', participant.identity);
+          
+          const isEgressParticipant = participant.identity?.startsWith('EG_') || 
+                                       participant.metadata?.includes('egress');
+          
+          if (isEgressParticipant) {
+            console.log('📹 Egress recorder left');
+          }
+          
           // CRITICAL: Use the room instance from the event, not the closure variable
           // This prevents stale closures from causing issues
           if (mounted) {
             // Use requestAnimationFrame instead of setTimeout for more reliable updates
             requestAnimationFrame(() => {
               if (mounted && newRoom) {
-                setViewerCount(newRoom.remoteParticipants.size);
+                // Filter out egress participants from viewer count
+                const actualViewers = Array.from(newRoom.remoteParticipants.values())
+                  .filter(p => !p.identity?.startsWith('EG_') && !p.metadata?.includes('egress'))
+                  .length;
+                setViewerCount(actualViewers);
               }
             });
           }
@@ -166,6 +192,8 @@ export const InstantLiveStreamLiveKit = ({
               description: 'Your connection quality is poor. Stream may be unstable.',
               variant: 'destructive',
             });
+          } else if (participant === newRoom.localParticipant && quality === 'excellent') {
+            console.log('✅ Connection quality is excellent');
           }
         });
 
