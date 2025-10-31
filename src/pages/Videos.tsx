@@ -136,10 +136,17 @@ const Videos = () => {
   const togglePublic = async (assetId: string, currentIsPublic: boolean, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        throw new Error('You must be logged in');
+      }
+
+      // Update with explicit ownership check
       const { error } = await supabase
         .from('assets')
         .update({ is_public: !currentIsPublic })
-        .eq('id', assetId);
+        .eq('id', assetId)
+        .eq('user_id', session.user.id);
 
       if (error) throw error;
 
@@ -155,7 +162,7 @@ const Videos = () => {
       console.error('Error toggling public:', error);
       toast({
         title: 'Error',
-        description: 'Failed to update video visibility',
+        description: error instanceof Error ? error.message : 'Failed to update video visibility',
         variant: 'destructive',
       });
     }
