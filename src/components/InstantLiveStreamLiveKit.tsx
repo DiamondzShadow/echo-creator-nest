@@ -107,34 +107,83 @@ export const InstantLiveStreamLiveKit = ({
         console.log('✅ Connected to LiveKit room:', newRoom.name);
 
         // Setup room event handlers
-        newRoom.on(RoomEvent.Disconnected, () => {
-          console.log('🔌 Room disconnected');
+        newRoom.on(RoomEvent.Disconnected, (reason?: any) => {
+          console.log('🔌 Room disconnected. Reason:', reason);
+          // CRITICAL: Add more detailed logging to understand why disconnect happened
+          console.log('Disconnect details:', {
+            reason,
+            mounted,
+            roomState: newRoom?.state,
+            participantCount: newRoom?.remoteParticipants.size,
+          });
           setIsConnected(false);
         });
 
         // Track participant joins/leaves for viewer count (non-intrusive)
         newRoom.on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
           console.log('👤 Viewer joined:', participant.identity);
-          // Update viewer count without interrupting stream
-          setTimeout(() => {
-            if (mounted && connectedRoom) {
-              setViewerCount(connectedRoom.remoteParticipants.size);
-            }
-          }, 100);
+          // CRITICAL: Use the room instance from the event, not the closure variable
+          // This prevents stale closures from causing issues
+          if (mounted) {
+            // Use requestAnimationFrame instead of setTimeout for more reliable updates
+            requestAnimationFrame(() => {
+              if (mounted && newRoom) {
+                setViewerCount(newRoom.remoteParticipants.size);
+              }
+            });
+          }
         });
 
         newRoom.on(RoomEvent.ParticipantDisconnected, (participant: RemoteParticipant) => {
           console.log('👤 Viewer left:', participant.identity);
-          // Update viewer count without interrupting stream
-          setTimeout(() => {
-            if (mounted && connectedRoom) {
-              setViewerCount(connectedRoom.remoteParticipants.size);
-            }
-          }, 100);
+          // CRITICAL: Use the room instance from the event, not the closure variable
+          // This prevents stale closures from causing issues
+          if (mounted) {
+            // Use requestAnimationFrame instead of setTimeout for more reliable updates
+            requestAnimationFrame(() => {
+              if (mounted && newRoom) {
+                setViewerCount(newRoom.remoteParticipants.size);
+              }
+            });
+          }
         });
 
         newRoom.on(RoomEvent.LocalTrackPublished, (publication) => {
           console.log('📤 Local track published:', publication.trackName);
+        });
+
+        // CRITICAL: Monitor for any connection quality issues that might cause drops
+        newRoom.on(RoomEvent.ConnectionQualityChanged, (quality, participant) => {
+          console.log('📶 Connection quality changed:', {
+            quality,
+            participant: participant?.identity || 'local',
+            isLocal: participant === newRoom.localParticipant,
+          });
+          // If broadcaster's connection quality drops too low, warn them
+          if (participant === newRoom.localParticipant && quality === 'poor') {
+            toast({
+              title: 'Poor Connection',
+              description: 'Your connection quality is poor. Stream may be unstable.',
+              variant: 'destructive',
+            });
+          }
+        });
+
+        // CRITICAL: Track reconnection attempts
+        newRoom.on(RoomEvent.Reconnecting, () => {
+          console.log('🔄 Attempting to reconnect to room...');
+          toast({
+            title: 'Reconnecting...',
+            description: 'Attempting to restore connection',
+          });
+        });
+
+        newRoom.on(RoomEvent.Reconnected, () => {
+          console.log('✅ Reconnected to room successfully');
+          toast({
+            title: 'Reconnected',
+            description: 'Connection restored successfully',
+          });
         });
 
         // Publish camera and microphone
