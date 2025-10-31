@@ -129,13 +129,31 @@ Users can manage privacy in the Videos page:
 - **RLS Policy**: `/workspace/supabase/migrations/20251024050205_24df0e9e-d0dd-4136-834c-399c0b4fd34a.sql` (line 161-163)
 
 ### Frontend
-- **Privacy Toggle**: `/workspace/src/pages/Videos.tsx` (line 136-162)
+- **Privacy Toggle**: `/workspace/src/pages/Videos.tsx` (line 136-169) - Owner verification added
+- **Video Edit Dialog**: `/workspace/src/components/VideoEditDialog.tsx` (line 85-128) - Owner verification added
 - **Profile Videos**: `/workspace/src/pages/Profile.tsx` (line 86-93) - Correctly filtered by user_id
 - **Public Discovery**: `/workspace/src/components/PublicVideos.tsx` (line 26-40) - Only shows public videos
+- **Discover Page**: `/workspace/src/pages/Discover.tsx` (line 115-123) - Only shows public videos
 
 ### Backend
 - **Video Creation**: `/workspace/supabase/functions/livepeer-asset/index.ts` - Uses DB default
 - **Stream Recording**: `/workspace/supabase/functions/livekit-webhook/index.ts` - Uses DB default
+
+## Additional Security Enhancements (Same Session)
+
+### Owner-Only Edit Permissions ✅
+All video edit operations now verify ownership before allowing changes:
+
+1. **Video Edit Dialog** - Checks user owns video before updating
+2. **Privacy Toggle** - Requires ownership match in query
+3. **Database RLS** - Already enforces UPDATE policy with `auth.uid() = user_id`
+
+### Cross-Profile Privacy Enforcement ✅
+Videos are now properly isolated between user profiles:
+
+1. **Discovery Page** - Only shows `is_public = true` videos
+2. **Profile Page** - Only shows videos for that specific profile
+3. **Watch Page** - RLS enforces privacy at database level
 
 ## Prevention
 
