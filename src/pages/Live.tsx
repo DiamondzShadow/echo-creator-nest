@@ -286,57 +286,70 @@ const Live = () => {
                       description: "Viewers can now see your stream",
                     });
                     
-                    // Start recording if enabled (non-blocking - stream continues even if recording fails)
+                    // CRITICAL FIX: Delay recording start to stabilize broadcaster connection
+                    // Starting egress immediately can cause connection issues when viewers join
+                    // Wait 3 seconds to ensure broadcaster's connection is stable
                     if (enableRecording && roomName && !recordingStarted) {
-                      console.log('📹 Attempting to start recording...');
+                      console.log('📹 Recording will start in 3 seconds to stabilize connection...');
+                      
+                      // Show early toast so user knows recording is queued
+                      toast({
+                        title: "Recording Queued",
+                        description: "Recording will start in a few seconds once connection stabilizes",
+                      });
+                      
+                      // Delay to let broadcaster connection stabilize before adding egress participant
+                      setTimeout(async () => {
+                        console.log('📹 Now starting recording...');
 
-                      // CRITICAL: Recording is attempted in background - DO NOT block stream
-                      // Stream is already live and working. Recording failure should NOT stop the stream.
-                      try {
-                        const { data: egressData, error: egressError } = await supabase.functions.invoke('livekit-egress', {
-                          body: {
-                            roomName,
-                            streamId,
-                          }
-                        });
+                        // Recording is attempted in background - DO NOT block stream
+                        // Stream is already live and working. Recording failure should NOT stop the stream.
+                        try {
+                          const { data: egressData, error: egressError } = await supabase.functions.invoke('livekit-egress', {
+                            body: {
+                              roomName,
+                              streamId,
+                            }
+                          });
 
-                        console.log('📹 Egress response:', { egressData, egressError });
+                          console.log('📹 Egress response:', { egressData, egressError });
 
-                        if (egressError || !egressData?.success) {
-                          const errorMsg = egressData?.error || egressError?.message || 'Unknown error';
-                          console.error('❌ Recording failed (stream continues):', errorMsg);
+                          if (egressError || !egressData?.success) {
+                            const errorMsg = egressData?.error || egressError?.message || 'Unknown error';
+                            console.error('❌ Recording failed (stream continues):', errorMsg);
 
-                          // Check if it's a configuration issue
-                          if (egressData?.code === 'STORJ_NOT_CONFIGURED') {
-                            toast({
-                              title: "Recording Not Available",
-                              description: "Storage not configured. Stream is live but won't be recorded. Contact admin to enable recording.",
-                              variant: "default",
-                            });
+                            // Check if it's a configuration issue
+                            if (egressData?.code === 'STORJ_NOT_CONFIGURED') {
+                              toast({
+                                title: "Recording Not Available",
+                                description: "Storage not configured. Stream is live but won't be recorded. Contact admin to enable recording.",
+                                variant: "default",
+                              });
+                            } else {
+                              toast({
+                                title: "Recording Failed",
+                                description: `Stream is live but recording failed: ${errorMsg}`,
+                                variant: "destructive",
+                              });
+                            }
                           } else {
+                            setRecordingStarted(true);
+                            const storageLocation = saveToStorj ? "Storj (decentralized)" : "cloud storage";
+                            console.log('✅ Recording started:', egressData.egressId);
                             toast({
-                              title: "Recording Failed",
-                              description: `Stream is live but recording failed: ${errorMsg}`,
-                              variant: "destructive",
+                              title: "Recording Started",
+                              description: `Saving to ${storageLocation}`,
                             });
                           }
-                        } else {
-                          setRecordingStarted(true);
-                          const storageLocation = saveToStorj ? "Storj (decentralized)" : "cloud storage";
-                          console.log('✅ Recording started:', egressData.egressId);
+                        } catch (error) {
+                          console.error('❌ Exception starting recording (stream continues):', error);
                           toast({
-                            title: "Recording Started",
-                            description: `Saving to ${storageLocation}`,
+                            title: "Recording Unavailable",
+                            description: "Your stream is live but recording couldn't start. Stream will continue normally.",
+                            variant: "default",
                           });
                         }
-                      } catch (error) {
-                        console.error('❌ Exception starting recording (stream continues):', error);
-                        toast({
-                          title: "Recording Unavailable",
-                          description: "Your stream is live but recording couldn't start. Stream will continue normally.",
-                          variant: "default",
-                        });
-                      }
+                      }, 3000); // 3 second delay to stabilize connection
                     } else if (enableRecording && recordingStarted) {
                       console.log('✅ Recording already started');
                     } else {
