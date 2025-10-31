@@ -85,6 +85,25 @@ export const VideoEditDialog = ({
   const handleSave = async () => {
     setLoading(true);
     try {
+      // Verify ownership before updating
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        throw new Error('You must be logged in to edit videos');
+      }
+
+      // Check if this video belongs to the current user
+      const { data: videoData, error: fetchError } = await supabase
+        .from('assets')
+        .select('user_id')
+        .eq('id', videoId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      if (videoData.user_id !== session.user.id) {
+        throw new Error('You can only edit your own videos');
+      }
+
       const updates: any = {
         title,
         description,
@@ -99,10 +118,12 @@ export const VideoEditDialog = ({
         }
       }
 
+      // Update with explicit ownership check in query
       const { error } = await supabase
         .from('assets')
         .update(updates)
-        .eq('id', videoId);
+        .eq('id', videoId)
+        .eq('user_id', session.user.id);
 
       if (error) throw error;
 

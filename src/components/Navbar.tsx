@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { LogOut, Video, User as UserIcon, Trophy, Menu, Users, Film, HardDrive, Store, Wallet } from "lucide-react";
+import { LogOut, Video, User as UserIcon, Trophy, Menu, Users, Film, HardDrive, Store, Wallet, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -72,6 +72,22 @@ const Navbar = () => {
               </SheetTrigger>
               <SheetContent>
                 <div className="flex flex-col gap-4 mt-8">
+                  <Button
+                    onClick={() => handleNavigate("/discover")}
+                    className="w-full justify-start"
+                    variant="ghost"
+                  >
+                    <Video className="w-4 h-4 mr-2" />
+                    Discover
+                  </Button>
+                  <Button
+                    onClick={() => handleNavigate("/creators")}
+                    className="w-full justify-start"
+                    variant="ghost"
+                  >
+                    <Search className="w-4 h-4 mr-2" />
+                    Find Creators
+                  </Button>
                   {user ? (
                     <>
                       <Button
@@ -133,6 +149,13 @@ const Navbar = () => {
             </Sheet>
           ) : (
             <>
+              <Button variant="ghost" onClick={() => navigate("/discover")}>
+                Discover
+              </Button>
+              <Button variant="ghost" onClick={() => navigate("/creators")}>
+                <Search className="w-4 h-4 mr-2" />
+                Creators
+              </Button>
               {user ? (
                 <>
                   <Button variant="ghost" onClick={() => navigate("/videos")}>
