@@ -90,20 +90,15 @@ serve(async (req) => {
       room_name: roomName,
       file: {
         filepath: filename,
-        output: {
-          case: 's3',
-          value: {
-            access_key: STORJ_ACCESS_KEY_ID,
-            secret: STORJ_SECRET_ACCESS_KEY,
-            region: 'us-east-1',
-            endpoint: STORJ_ENDPOINT,
-            bucket: STORJ_BUCKET,
-          }
+        s3: {
+          access_key: STORJ_ACCESS_KEY_ID,
+          secret: STORJ_SECRET_ACCESS_KEY,
+          region: 'us-east-1',
+          endpoint: STORJ_ENDPOINT,
+          bucket: STORJ_BUCKET,
         }
       },
-      options: {
-        preset: 'H264_720P_30'
-      }
+      preset: 'H264_720P_30'
     };
 
     // Create JWT token for LiveKit API authentication with video grants
