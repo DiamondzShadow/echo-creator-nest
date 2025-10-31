@@ -255,6 +255,7 @@ const Profile = () => {
                           },
                         }}
                         isRecording
+                        currentUserId={user?.id}
                       />
                     ))}
                   </div>

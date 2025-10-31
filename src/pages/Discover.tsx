@@ -4,6 +4,7 @@ import Navbar from "@/components/Navbar";
 import LiveStreamCard from "@/components/LiveStreamCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BrandBanner } from "@/components/BrandBanner";
+import { User } from "@supabase/supabase-js";
 
 interface Profile {
   username: string | null;
@@ -38,8 +39,10 @@ const Discover = () => {
   const [allStreams, setAllStreams] = useState<LiveStream[]>([]);
   const [recordings, setRecordings] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
+    fetchCurrentUser();
     fetchStreams();
 
     // Subscribe to realtime updates for both streams and assets
@@ -78,6 +81,11 @@ const Discover = () => {
       supabase.removeChannel(assetsChannel);
     };
   }, []);
+
+  const fetchCurrentUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    setCurrentUser(user);
+  };
 
   const fetchStreams = async () => {
     // Filter out stale lives older than 30 minutes
@@ -191,7 +199,7 @@ const Discover = () => {
                 {liveStreams.map((stream) => {
                   const profiles = stream.profiles || { username: 'Unknown', display_name: 'Unknown', avatar_url: null };
                   return (
-                    <LiveStreamCard key={stream.id} stream={{ ...stream, title: stream.title || 'Untitled Stream', description: stream.title || '', profiles }} />
+                    <LiveStreamCard key={stream.id} stream={{ ...stream, title: stream.title || 'Untitled Stream', description: stream.title || '', profiles }} currentUserId={currentUser?.id} />
                   );
                 })}
               </div>
@@ -224,7 +232,8 @@ const Discover = () => {
                     <LiveStreamCard 
                       key={asset.id} 
                       stream={{ ...asset, title: asset.title || 'Untitled', description: asset.description || asset.title || '', profiles: assetProfile }} 
-                      isRecording={true} 
+                      isRecording={true}
+                      currentUserId={currentUser?.id}
                     />
                   );
                 })}
@@ -251,7 +260,8 @@ const Discover = () => {
                     <LiveStreamCard 
                       key={asset.id} 
                       stream={{ ...asset, title: asset.title || 'Untitled', description: asset.description || asset.title || '', profiles: assetProfile }} 
-                      isRecording={true} 
+                      isRecording={true}
+                      currentUserId={currentUser?.id}
                     />
                   );
                 })}

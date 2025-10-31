@@ -13,6 +13,7 @@ interface LiveStreamCardProps {
     id: string;
     title: string;
     description: string | null;
+    user_id?: string;
     viewer_count?: number;
     is_live?: boolean;
     thumbnail_url?: string | null;
@@ -24,12 +25,16 @@ interface LiveStreamCardProps {
     } | null;
   };
   isRecording?: boolean;
+  currentUserId?: string;
 }
 
-const LiveStreamCard = ({ stream, isRecording = false }: LiveStreamCardProps) => {
+const LiveStreamCard = ({ stream, isRecording = false, currentUserId }: LiveStreamCardProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Only show edit controls if current user owns this video
+  const isOwner = currentUserId && stream.user_id && currentUserId === stream.user_id;
 
   const formatDuration = (seconds?: number) => {
     if (!seconds) return "0:00";
@@ -113,8 +118,8 @@ const LiveStreamCard = ({ stream, isRecording = false }: LiveStreamCardProps) =>
             </div>
           </div>
           
-          {/* Save to Storj button for recordings */}
-          {isRecording && (
+          {/* Save to Storj button for recordings - only show to owner */}
+          {isRecording && isOwner && (
             <div className="mt-3 pt-3 border-t">
               <Button
                 variant="outline"
