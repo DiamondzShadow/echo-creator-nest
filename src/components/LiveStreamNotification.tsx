@@ -27,7 +27,7 @@ export const LiveStreamNotification = () => {
     checkAuth();
     fetchLiveStreams();
 
-    // Subscribe to realtime updates for new live streams
+    // Subscribe to realtime updates for live streams
     const channel = supabase
       .channel('live_stream_notifications')
       .on(
@@ -41,6 +41,20 @@ export const LiveStreamNotification = () => {
         (payload) => {
           console.log('Stream went live:', payload);
           fetchLiveStreams();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'live_streams',
+          filter: 'is_live=eq.false',
+        },
+        (payload) => {
+          console.log('Stream ended:', payload);
+          // Remove ended stream from notifications
+          setLiveStreams(prev => prev.filter(s => s.id !== payload.new.id));
         }
       )
       .on(
@@ -83,12 +97,21 @@ export const LiveStreamNotification = () => {
         return;
       }
 
-      // Filter out streams from current user and dismissed streams
-      const filtered = (data || []).filter(stream => 
-        stream.user_id !== currentUser && !dismissed.has(stream.id)
-      );
+    // Filter out streams from current user and dismissed streams
+    // Also deduplicate by stream ID to prevent multiple banners for same stream
+    const filtered = (data || []).filter(stream => 
+      stream.user_id !== currentUser && !dismissed.has(stream.id)
+    );
 
-      setLiveStreams(filtered);
+    // Deduplicate by stream ID
+    const uniqueStreams = filtered.reduce((acc, stream) => {
+      if (!acc.find(s => s.id === stream.id)) {
+        acc.push(stream);
+      }
+      return acc;
+    }, [] as LiveStream[]);
+
+    setLiveStreams(uniqueStreams);
     } catch (error) {
       console.error('Error in fetchLiveStreams:', error);
     }
