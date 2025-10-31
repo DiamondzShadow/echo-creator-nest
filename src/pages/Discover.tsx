@@ -112,11 +112,12 @@ const Discover = () => {
       return stream.is_live || !isInstantStream;
     }).slice(0, 20) || [];
 
-    // Fetch ready recordings from assets table (no embeddings due to missing FKs)
+    // Fetch ready recordings from assets table (only public videos)
     const { data: assets, error: assetsError } = await supabase
       .from("assets")
       .select("*")
       .eq("status", "ready")
+      .eq("is_public", true)
       .not("livepeer_playback_id", "is", null)
       .order("created_at", { ascending: false })
       .limit(20);
