@@ -224,7 +224,8 @@ const Discover = () => {
                     <LiveStreamCard 
                       key={asset.id} 
                       stream={{ ...asset, title: asset.title || 'Untitled', description: asset.description || asset.title || '', profiles: assetProfile }} 
-                      isRecording={true} 
+                      isRecording={true}
+                      isOwner={false}
                     />
                   );
                 })}
@@ -251,7 +252,8 @@ const Discover = () => {
                     <LiveStreamCard 
                       key={asset.id} 
                       stream={{ ...asset, title: asset.title || 'Untitled', description: asset.description || asset.title || '', profiles: assetProfile }} 
-                      isRecording={true} 
+                      isRecording={true}
+                      isOwner={false}
                     />
                   );
                 })}

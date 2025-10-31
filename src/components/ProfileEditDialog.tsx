@@ -72,6 +72,17 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Verify current user owns this profile
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session || session.user.id !== profile.id) {
+      toast({
+        title: 'Unauthorized',
+        description: 'You can only upload avatars to your own profile',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     // Check file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
       toast({
@@ -118,6 +129,17 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Verify current user owns this profile
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session || session.user.id !== profile.id) {
+      toast({
+        title: 'Unauthorized',
+        description: 'You can only upload backgrounds to your own profile',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (file.size > 5 * 1024 * 1024) {
       toast({
         title: 'File too large',
@@ -161,6 +183,12 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
   const handleSave = async () => {
     setLoading(true);
     try {
+      // Verify current user owns this profile
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session || session.user.id !== profile.id) {
+        throw new Error('Unauthorized: You can only edit your own profile');
+      }
+
       // Validate input
       const validation = profileSchema.safeParse({
         displayName,

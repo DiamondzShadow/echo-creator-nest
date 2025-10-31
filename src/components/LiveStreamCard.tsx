@@ -17,6 +17,7 @@ interface LiveStreamCardProps {
     is_live?: boolean;
     thumbnail_url?: string | null;
     duration?: number;
+    user_id?: string;
     profiles: {
       username: string;
       display_name: string | null;
@@ -24,9 +25,10 @@ interface LiveStreamCardProps {
     } | null;
   };
   isRecording?: boolean;
+  isOwner?: boolean;
 }
 
-const LiveStreamCard = ({ stream, isRecording = false }: LiveStreamCardProps) => {
+const LiveStreamCard = ({ stream, isRecording = false, isOwner = false }: LiveStreamCardProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
@@ -113,8 +115,8 @@ const LiveStreamCard = ({ stream, isRecording = false }: LiveStreamCardProps) =>
             </div>
           </div>
           
-          {/* Save to Storj button for recordings */}
-          {isRecording && (
+          {/* Save to Storj button for recordings - only show to owner */}
+          {isRecording && isOwner && (
             <div className="mt-3 pt-3 border-t">
               <Button
                 variant="outline"
