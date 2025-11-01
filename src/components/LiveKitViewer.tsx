@@ -16,7 +16,7 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
   const [room, setRoom] = useState<Room | null>(null);
   const [isConnecting, setIsConnecting] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasVideo, setHasVideo] = useState(false);
   
@@ -208,13 +208,22 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
             });
             
             if (publication.isSubscribed && publication.track) {
-              if (publication.track.kind === Track.Kind.Video && videoRef.current) {
+              const vidTrack = (publication as any).videoTrack || publication.track;
+              if (vidTrack && vidTrack.kind === Track.Kind.Video && videoRef.current) {
                 console.log('🎥 Attaching existing video track');
-                (publication.track as RemoteVideoTrack).attach(videoRef.current);
-                setHasVideo(true);
-              } else if (publication.track.kind === Track.Kind.Audio && audioRef.current) {
+                try {
+                  (vidTrack as RemoteVideoTrack).attach(videoRef.current);
+                  setHasVideo(true);
+                } catch (err) {
+                  console.error('❌ Failed to attach existing video track:', err);
+                }
+              } else if (vidTrack && vidTrack.kind === Track.Kind.Audio && audioRef.current) {
                 console.log('🔊 Attaching existing audio track');
-                (publication.track as RemoteAudioTrack).attach(audioRef.current);
+                try {
+                  (vidTrack as RemoteAudioTrack).attach(audioRef.current);
+                } catch (err) {
+                  console.error('❌ Failed to attach existing audio track:', err);
+                }
               }
             } else if (!publication.isSubscribed) {
               // CRITICAL FIX: Explicitly subscribe to tracks that aren't auto-subscribed
@@ -295,9 +304,10 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
                 ref={videoRef}
                 autoPlay
                 playsInline
+                muted
                 className="w-full h-full object-cover"
               />
-              <audio ref={audioRef} autoPlay />
+              <audio ref={audioRef} autoPlay muted={isMuted} />
 
               {/* Reactions overlay */}
               <ReactionOverlay />
