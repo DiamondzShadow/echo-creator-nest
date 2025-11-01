@@ -76,20 +76,20 @@ serve(async (req) => {
   }
 
   try {
-    // Get webhook secret
-    const webhookSecret = Deno.env.get('LIVEKIT_WEBHOOK_SECRET');
-    if (!webhookSecret) {
-      console.error('LIVEKIT_WEBHOOK_SECRET not configured');
+    // Get LiveKit API credentials for webhook verification
+    const apiSecret = Deno.env.get('LIVEKIT_API_SECRET');
+    if (!apiSecret) {
+      console.error('LIVEKIT_API_SECRET not configured');
       return new Response(
-        JSON.stringify({ error: 'Webhook secret not configured' }),
+        JSON.stringify({ error: 'Webhook verification not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Get signature from header
-    const signature = req.headers.get('livekit-signature');
-    if (!signature) {
-      console.error('Missing livekit-signature header');
+    // Get signature from Authorization header (LiveKit sends it here)
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('Missing Authorization header');
       return new Response(
         JSON.stringify({ error: 'Unauthorized: Missing signature' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -99,8 +99,8 @@ serve(async (req) => {
     // Read body as text for signature verification
     const body = await req.text();
     
-    // Verify signature
-    const isValid = await verifyWebhookSignature(body, signature, webhookSecret);
+    // Verify signature using LiveKit API Secret
+    const isValid = await verifyWebhookSignature(body, authHeader, apiSecret);
     if (!isValid) {
       console.error('Invalid webhook signature');
       return new Response(
@@ -109,7 +109,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('✅ Webhook signature verified');
+    console.log('✅ Webhook signature verified with LiveKit API Secret');
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
