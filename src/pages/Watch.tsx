@@ -73,6 +73,38 @@ const Watch = () => {
     });
   };
 
+  // Allow manual retry of viewer token fetch
+  const requestViewerToken = async () => {
+    if (!stream?.livepeer_playback_id) return;
+    try {
+      const { data: tokenData, error: tokenError } = await supabase.functions.invoke('livekit-token', {
+        body: {
+          action: 'create_viewer_token',
+          roomName: stream.livepeer_playback_id,
+        }
+      });
+
+      if (tokenError) {
+        console.error('❌ Failed to get viewer token (manual retry):', tokenError);
+        toast({
+          title: 'Connection Error',
+          description: tokenError.message ?? 'Unable to get viewer token',
+          variant: 'destructive',
+        });
+      } else if (tokenData?.token) {
+        console.log('✅ Viewer token obtained (manual retry)');
+        setLivekitToken(tokenData.token);
+      }
+    } catch (err) {
+      console.error('❌ Exception getting viewer token (manual retry):', err);
+      toast({
+        title: 'Connection Error',
+        description: 'Failed to get viewer token',
+        variant: 'destructive',
+      });
+    }
+  };
+
   useEffect(() => {
     fetchStream();
     fetchCurrentUser();

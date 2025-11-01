@@ -4,7 +4,7 @@ import ReactionOverlay from '@/components/ReactionOverlay';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Volume2, VolumeX, Maximize, AlertCircle } from 'lucide-react';
 import { Room, RoomEvent, Track, RemoteParticipant, RemoteVideoTrack, RemoteAudioTrack } from 'livekit-client';
-import { createLiveKitRoom } from '@/lib/livekit-config';
+import { createLiveKitRoom, LIVEKIT_URL } from '@/lib/livekit-config';
 
 interface LiveKitViewerProps {
   roomToken: string;
@@ -37,6 +37,7 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
     const connect = async () => {
       try {
         console.log('🔌 Connecting to LiveKit room as viewer...');
+        console.log('LiveKit URL in use (viewer):', LIVEKIT_URL);
         setIsConnecting(true);
         setError(null);
 
