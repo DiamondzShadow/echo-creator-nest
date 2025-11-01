@@ -58,37 +58,30 @@ serve(async (req) => {
       throw new Error('LiveKit credentials not configured');
     }
 
-    // Get Storj credentials (optional - gracefully handle if missing)
+    // Get Storj credentials (optional - will use LiveKit Cloud storage if not provided)
     const STORJ_ACCESS_KEY_ID = Deno.env.get('STORJ_ACCESS_KEY_ID');
     const STORJ_SECRET_ACCESS_KEY = Deno.env.get('STORJ_SECRET_ACCESS_KEY');
-    const STORJ_BUCKET = Deno.env.get('STORJ_BUCKET') || 'livepeer-videos';
+    const STORJ_BUCKET = Deno.env.get('STORJ_BUCKET') || 'livekit-recordings';
     const STORJ_ENDPOINT = Deno.env.get('STORJ_ENDPOINT') || 'https://gateway.storjshare.io';
 
-    // If Storj credentials are not configured, return helpful error instead of crashing
-    if (!STORJ_ACCESS_KEY_ID || !STORJ_SECRET_ACCESS_KEY) {
-      console.warn('⚠️ Storj credentials not configured - recording disabled');
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'Recording requires Storj storage to be configured. Please contact admin to set up STORJ_ACCESS_KEY_ID and STORJ_SECRET_ACCESS_KEY.',
-          code: 'STORJ_NOT_CONFIGURED',
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
+    const useStorj = STORJ_ACCESS_KEY_ID && STORJ_SECRET_ACCESS_KEY;
+    console.log(`Recording mode: ${useStorj ? 'Storj S3' : 'LiveKit Cloud'}`);
 
     // Generate output filename
     const timestamp = Date.now();
     const filename = `livekit-recordings/${user.id}/${roomName}_${timestamp}.mp4`;
 
     // Create egress request using LiveKit REST API
-    // Documentation: https://docs.livekit.io/home/egress/overview/
-    const egressRequest = {
+    // Documentation: https://docs.livekit.io/home/egress/composite-recording/
+    const egressRequest: any = {
       room_name: roomName,
-      file: {
+      layout: 'speaker', // Use default speaker layout
+      preset: 'H264_720P_30',
+    };
+
+    // Add S3 output if Storj is configured, otherwise LiveKit Cloud handles storage
+    if (useStorj) {
+      egressRequest.file = {
         filepath: filename,
         s3: {
           access_key: STORJ_ACCESS_KEY_ID,
@@ -97,9 +90,13 @@ serve(async (req) => {
           endpoint: STORJ_ENDPOINT,
           bucket: STORJ_BUCKET,
         }
-      },
-      preset: 'H264_720P_30'
-    };
+      };
+    } else {
+      // Use file output without S3 - LiveKit will store temporarily
+      egressRequest.file = {
+        filepath: filename,
+      };
+    }
 
     // Create JWT token for LiveKit API authentication with video grants
     const encoder = new TextEncoder();
