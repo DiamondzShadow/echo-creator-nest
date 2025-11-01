@@ -79,7 +79,7 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
         }, 2000);
 
         // Setup room event handlers
-        newRoom.on(RoomEvent.TrackSubscribed, (
+        newRoom.on(RoomEvent.TrackSubscribed, async (
           track: RemoteVideoTrack | RemoteAudioTrack,
           publication,
           participant: RemoteParticipant
@@ -88,19 +88,36 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
           
           if (track.kind === Track.Kind.Video && videoRef.current) {
             console.log('🎥 Attaching video track to element');
+            console.log('Track details:', {
+              sid: track.sid,
+              muted: track.isMuted,
+              mediaStreamTrack: track.mediaStreamTrack,
+              readyState: track.mediaStreamTrack?.readyState,
+              publicationEnabled: publication.isEnabled
+            });
+            
             try {
               const videoElement = videoRef.current;
+              
+              // Attach the track
               track.attach(videoElement);
               
-              // Force the video to play
-              videoElement.play().catch(err => {
-                console.warn('⚠️ Autoplay prevented, will retry on user interaction:', err);
+              // Log video element state after attachment
+              console.log('Video element after attach:', {
+                srcObject: videoElement.srcObject,
+                paused: videoElement.paused,
+                readyState: videoElement.readyState,
+                videoWidth: videoElement.videoWidth,
+                videoHeight: videoElement.videoHeight
               });
+              
+              // Force play
+              await videoElement.play();
               
               setHasVideo(true);
               console.log('✅ Video track attached and playing');
             } catch (err) {
-              console.error('❌ Failed to attach video track:', err);
+              console.error('❌ Failed to attach/play video track:', err);
             }
           } else if (track.kind === Track.Kind.Audio && audioRef.current) {
             console.log('🔊 Attaching audio track to element');
@@ -206,7 +223,7 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
         
         newRoom.remoteParticipants.forEach((participant) => {
           console.log('👤 Found participant:', participant.identity, 'Tracks:', participant.trackPublications.size);
-          participant.trackPublications.forEach((publication) => {
+          participant.trackPublications.forEach(async (publication) => {
             console.log('📹 Track publication:', {
               trackName: publication.trackName,
               kind: publication.kind,
@@ -221,19 +238,30 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
               
               if (track.kind === Track.Kind.Video && videoRef.current) {
                 console.log('🎥 Attaching existing video track to element');
+                console.log('Existing track details:', {
+                  sid: track.sid,
+                  muted: track.isMuted,
+                  mediaStreamTrack: track.mediaStreamTrack,
+                  readyState: track.mediaStreamTrack?.readyState,
+                  publicationEnabled: publication.isEnabled
+                });
+                
                 try {
                   const videoElement = videoRef.current;
                   (track as RemoteVideoTrack).attach(videoElement);
                   
-                  // Force play
-                  videoElement.play().catch(err => {
-                    console.warn('⚠️ Autoplay prevented on existing track:', err);
+                  console.log('Video element after attach:', {
+                    srcObject: videoElement.srcObject,
+                    paused: videoElement.paused,
+                    readyState: videoElement.readyState
                   });
+                  
+                  await videoElement.play();
                   
                   setHasVideo(true);
                   console.log('✅ Existing video track attached and playing!');
                 } catch (err) {
-                  console.error('❌ Failed to attach existing video track:', err);
+                  console.error('❌ Failed to attach/play existing video track:', err);
                 }
               } else if (track.kind === Track.Kind.Audio && audioRef.current) {
                 console.log('🔊 Attaching existing audio track to element');
