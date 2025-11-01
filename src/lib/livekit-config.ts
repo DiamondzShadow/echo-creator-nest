@@ -46,13 +46,22 @@ export async function createLiveKitRoom(token: string): Promise<Room> {
   }
 
   // Connect with auto-subscribe enabled for viewers
-  await room.connect(LIVEKIT_URL, token, { 
-    autoSubscribe: true,
-    // CRITICAL: Reduce initial connection complexity
-    // This helps prevent connection overload when multiple participants join
-    maxRetries: 3,
-    peerConnectionTimeout: 15000, // 15 seconds timeout
-  });
+  console.log('LiveKit: connecting to', LIVEKIT_URL);
+  try {
+    await room.connect(LIVEKIT_URL, token, {
+      autoSubscribe: true,
+    });
+  } catch (err) {
+    console.error('LiveKit connect error:', err);
+    const message = err instanceof Error ? err.message : String(err);
+    if (/401|403|unauthorized|permission/i.test(message)) {
+      console.error('Hint: Token invalid/expired or wrong project URL/API keys.');
+    }
+    if (!/^wss:\/\//i.test(LIVEKIT_URL)) {
+      console.error('Hint: LIVEKIT_URL must start with wss://');
+    }
+    throw err;
+  }
   
   return room;
 }

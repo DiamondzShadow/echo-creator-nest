@@ -16,7 +16,7 @@ import {
   createLocalAudioTrack,
   VideoPresets
 } from 'livekit-client';
-import { createLiveKitRoom, toggleCamera, toggleMicrophone, disconnectFromRoom } from '@/lib/livekit-config';
+import { createLiveKitRoom, toggleCamera, toggleMicrophone, disconnectFromRoom, LIVEKIT_URL } from '@/lib/livekit-config';
 import { Badge } from '@/components/ui/badge';
 import SoundCloudWidget from './SoundCloudWidget';
 
@@ -99,6 +99,7 @@ export const InstantLiveStreamLiveKit = ({
         console.log('🔌 Connecting to LiveKit room...');
         setIsConnecting(true);
         setError(null);
+        console.log('LiveKit URL in use:', LIVEKIT_URL);
 
         // Create and connect to room
         const newRoom = await createLiveKitRoom(roomToken);
