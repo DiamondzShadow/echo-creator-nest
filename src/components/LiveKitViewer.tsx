@@ -207,26 +207,31 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
               hasTrack: !!publication.track,
             });
             
+            // CRITICAL: If track is already subscribed and available, attach it immediately
             if (publication.isSubscribed && publication.track) {
-              const vidTrack = (publication as any).videoTrack || publication.track;
-              if (vidTrack && vidTrack.kind === Track.Kind.Video && videoRef.current) {
-                console.log('🎥 Attaching existing video track');
+              console.log('🔄 Attaching existing subscribed track immediately');
+              const track = publication.track;
+              
+              if (track.kind === Track.Kind.Video && videoRef.current) {
+                console.log('🎥 Attaching existing video track to element');
                 try {
-                  (vidTrack as RemoteVideoTrack).attach(videoRef.current);
+                  (track as RemoteVideoTrack).attach(videoRef.current);
                   setHasVideo(true);
+                  console.log('✅ Video track attached successfully!');
                 } catch (err) {
                   console.error('❌ Failed to attach existing video track:', err);
                 }
-              } else if (vidTrack && vidTrack.kind === Track.Kind.Audio && audioRef.current) {
-                console.log('🔊 Attaching existing audio track');
+              } else if (track.kind === Track.Kind.Audio && audioRef.current) {
+                console.log('🔊 Attaching existing audio track to element');
                 try {
-                  (vidTrack as RemoteAudioTrack).attach(audioRef.current);
+                  (track as RemoteAudioTrack).attach(audioRef.current);
+                  console.log('✅ Audio track attached successfully!');
                 } catch (err) {
                   console.error('❌ Failed to attach existing audio track:', err);
                 }
               }
             } else if (!publication.isSubscribed) {
-              // CRITICAL FIX: Explicitly subscribe to tracks that aren't auto-subscribed
+              // If not subscribed, explicitly subscribe
               console.log('⚠️ Track not subscribed yet, explicitly subscribing...');
               try {
                 publication.setSubscribed(true);
