@@ -6,7 +6,16 @@ import { Video, VideoOff, Mic, MicOff, Loader2, Monitor, Users, Music } from 'lu
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Room, RoomEvent, Track, LocalVideoTrack, RemoteParticipant } from 'livekit-client';
+import { 
+  Room, 
+  RoomEvent, 
+  Track, 
+  LocalVideoTrack, 
+  RemoteParticipant,
+  createLocalVideoTrack,
+  createLocalAudioTrack,
+  VideoPresets
+} from 'livekit-client';
 import { createLiveKitRoom, toggleCamera, toggleMicrophone, disconnectFromRoom } from '@/lib/livekit-config';
 import { Badge } from '@/components/ui/badge';
 import SoundCloudWidget from './SoundCloudWidget';
@@ -214,16 +223,41 @@ export const InstantLiveStreamLiveKit = ({
           });
         });
 
-        // Publish camera and microphone
-        console.log('📹 Publishing camera and microphone...');
-        await newRoom.localParticipant.setCameraEnabled(true);
-        await newRoom.localParticipant.setMicrophoneEnabled(true);
+        // Create and publish camera with explicit settings
+        console.log('📹 Creating video track with H.264 codec...');
+        const videoTrack = await createLocalVideoTrack({
+          resolution: VideoPresets.h720.resolution,
+          facingMode: 'user',
+        });
+        
+        console.log('📤 Publishing video track...');
+        await newRoom.localParticipant.publishTrack(videoTrack, {
+          name: 'camera',
+          simulcast: true,
+          videoCodec: 'h264',
+          source: Track.Source.Camera,
+        });
 
-        // Attach video track to video element
-        const videoPublication = Array.from(newRoom.localParticipant.videoTrackPublications.values())[0];
-        if (videoPublication?.track && videoRef.current) {
-          (videoPublication.track as LocalVideoTrack).attach(videoRef.current);
+        // Create and publish microphone with explicit settings
+        console.log('🎤 Creating audio track...');
+        const audioTrack = await createLocalAudioTrack({
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        });
+        
+        console.log('📤 Publishing audio track...');
+        await newRoom.localParticipant.publishTrack(audioTrack, {
+          name: 'microphone',
+          source: Track.Source.Microphone,
+        });
+
+        // Attach video track to video element for preview
+        if (videoRef.current) {
+          videoTrack.attach(videoRef.current);
         }
+        
+        console.log('✅ All tracks published successfully');
 
         // Setup audio visualization
         await setupAudioVisualization();

@@ -31,6 +31,7 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
 
     let mounted = true;
     let connectedRoom: Room | null = null;
+    let debugInterval: NodeJS.Timeout | null = null;
 
     const connect = async () => {
       try {
@@ -59,6 +60,23 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
           numRemoteParticipants: newRoom.remoteParticipants.size,
           metadata: newRoom.metadata,
         });
+        
+        // Log all available tracks every 2 seconds for debugging
+        debugInterval = setInterval(() => {
+          console.log('🔍 DEBUG - Current room state:', {
+            remoteParticipants: newRoom.remoteParticipants.size,
+            participants: Array.from(newRoom.remoteParticipants.values()).map(p => ({
+              identity: p.identity,
+              tracks: Array.from(p.trackPublications.values()).map(pub => ({
+                name: pub.trackName,
+                kind: pub.kind,
+                subscribed: pub.isSubscribed,
+                muted: pub.isMuted,
+                enabled: pub.isEnabled,
+              }))
+            }))
+          });
+        }, 2000);
 
         // Setup room event handlers
         newRoom.on(RoomEvent.TrackSubscribed, (
@@ -230,6 +248,10 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
     return () => {
       mounted = false;
       console.log('🧹 Cleaning up viewer connection...');
+      
+      if (debugInterval) {
+        clearInterval(debugInterval);
+      }
       
       if (connectedRoom) {
         connectedRoom.disconnect();
