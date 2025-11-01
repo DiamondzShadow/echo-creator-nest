@@ -27,6 +27,7 @@ const Live = () => {
   const [enableRecording, setEnableRecording] = useState(true);
   const [saveToStorj, setSaveToStorj] = useState(false);
   const [recordingStarted, setRecordingStarted] = useState(false);
+  const [endingAll, setEndingAll] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -39,6 +40,26 @@ const Live = () => {
       }
     });
   }, [navigate]);
+
+  // Use fetch with keepalive for reliable stream cleanup when tab closes
+  useEffect(() => {
+    if (!streamId) return;
+
+    const handleBeforeUnload = () => {
+      // Use fetch with keepalive for reliable delivery even as page unloads
+      // This allows us to include auth headers unlike sendBeacon
+      supabase.functions.invoke('end-stream', {
+        body: { streamId }
+      }).catch(err => {
+        console.warn('Failed to end stream on beforeunload:', err);
+      });
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [streamId]);
 
   const handleStartStream = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,20 +137,17 @@ const Live = () => {
     try {
       console.log('🛑 Ending stream:', streamId);
       
-      const { error } = await supabase
-        .from("live_streams")
-        .update({
-          is_live: false,
-          ended_at: new Date().toISOString(),
-        })
-        .eq("id", streamId);
+      // Use the dedicated edge function for reliable cleanup
+      const { error } = await supabase.functions.invoke('end-stream', {
+        body: { streamId }
+      });
 
       if (error) {
         console.error('Error ending stream:', error);
         throw error;
       }
 
-      console.log('✅ Stream ended successfully in database');
+      console.log('✅ Stream ended successfully');
 
       // Clean up all state
       setIsLive(false);
@@ -155,6 +173,34 @@ const Live = () => {
     }
   };
 
+  const handleEndAllStreams = async () => {
+    setEndingAll(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('end-stream', {
+        body: { endAll: true }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Streams ended",
+        description: `Successfully ended ${data?.endedCount || 0} live stream(s)`,
+      });
+
+      // Refresh page to clear state
+      window.location.reload();
+    } catch (error) {
+      console.error('Error ending streams:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to end streams",
+        variant: "destructive",
+      });
+    } finally {
+      setEndingAll(false);
+    }
+  };
+
   if (!user) return null;
 
   return (
@@ -162,6 +208,27 @@ const Live = () => {
       <Navbar />
       <BrandBanner />
       <div className="container px-4 pt-24 pb-16">
+        {/* Emergency cleanup button */}
+        {!isLive && (
+          <div className="max-w-4xl mx-auto mb-4">
+            <Button
+              onClick={handleEndAllStreams}
+              variant="outline"
+              size="sm"
+              disabled={endingAll}
+              className="w-full"
+            >
+              {endingAll ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Ending streams...
+                </>
+              ) : (
+                <>Force End All My Live Streams</>
+              )}
+            </Button>
+          </div>
+        )}
         <div className="max-w-4xl mx-auto">
           {!isLive ? (
             <Card className="border-0 shadow-glow bg-gradient-card animate-scale-in">
