@@ -111,12 +111,24 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
                 videoWidth: videoElement.videoWidth,
                 videoHeight: videoElement.videoHeight
               });
+
+              // Fallback: set srcObject manually if not ready
+              if (!videoElement.srcObject && (track as RemoteVideoTrack).mediaStreamTrack) {
+                const ms = new MediaStream([ (track as RemoteVideoTrack).mediaStreamTrack ]);
+                videoElement.srcObject = ms as unknown as MediaStream;
+                console.log('🛠️ Applied manual srcObject fallback');
+              }
               
               // Force play
-              await videoElement.play();
-              
               setHasVideo(true);
-              console.log('✅ Video track attached and playing');
+              try {
+                await videoElement.play();
+              } catch (e) {
+                console.warn('⚠️ Autoplay blocked on TrackSubscribed:', e);
+                setAutoplayBlocked(true);
+              }
+              
+              console.log('✅ Video track attached and play attempted');
             } catch (err) {
               console.error('❌ Failed to attach/play video track:', err);
               setAutoplayBlocked(true);
@@ -200,13 +212,13 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
                 console.log('🎥 Attaching video from new participant');
                 const videoEl = videoRef.current;
                 (publication.track as RemoteVideoTrack).attach(videoEl);
+                setHasVideo(true);
                 try {
                   await videoEl.play();
                 } catch (e) {
                   console.warn('⚠️ Autoplay blocked on participant connect:', e);
                   setAutoplayBlocked(true);
                 }
-                setHasVideo(true);
               } else if (publication.track.kind === Track.Kind.Audio && audioRef.current) {
                 console.log('🔊 Attaching audio from new participant');
                 (publication.track as RemoteAudioTrack).attach(audioRef.current);
@@ -259,11 +271,23 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
                   videoWidth: videoElement.videoWidth,
                   videoHeight: videoElement.videoHeight
                 });
-                
-                await videoElement.play();
+
+                // Fallback: set srcObject manually if not ready
+                if (!videoElement.srcObject && (track as RemoteVideoTrack).mediaStreamTrack) {
+                  const ms = new MediaStream([ (track as RemoteVideoTrack).mediaStreamTrack ]);
+                  videoElement.srcObject = ms as unknown as MediaStream;
+                  console.log('🛠️ Applied manual srcObject fallback (retry)');
+                }
                 
                 setHasVideo(true);
-                console.log('✅ Video track attached and playing!');
+                try {
+                  await videoElement.play();
+                } catch (e) {
+                  console.warn('⚠️ Autoplay blocked on attach retry:', e);
+                  setAutoplayBlocked(true);
+                }
+                
+                console.log('✅ Video track attached (retry) and play attempted');
               } catch (err) {
                 console.error('❌ Failed to attach/play video track:', err);
                 setAutoplayBlocked(true);
