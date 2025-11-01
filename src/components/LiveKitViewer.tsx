@@ -19,6 +19,7 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
   const [isMuted, setIsMuted] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasVideo, setHasVideo] = useState(false);
+  const [autoplayBlocked, setAutoplayBlocked] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -118,6 +119,7 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
               console.log('✅ Video track attached and playing');
             } catch (err) {
               console.error('❌ Failed to attach/play video track:', err);
+              setAutoplayBlocked(true);
             }
           } else if (track.kind === Track.Kind.Audio && audioRef.current) {
             console.log('🔊 Attaching audio track to element');
@@ -191,12 +193,19 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
           console.log('👤 Participant connected:', participant.identity, 'Tracks:', participant.trackPublications.size);
           
           // Subscribe to their existing tracks
-          participant.trackPublications.forEach((publication) => {
+          participant.trackPublications.forEach(async (publication) => {
             console.log('📹 Checking track:', publication.trackName, 'subscribed:', publication.isSubscribed);
             if (publication.isSubscribed && publication.track) {
               if (publication.track.kind === Track.Kind.Video && videoRef.current) {
                 console.log('🎥 Attaching video from new participant');
-                (publication.track as RemoteVideoTrack).attach(videoRef.current);
+                const videoEl = videoRef.current;
+                (publication.track as RemoteVideoTrack).attach(videoEl);
+                try {
+                  await videoEl.play();
+                } catch (e) {
+                  console.warn('⚠️ Autoplay blocked on participant connect:', e);
+                  setAutoplayBlocked(true);
+                }
                 setHasVideo(true);
               } else if (publication.track.kind === Track.Kind.Audio && audioRef.current) {
                 console.log('🔊 Attaching audio from new participant');
@@ -257,6 +266,7 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
                 console.log('✅ Video track attached and playing!');
               } catch (err) {
                 console.error('❌ Failed to attach/play video track:', err);
+                setAutoplayBlocked(true);
               }
             } else if (track.kind === Track.Kind.Audio && audioRef.current) {
               console.log('🔊 Attaching audio track to element');
@@ -332,6 +342,22 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
     }
   };
 
+  // Handle manual playback (autoplay fallback)
+  const handleStartPlayback = async () => {
+    try {
+      if (videoRef.current) {
+        await videoRef.current.play();
+        setHasVideo(true);
+      }
+      if (audioRef.current && !isMuted) {
+        await audioRef.current.play();
+      }
+      setAutoplayBlocked(false);
+    } catch (err) {
+      console.error('❌ Manual playback failed:', err);
+    }
+  };
+
   // Handle fullscreen
   const handleFullscreen = () => {
     if (videoRef.current) {
@@ -368,6 +394,18 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
               {/* Reactions overlay */}
               <ReactionOverlay />
 
+              {/* Autoplay fallback overlay */}
+              {autoplayBlocked && (
+                <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/60 backdrop-blur-sm">
+                  <button
+                    onClick={handleStartPlayback}
+                    className="px-4 py-2 rounded-md bg-primary text-primary-foreground shadow-glow hover:bg-primary/90 transition-colors"
+                  >
+                    Tap to start stream
+                  </button>
+                </div>
+              )}
+
               {/* Live indicator */}
               {isLive && (
                 <div className="absolute top-4 left-4 z-10 bg-destructive text-destructive-foreground px-3 py-1 rounded-full text-sm font-bold flex items-center gap-2 shadow-glow animate-pulse">
@@ -394,7 +432,7 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
                 </div>
               </div>
 
-              {!hasVideo && (
+              {!hasVideo && !autoplayBlocked && (
                 <div className="absolute inset-0 flex items-center justify-center bg-muted">
                   <p className="text-muted-foreground">Waiting for video...</p>
                 </div>
