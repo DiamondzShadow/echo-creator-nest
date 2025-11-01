@@ -1,7 +1,7 @@
 import { Room, RoomEvent, Track, LocalParticipant, RemoteParticipant } from 'livekit-client';
 
 // LiveKit configuration
-export const LIVEKIT_URL = 'wss://diamondzchain-ep9nznbn.livekit.cloud';
+export const LIVEKIT_URL = (import.meta.env.VITE_LIVEKIT_URL as string) || '';
 
 export interface LiveKitTokenRequest {
   roomName: string;
@@ -38,6 +38,12 @@ export async function createLiveKitRoom(token: string): Promise<Room> {
     // Reconnection settings for better stability
     disconnectOnPageLeave: true,
   });
+
+  // Validate URL before connecting
+  if (!LIVEKIT_URL) {
+    console.error('LiveKit URL not configured. Set VITE_LIVEKIT_URL (wss://YOUR_PROJECT.livekit.cloud)');
+    throw new Error('LiveKit URL not configured');
+  }
 
   // Connect with auto-subscribe enabled for viewers
   await room.connect(LIVEKIT_URL, token, { 
