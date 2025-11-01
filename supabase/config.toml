@@ -44,3 +44,6 @@ verify_jwt = true
 
 [functions.process-tip]
 verify_jwt = false
+
+[functions.end-stream]
+verify_jwt = true
