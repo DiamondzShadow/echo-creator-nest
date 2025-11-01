@@ -1,7 +1,7 @@
 import { Room, RoomEvent, Track, LocalParticipant, RemoteParticipant } from 'livekit-client';
 
 // LiveKit configuration
-export const LIVEKIT_URL = (import.meta.env.VITE_LIVEKIT_URL as string) || '';
+export const LIVEKIT_URL = (import.meta.env.VITE_LIVEKIT_URL as string) || 'wss://diamondzchain-ep9nznbn.livekit.cloud';
 
 export interface LiveKitTokenRequest {
   roomName: string;
