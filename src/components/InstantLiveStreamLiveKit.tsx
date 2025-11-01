@@ -127,6 +127,18 @@ export const InstantLiveStreamLiveKit = ({
             participantCount: newRoom?.remoteParticipants.size,
           });
           setIsConnected(false);
+
+          // Ensure backend state is consistent even if user closes tab or drops connection
+          try {
+            if (onStreamConnected && typeof onStreamConnected === 'function') {
+              // no-op
+            }
+            if (typeof onStreamEnd === 'function') {
+              onStreamEnd();
+            }
+          } catch (e) {
+            console.warn('⚠️ onStreamEnd callback on disconnect failed:', e);
+          }
         });
 
         // Track participant joins/leaves for viewer count (non-intrusive)
@@ -308,6 +320,23 @@ export const InstantLiveStreamLiveKit = ({
       }
     };
   }, [roomToken]);
+
+  // Ensure stream ends if the page/tab is closed
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      try {
+        if (typeof onStreamEnd === 'function') {
+          onStreamEnd();
+        }
+      } catch (e) {
+        console.warn('⚠️ beforeunload onStreamEnd failed:', e);
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [onStreamEnd]);
 
   // Handle video toggle
   const handleVideoToggle = async () => {
