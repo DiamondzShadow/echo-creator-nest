@@ -89,9 +89,16 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
           if (track.kind === Track.Kind.Video && videoRef.current) {
             console.log('🎥 Attaching video track to element');
             try {
-              track.attach(videoRef.current);
+              const videoElement = videoRef.current;
+              track.attach(videoElement);
+              
+              // Force the video to play
+              videoElement.play().catch(err => {
+                console.warn('⚠️ Autoplay prevented, will retry on user interaction:', err);
+              });
+              
               setHasVideo(true);
-              console.log('✅ Video track attached successfully');
+              console.log('✅ Video track attached and playing');
             } catch (err) {
               console.error('❌ Failed to attach video track:', err);
             }
@@ -215,9 +222,16 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
               if (track.kind === Track.Kind.Video && videoRef.current) {
                 console.log('🎥 Attaching existing video track to element');
                 try {
-                  (track as RemoteVideoTrack).attach(videoRef.current);
+                  const videoElement = videoRef.current;
+                  (track as RemoteVideoTrack).attach(videoElement);
+                  
+                  // Force play
+                  videoElement.play().catch(err => {
+                    console.warn('⚠️ Autoplay prevented on existing track:', err);
+                  });
+                  
                   setHasVideo(true);
-                  console.log('✅ Video track attached successfully!');
+                  console.log('✅ Existing video track attached and playing!');
                 } catch (err) {
                   console.error('❌ Failed to attach existing video track:', err);
                 }
@@ -225,7 +239,7 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
                 console.log('🔊 Attaching existing audio track to element');
                 try {
                   (track as RemoteAudioTrack).attach(audioRef.current);
-                  console.log('✅ Audio track attached successfully!');
+                  console.log('✅ Existing audio track attached successfully!');
                 } catch (err) {
                   console.error('❌ Failed to attach existing audio track:', err);
                 }
