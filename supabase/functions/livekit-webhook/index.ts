@@ -26,39 +26,67 @@ function timingSafeEqual(a: string, b: string): boolean {
 }
 
 /**
- * Verify LiveKit webhook signature using Web Crypto API
+ * Verify LiveKit webhook Authorization header (JWT HS256 signed with API secret)
  */
-async function verifyWebhookSignature(
-  body: string,
-  signature: string,
-  secret: string
-): Promise<boolean> {
+async function verifyLiveKitAuthorization(authHeader: string, secret: string): Promise<{ valid: boolean; payload?: any; error?: string }> {
   try {
-    const encoder = new TextEncoder();
-    const keyData = encoder.encode(secret);
-    const messageData = encoder.encode(body);
-    
-    // Import the secret key
+    const bearerPrefix = 'Bearer ';
+    const token = authHeader.startsWith(bearerPrefix) ? authHeader.slice(bearerPrefix.length) : authHeader;
+
+    const [encodedHeader, encodedPayload, encodedSignature] = token.split('.');
+    if (!encodedHeader || !encodedPayload || !encodedSignature) {
+      return { valid: false, error: 'Malformed JWT' };
+    }
+
+    // Base64url decode helpers
+    const b64urlToUint8 = (b64url: string) => {
+      const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(b64url.length / 4) * 4, '=');
+      const binary = atob(b64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      return bytes;
+    };
+    const uint8ToB64url = (bytes: Uint8Array) => {
+      let binary = '';
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      const b64 = btoa(binary);
+      return b64.replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+    };
+
+    const headerJson = new TextDecoder().decode(b64urlToUint8(encodedHeader));
+    const payloadJson = new TextDecoder().decode(b64urlToUint8(encodedPayload));
+    const header = JSON.parse(headerJson);
+    const payload = JSON.parse(payloadJson);
+
+    if (header.alg !== 'HS256') {
+      return { valid: false, error: 'Unsupported alg' };
+    }
+
+    // verify exp if present
+    if (typeof payload.exp === 'number' && Date.now() / 1000 > payload.exp) {
+      return { valid: false, error: 'Token expired' };
+    }
+
+    // Compute expected signature over "header.payload"
+    const signingInput = `${encodedHeader}.${encodedPayload}`;
     const key = await crypto.subtle.importKey(
       'raw',
-      keyData,
+      new TextEncoder().encode(secret),
       { name: 'HMAC', hash: 'SHA-256' },
       false,
       ['sign']
     );
-    
-    // Sign the message
-    const signatureBuffer = await crypto.subtle.sign('HMAC', key, messageData);
-    
-    // Convert to hex string
-    const expectedSignature = Array.from(new Uint8Array(signatureBuffer))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
-    
-    return timingSafeEqual(signature, expectedSignature);
-  } catch (error) {
-    console.error('Error verifying signature:', error);
-    return false;
+    const sigBuf = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(signingInput));
+    const expectedSig = uint8ToB64url(new Uint8Array(sigBuf));
+
+    if (!timingSafeEqual(expectedSig, encodedSignature)) {
+      return { valid: false, error: 'Signature mismatch' };
+    }
+
+    return { valid: true, payload };
+  } catch (e) {
+    console.error('JWT verification error', e);
+    return { valid: false, error: 'Verification exception' };
   }
 }
 
@@ -96,20 +124,20 @@ serve(async (req) => {
       );
     }
 
-    // Read body as text for signature verification
+    // Read body as text (needed later for event parsing)
     const body = await req.text();
     
-    // Verify signature using LiveKit API Secret
-    const isValid = await verifyWebhookSignature(body, authHeader, apiSecret);
-    if (!isValid) {
-      console.error('Invalid webhook signature');
+    // Verify Authorization JWT signed with API secret
+    const { valid, error: verifyError } = await verifyLiveKitAuthorization(authHeader, apiSecret);
+    if (!valid) {
+      console.error('Invalid webhook authorization:', verifyError);
       return new Response(
-        JSON.stringify({ error: 'Unauthorized: Invalid signature' }),
+        JSON.stringify({ error: 'Unauthorized: Invalid authorization' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('✅ Webhook signature verified with LiveKit API Secret');
+    console.log('✅ Webhook authorization verified');
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
