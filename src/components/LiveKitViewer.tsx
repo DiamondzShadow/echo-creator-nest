@@ -221,9 +221,66 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
           console.log('⏳ No participants yet - waiting for broadcaster to join...');
         }
         
+        // Function to attach a track with retry logic
+        const attachTrackWithRetry = async (publication: any, participant: any, retryCount = 0) => {
+          const maxRetries = 10;
+          
+          if (publication.track) {
+            const track = publication.track;
+            console.log('🔄 Attaching track:', track.kind, 'from', participant.identity);
+            
+            if (track.kind === Track.Kind.Video && videoRef.current) {
+              console.log('🎥 Attaching video track to element');
+              console.log('Track details:', {
+                sid: track.sid,
+                muted: track.isMuted,
+                mediaStreamTrack: track.mediaStreamTrack,
+                readyState: track.mediaStreamTrack?.readyState,
+                publicationEnabled: publication.isEnabled
+              });
+              
+              try {
+                const videoElement = videoRef.current;
+                (track as RemoteVideoTrack).attach(videoElement);
+                
+                console.log('Video element after attach:', {
+                  srcObject: videoElement.srcObject,
+                  paused: videoElement.paused,
+                  readyState: videoElement.readyState,
+                  videoWidth: videoElement.videoWidth,
+                  videoHeight: videoElement.videoHeight
+                });
+                
+                await videoElement.play();
+                
+                setHasVideo(true);
+                console.log('✅ Video track attached and playing!');
+              } catch (err) {
+                console.error('❌ Failed to attach/play video track:', err);
+              }
+            } else if (track.kind === Track.Kind.Audio && audioRef.current) {
+              console.log('🔊 Attaching audio track to element');
+              try {
+                (track as RemoteAudioTrack).attach(audioRef.current);
+                console.log('✅ Audio track attached successfully!');
+              } catch (err) {
+                console.error('❌ Failed to attach audio track:', err);
+              }
+            }
+          } else if (retryCount < maxRetries) {
+            // Track not available yet, retry after a short delay
+            console.log(`⏳ Track not ready yet, retrying in 200ms... (attempt ${retryCount + 1}/${maxRetries})`);
+            setTimeout(() => {
+              attachTrackWithRetry(publication, participant, retryCount + 1);
+            }, 200);
+          } else {
+            console.error('❌ Track never became available after', maxRetries, 'retries');
+          }
+        };
+        
         newRoom.remoteParticipants.forEach((participant) => {
           console.log('👤 Found participant:', participant.identity, 'Tracks:', participant.trackPublications.size);
-          participant.trackPublications.forEach(async (publication) => {
+          participant.trackPublications.forEach((publication) => {
             console.log('📹 Track publication:', {
               trackName: publication.trackName,
               kind: publication.kind,
@@ -231,56 +288,8 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
               hasTrack: !!publication.track,
             });
             
-            // CRITICAL: If track is already subscribed and available, attach it immediately
-            if (publication.isSubscribed && publication.track) {
-              console.log('🔄 Attaching existing subscribed track immediately');
-              const track = publication.track;
-              
-              if (track.kind === Track.Kind.Video && videoRef.current) {
-                console.log('🎥 Attaching existing video track to element');
-                console.log('Existing track details:', {
-                  sid: track.sid,
-                  muted: track.isMuted,
-                  mediaStreamTrack: track.mediaStreamTrack,
-                  readyState: track.mediaStreamTrack?.readyState,
-                  publicationEnabled: publication.isEnabled
-                });
-                
-                try {
-                  const videoElement = videoRef.current;
-                  (track as RemoteVideoTrack).attach(videoElement);
-                  
-                  console.log('Video element after attach:', {
-                    srcObject: videoElement.srcObject,
-                    paused: videoElement.paused,
-                    readyState: videoElement.readyState
-                  });
-                  
-                  await videoElement.play();
-                  
-                  setHasVideo(true);
-                  console.log('✅ Existing video track attached and playing!');
-                } catch (err) {
-                  console.error('❌ Failed to attach/play existing video track:', err);
-                }
-              } else if (track.kind === Track.Kind.Audio && audioRef.current) {
-                console.log('🔊 Attaching existing audio track to element');
-                try {
-                  (track as RemoteAudioTrack).attach(audioRef.current);
-                  console.log('✅ Existing audio track attached successfully!');
-                } catch (err) {
-                  console.error('❌ Failed to attach existing audio track:', err);
-                }
-              }
-            } else if (!publication.isSubscribed) {
-              // If not subscribed, explicitly subscribe
-              console.log('⚠️ Track not subscribed yet, explicitly subscribing...');
-              try {
-                publication.setSubscribed(true);
-              } catch (err) {
-                console.error('❌ Failed to subscribe to track:', err);
-              }
-            }
+            // Try to attach existing tracks with retry logic
+            attachTrackWithRetry(publication, participant);
           });
         });
 
