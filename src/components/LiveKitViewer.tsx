@@ -369,6 +369,17 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
   // Handle manual playback (autoplay fallback)
   const handleStartPlayback = async () => {
     try {
+      // Ensure iOS inline playback and resume audio context
+      const currentRoom = room;
+      if (videoRef.current) {
+        videoRef.current.setAttribute('playsinline', 'true');
+        // @ts-ignore - iOS Safari
+        videoRef.current.setAttribute('webkit-playsinline', 'true');
+        videoRef.current.muted = true; // keep muted to satisfy autoplay policies
+      }
+      // LiveKit helper to unlock audio on mobile
+      await currentRoom?.startAudio();
+
       if (videoRef.current) {
         await videoRef.current.play();
         setHasVideo(true);
@@ -381,7 +392,6 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
       console.error('❌ Manual playback failed:', err);
     }
   };
-
   // Handle fullscreen
   const handleFullscreen = () => {
     if (videoRef.current) {
