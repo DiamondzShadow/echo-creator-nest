@@ -370,6 +370,14 @@ const Live = () => {
               )}
 
               <Button
+                onClick={() => navigate(`/watch/${streamId}`)}
+                variant="outline"
+                size="lg"
+                className="w-full"
+              >
+                Open Watch Page (Viewer)
+              </Button>
+              <Button
                 onClick={handleEndStream}
                 variant="destructive"
                 size="lg"

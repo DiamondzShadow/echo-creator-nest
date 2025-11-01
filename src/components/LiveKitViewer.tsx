@@ -33,6 +33,7 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
     let mounted = true;
     let connectedRoom: Room | null = null;
     let debugInterval: NodeJS.Timeout | null = null;
+    let sweepInterval: NodeJS.Timeout | null = null;
 
     const connect = async () => {
       try {
@@ -79,6 +80,46 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
             }))
           });
         }, 2000);
+
+        // Proactive subscription sweep to ensure we subscribe/attach even if events were missed
+        sweepInterval = setInterval(() => {
+          newRoom.remoteParticipants.forEach((participant) => {
+            participant.trackPublications.forEach((publication) => {
+              // Force subscribe if needed
+              if (!publication.isSubscribed) {
+                try {
+                  publication.setSubscribed(true);
+                } catch (err) {
+                  console.warn('⚠️ Subscription sweep failed:', err);
+                }
+              }
+
+              // Try to attach when track is available
+              const track = publication.track;
+              if (!track) return;
+
+              if (track.kind === Track.Kind.Video && videoRef.current && !hasVideo) {
+                try {
+                  (track as RemoteVideoTrack).attach(videoRef.current);
+                  setHasVideo(true);
+                  // Attempt playback
+                  videoRef.current.play().catch((e) => {
+                    console.warn('⚠️ Autoplay blocked on sweep attach:', e);
+                    setAutoplayBlocked(true);
+                  });
+                } catch (e) {
+                  console.error('❌ Failed to attach video in sweep:', e);
+                }
+              } else if (track.kind === Track.Kind.Audio && audioRef.current) {
+                try {
+                  (track as RemoteAudioTrack).attach(audioRef.current);
+                } catch (e) {
+                  console.error('❌ Failed to attach audio in sweep:', e);
+                }
+              }
+            });
+          });
+        }, 1500);
 
         // Setup room event handlers
         newRoom.on(RoomEvent.TrackSubscribed, async (
@@ -351,6 +392,9 @@ export const LiveKitViewer = ({ roomToken, title, isLive = false }: LiveKitViewe
       
       if (debugInterval) {
         clearInterval(debugInterval);
+      }
+      if (sweepInterval) {
+        clearInterval(sweepInterval);
       }
       
       if (connectedRoom) {
