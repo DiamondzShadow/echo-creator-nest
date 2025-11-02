@@ -88,7 +88,7 @@ serve(async (req) => {
     // Verify user owns this stream
     const { data: stream, error: streamError } = await supabase
       .from('live_streams')
-      .select('user_id')
+      .select('user_id, livepeer_playback_id')
       .eq('id', streamId)
       .single();
 
