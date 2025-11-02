@@ -30,6 +30,7 @@ export type Database = {
           livepeer_asset_id: string
           livepeer_playback_id: string | null
           ready_at: string | null
+          required_token_balance: number | null
           shares: number | null
           size: number | null
           status: string
@@ -38,6 +39,8 @@ export type Database = {
           tags: string[] | null
           thumbnail_url: string | null
           title: string
+          token_address: string | null
+          token_gate_enabled: boolean | null
           updated_at: string
           user_id: string
           views: number | null
@@ -57,6 +60,7 @@ export type Database = {
           livepeer_asset_id: string
           livepeer_playback_id?: string | null
           ready_at?: string | null
+          required_token_balance?: number | null
           shares?: number | null
           size?: number | null
           status: string
@@ -65,6 +69,8 @@ export type Database = {
           tags?: string[] | null
           thumbnail_url?: string | null
           title: string
+          token_address?: string | null
+          token_gate_enabled?: boolean | null
           updated_at?: string
           user_id: string
           views?: number | null
@@ -84,6 +90,7 @@ export type Database = {
           livepeer_asset_id?: string
           livepeer_playback_id?: string | null
           ready_at?: string | null
+          required_token_balance?: number | null
           shares?: number | null
           size?: number | null
           status?: string
@@ -92,6 +99,8 @@ export type Database = {
           tags?: string[] | null
           thumbnail_url?: string | null
           title?: string
+          token_address?: string | null
+          token_gate_enabled?: boolean | null
           updated_at?: string
           user_id?: string
           views?: number | null

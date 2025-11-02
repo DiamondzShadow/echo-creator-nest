@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Clock, Calendar, Tag } from 'lucide-react';
+import { TokenGate } from '@/components/TokenGate';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
@@ -29,6 +30,9 @@ interface Asset {
   category: string;
   ipfs_cid: string;
   user_id: string;
+  token_gate_enabled: boolean;
+  required_token_balance: number;
+  token_address: string | null;
   profiles: {
     username: string;
     display_name: string;
@@ -197,17 +201,58 @@ const VideoWatch = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            <VideoPlayer
-              playbackId={asset.livepeer_playback_id}
-              assetId={asset.id}
-              title={asset.title}
-              views={asset.views}
-              likes={asset.likes}
-              shares={asset.shares}
-              isLiked={isLiked}
-              onLike={handleLike}
-              onShare={() => fetchAsset()}
-            />
+            {asset.token_gate_enabled ? (
+              <TokenGate 
+                requiredBalance={BigInt(asset.required_token_balance || '0')}
+                fallback={
+                  <Card className="border-primary/20">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Tag className="w-5 h-5" />
+                        Token Gated Content
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        This video is token gated by the creator.
+                      </p>
+                      <p className="text-sm font-semibold">
+                        Required balance: {(Number(asset.required_token_balance || 0) / 10 ** 18).toLocaleString()} tokens
+                      </p>
+                      {asset.token_address && (
+                        <p className="text-xs text-muted-foreground mt-2 font-mono break-all">
+                          Token: {asset.token_address}
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                }
+              >
+                <VideoPlayer
+                  playbackId={asset.livepeer_playback_id}
+                  assetId={asset.id}
+                  title={asset.title}
+                  views={asset.views}
+                  likes={asset.likes}
+                  shares={asset.shares}
+                  isLiked={isLiked}
+                  onLike={handleLike}
+                  onShare={() => fetchAsset()}
+                />
+              </TokenGate>
+            ) : (
+              <VideoPlayer
+                playbackId={asset.livepeer_playback_id}
+                assetId={asset.id}
+                title={asset.title}
+                views={asset.views}
+                likes={asset.likes}
+                shares={asset.shares}
+                isLiked={isLiked}
+                onLike={handleLike}
+                onShare={() => fetchAsset()}
+              />
+            )}
 
             <Card>
               <CardContent className="pt-6">

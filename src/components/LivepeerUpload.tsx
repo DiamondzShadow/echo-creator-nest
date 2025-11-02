@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { Lock } from 'lucide-react';
 
 const VIDEO_CATEGORIES = [
   "Drama",
@@ -35,6 +36,9 @@ export const LivepeerUpload = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<string>('');
+  const [tokenGateEnabled, setTokenGateEnabled] = useState(false);
+  const [requiredTokenBalance, setRequiredTokenBalance] = useState('');
+  const [tokenAddress, setTokenAddress] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'processing' | 'ready' | 'error'>('idle');
   const [enableIPFS, setEnableIPFS] = useState(true);
@@ -115,6 +119,9 @@ export const LivepeerUpload = () => {
           name: title || file.name,
           description: description || undefined,
           category: category || undefined,
+          tokenGateEnabled,
+          requiredTokenBalance: tokenGateEnabled && requiredTokenBalance ? requiredTokenBalance : undefined,
+          tokenAddress: tokenGateEnabled && tokenAddress ? tokenAddress : undefined,
           enableIPFS,
         },
       });
@@ -310,6 +317,54 @@ export const LivepeerUpload = () => {
           </Select>
         </div>
 
+        <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="token-gate"
+              checked={tokenGateEnabled}
+              onCheckedChange={setTokenGateEnabled}
+              disabled={uploadStatus !== 'idle'}
+            />
+            <Label htmlFor="token-gate" className="cursor-pointer flex items-center gap-2">
+              <Lock className="h-4 w-4" />
+              <span>Token Gate (Require ERC-20 to Watch)</span>
+            </Label>
+          </div>
+
+          {tokenGateEnabled && (
+            <div className="space-y-3 pl-6 border-l-2 border-primary/30">
+              <div className="space-y-2">
+                <Label htmlFor="required-balance">Required Token Balance</Label>
+                <Input
+                  id="required-balance"
+                  type="number"
+                  placeholder="e.g., 1000000000000000000 (1 token in wei)"
+                  value={requiredTokenBalance}
+                  onChange={(e) => setRequiredTokenBalance(e.target.value)}
+                  disabled={uploadStatus !== 'idle'}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Enter amount in wei (smallest unit). Example: 1 token = 1000000000000000000 wei
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="token-address">Token Address (Optional)</Label>
+                <Input
+                  id="token-address"
+                  placeholder="0x... (leave empty for platform default)"
+                  value={tokenAddress}
+                  onChange={(e) => setTokenAddress(e.target.value)}
+                  disabled={uploadStatus !== 'idle'}
+                />
+                <p className="text-xs text-muted-foreground">
+                  ERC-20 contract address. Leave empty to use platform default token.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="space-y-2">
           <Label htmlFor="video-file">Video File</Label>
           <Input
@@ -430,6 +485,9 @@ export const LivepeerUpload = () => {
               setTitle('');
               setDescription('');
               setCategory('');
+              setTokenGateEnabled(false);
+              setRequiredTokenBalance('');
+              setTokenAddress('');
               setUploadProgress(0);
               setUploadStatus('idle');
               setAssetInfo(null);

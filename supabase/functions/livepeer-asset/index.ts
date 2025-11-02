@@ -34,7 +34,7 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { action, name, description, category, url, assetId, enableIPFS } = await req.json();
+    const { action, name, description, category, tokenGateEnabled, requiredTokenBalance, tokenAddress, url, assetId, enableIPFS } = await req.json();
 
     console.log('Livepeer asset action:', action);
 
@@ -73,6 +73,9 @@ serve(async (req) => {
           title: name || 'Untitled Video',
           description: description || null,
           category: category || null,
+          token_gate_enabled: tokenGateEnabled || false,
+          required_token_balance: requiredTokenBalance || null,
+          token_address: tokenAddress || null,
           livepeer_asset_id: data.asset.id,
           livepeer_playback_id: data.asset.playbackId,
           status: 'waiting',
@@ -129,6 +132,9 @@ serve(async (req) => {
           title: name || 'Imported Video',
           description: description || null,
           category: category || null,
+          token_gate_enabled: tokenGateEnabled || false,
+          required_token_balance: requiredTokenBalance || null,
+          token_address: tokenAddress || null,
           livepeer_asset_id: data.asset.id,
           livepeer_playback_id: data.asset.playbackId,
           status: 'processing',
