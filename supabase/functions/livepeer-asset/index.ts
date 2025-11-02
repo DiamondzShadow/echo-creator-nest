@@ -34,7 +34,7 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { action, name, url, assetId, enableIPFS } = await req.json();
+    const { action, name, description, category, url, assetId, enableIPFS } = await req.json();
 
     console.log('Livepeer asset action:', action);
 
@@ -71,6 +71,8 @@ serve(async (req) => {
         .insert({
           user_id: user.id,
           title: name || 'Untitled Video',
+          description: description || null,
+          category: category || null,
           livepeer_asset_id: data.asset.id,
           livepeer_playback_id: data.asset.playbackId,
           status: 'waiting',
@@ -125,6 +127,8 @@ serve(async (req) => {
         .insert({
           user_id: user.id,
           title: name || 'Imported Video',
+          description: description || null,
+          category: category || null,
           livepeer_asset_id: data.asset.id,
           livepeer_playback_id: data.asset.playbackId,
           status: 'processing',

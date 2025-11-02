@@ -6,8 +6,26 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+
+const VIDEO_CATEGORIES = [
+  "Drama",
+  "Comedy",
+  "Shorts",
+  "Music",
+  "Sports",
+  "Gaming",
+  "News",
+  "Entertainment",
+  "Education",
+  "Science & Technology",
+  "Travel",
+  "Lifestyle",
+  "Other",
+] as const;
 
 export const LivepeerUpload = () => {
   const { toast } = useToast();
@@ -15,6 +33,8 @@ export const LivepeerUpload = () => {
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string>('');
   const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [category, setCategory] = useState<string>('');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'processing' | 'ready' | 'error'>('idle');
   const [enableIPFS, setEnableIPFS] = useState(true);
@@ -93,6 +113,8 @@ export const LivepeerUpload = () => {
         body: {
           action: 'create-upload',
           name: title || file.name,
+          description: description || undefined,
+          category: category || undefined,
           enableIPFS,
         },
       });
@@ -261,6 +283,34 @@ export const LivepeerUpload = () => {
         </div>
 
         <div className="space-y-2">
+          <Label htmlFor="description">Description (Optional)</Label>
+          <Textarea
+            id="description"
+            placeholder="Enter video description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            disabled={uploadStatus !== 'idle'}
+            rows={3}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="category">Category (Optional)</Label>
+          <Select value={category} onValueChange={setCategory} disabled={uploadStatus !== 'idle'}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select a category" />
+            </SelectTrigger>
+            <SelectContent>
+              {VIDEO_CATEGORIES.map((cat) => (
+                <SelectItem key={cat} value={cat}>
+                  {cat}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="video-file">Video File</Label>
           <Input
             id="video-file"
@@ -378,6 +428,8 @@ export const LivepeerUpload = () => {
               setThumbnailFile(null);
               setThumbnailPreview('');
               setTitle('');
+              setDescription('');
+              setCategory('');
               setUploadProgress(0);
               setUploadStatus('idle');
               setAssetInfo(null);
