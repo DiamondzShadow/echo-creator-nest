@@ -68,6 +68,83 @@ serve(async (req) => {
 
       console.log(`✅ Ended ${endedStreams?.length || 0} streams for user ${user.id}`);
 
+      // Terminate all LiveKit rooms
+      const LIVEKIT_API_KEY = Deno.env.get('LIVEKIT_API_KEY');
+      const LIVEKIT_API_SECRET = Deno.env.get('LIVEKIT_API_SECRET');
+      const LIVEKIT_URL = 'https://diamondzchain-ep9nznbn.livekit.cloud';
+
+      if (LIVEKIT_API_KEY && LIVEKIT_API_SECRET && endedStreams) {
+        for (const stream of endedStreams) {
+          if (stream.livepeer_playback_id?.startsWith('stream-')) {
+            try {
+              console.log(`🔒 Terminating LiveKit room: ${stream.livepeer_playback_id}`);
+
+              const encoder = new TextEncoder();
+              const now = Math.floor(Date.now() / 1000);
+              
+              const base64url = (bytes: Uint8Array): string => {
+                let binary = '';
+                for (let i = 0; i < bytes.length; i++) {
+                  binary += String.fromCharCode(bytes[i]);
+                }
+                return btoa(binary)
+                  .replace(/\+/g, '-')
+                  .replace(/\//g, '_')
+                  .replace(/=/g, '');
+              };
+
+              const header = { alg: 'HS256', typ: 'JWT' };
+              const payload = {
+                iss: LIVEKIT_API_KEY,
+                exp: now + 3600,
+                nbf: now - 60,
+                sub: user.id,
+                video: {
+                  roomAdmin: true,
+                  room: stream.livepeer_playback_id,
+                }
+              };
+
+              const headerB64 = base64url(encoder.encode(JSON.stringify(header)));
+              const payloadB64 = base64url(encoder.encode(JSON.stringify(payload)));
+              const signatureInput = `${headerB64}.${payloadB64}`;
+
+              const keyData = encoder.encode(LIVEKIT_API_SECRET);
+              const key = await crypto.subtle.importKey(
+                'raw',
+                keyData,
+                { name: 'HMAC', hash: 'SHA-256' },
+                false,
+                ['sign']
+              );
+              const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(signatureInput));
+              const signatureB64 = base64url(new Uint8Array(signature));
+              const jwtToken = `${signatureInput}.${signatureB64}`;
+
+              const response = await fetch(`${LIVEKIT_URL}/twirp/livekit.RoomService/DeleteRoom`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${jwtToken}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  room: stream.livepeer_playback_id,
+                }),
+              });
+
+              if (response.ok) {
+                console.log(`✅ LiveKit room terminated: ${stream.livepeer_playback_id}`);
+              } else {
+                const errorText = await response.text();
+                console.error(`⚠️ Failed to terminate room: ${errorText}`);
+              }
+            } catch (roomError) {
+              console.error('Error terminating room:', roomError);
+            }
+          }
+        }
+      }
+
       return new Response(
         JSON.stringify({ 
           success: true, 
@@ -106,7 +183,7 @@ serve(async (req) => {
       );
     }
 
-    // End the stream
+    // End the stream in database
     const { error: updateError } = await supabase
       .from('live_streams')
       .update({
@@ -123,7 +200,87 @@ serve(async (req) => {
       );
     }
 
-    console.log(`✅ Stream ended: ${streamId}`);
+    console.log(`✅ Stream ended in database: ${streamId}`);
+
+    // Terminate the LiveKit room to close all connections
+    if (stream.livepeer_playback_id?.startsWith('stream-')) {
+      try {
+        const LIVEKIT_API_KEY = Deno.env.get('LIVEKIT_API_KEY');
+        const LIVEKIT_API_SECRET = Deno.env.get('LIVEKIT_API_SECRET');
+        const LIVEKIT_URL = 'https://diamondzchain-ep9nznbn.livekit.cloud';
+
+        if (LIVEKIT_API_KEY && LIVEKIT_API_SECRET) {
+          console.log(`🔒 Terminating LiveKit room: ${stream.livepeer_playback_id}`);
+
+          // Create JWT token for LiveKit API
+          const encoder = new TextEncoder();
+          const now = Math.floor(Date.now() / 1000);
+          
+          const base64url = (bytes: Uint8Array): string => {
+            let binary = '';
+            for (let i = 0; i < bytes.length; i++) {
+              binary += String.fromCharCode(bytes[i]);
+            }
+            return btoa(binary)
+              .replace(/\+/g, '-')
+              .replace(/\//g, '_')
+              .replace(/=/g, '');
+          };
+
+          const header = { alg: 'HS256', typ: 'JWT' };
+          const payload = {
+            iss: LIVEKIT_API_KEY,
+            exp: now + 3600,
+            nbf: now - 60,
+            sub: user.id,
+            video: {
+              roomAdmin: true,
+              room: stream.livepeer_playback_id,
+            }
+          };
+
+          const headerB64 = base64url(encoder.encode(JSON.stringify(header)));
+          const payloadB64 = base64url(encoder.encode(JSON.stringify(payload)));
+          const signatureInput = `${headerB64}.${payloadB64}`;
+
+          const keyData = encoder.encode(LIVEKIT_API_SECRET);
+          const key = await crypto.subtle.importKey(
+            'raw',
+            keyData,
+            { name: 'HMAC', hash: 'SHA-256' },
+            false,
+            ['sign']
+          );
+          const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(signatureInput));
+          const signatureB64 = base64url(new Uint8Array(signature));
+          const jwtToken = `${signatureInput}.${signatureB64}`;
+
+          // Call LiveKit API to delete/terminate the room
+          const response = await fetch(`${LIVEKIT_URL}/twirp/livekit.RoomService/DeleteRoom`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${jwtToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              room: stream.livepeer_playback_id,
+            }),
+          });
+
+          if (response.ok) {
+            console.log(`✅ LiveKit room terminated successfully: ${stream.livepeer_playback_id}`);
+          } else {
+            const errorText = await response.text();
+            console.error(`⚠️ Failed to terminate LiveKit room: ${errorText}`);
+          }
+        }
+      } catch (roomError) {
+        console.error('Error terminating LiveKit room:', roomError);
+        // Don't fail the entire request if room termination fails
+      }
+    }
+
+    console.log(`✅ Stream cleanup complete: ${streamId}`);
 
     return new Response(
       JSON.stringify({ success: true, streamId }),
