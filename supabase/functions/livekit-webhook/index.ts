@@ -171,18 +171,21 @@ serve(async (req) => {
     if (event === 'room_finished') {
       console.log(`Room finished: ${room?.name}`);
       
-      // Update stream status
+      // Update stream status - reset viewer count when room ends
       if (room?.name) {
         const { error } = await supabase
           .from('live_streams')
           .update({
             is_live: false,
             ended_at: new Date().toISOString(),
+            viewer_count: 0,
           })
           .eq('livepeer_playback_id', room.name);
 
         if (error) {
           console.error('Error updating stream status:', error);
+        } else {
+          console.log(`✅ Stream ended and viewer count reset: ${room.name}`);
         }
       }
     }
@@ -307,18 +310,26 @@ serve(async (req) => {
     // Handle participant events for viewer count
     if (event === 'participant_joined' || event === 'participant_left') {
       if (room?.name && room?.numParticipants !== undefined) {
-        console.log(`Participant ${event}: ${room.numParticipants} in room`);
+        console.log(`📊 Participant ${event}: room=${room.name}, total=${room.numParticipants}`);
+        
+        // Subtract 1 for the broadcaster (they're always counted)
+        const viewerCount = Math.max(0, room.numParticipants - 1);
+        console.log(`👥 Updating viewer count to: ${viewerCount}`);
         
         const { error } = await supabase
           .from('live_streams')
           .update({
-            viewer_count: Math.max(0, room.numParticipants - 1), // Subtract broadcaster
+            viewer_count: viewerCount,
           })
           .eq('livepeer_playback_id', room.name);
 
         if (error) {
-          console.error('Error updating viewer count:', error);
+          console.error('❌ Error updating viewer count:', error);
+        } else {
+          console.log(`✅ Viewer count updated successfully`);
         }
+      } else {
+        console.warn('⚠️ Missing room data for participant event:', { event, room });
       }
     }
 

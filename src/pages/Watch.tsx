@@ -50,6 +50,7 @@ const Watch = () => {
   const [stream, setStream] = useState<StreamData | null>(null);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUserProfile, setCurrentUserProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [livekitToken, setLivekitToken] = useState<string | null>(null);
   const [isLiveKitStream, setIsLiveKitStream] = useState(false);
@@ -166,7 +167,17 @@ const Watch = () => {
 
   const fetchCurrentUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
-    setCurrentUser(session?.user);
+    setCurrentUser(session?.user || null);
+    
+    // Fetch current user's profile for chat
+    if (session?.user) {
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+      setCurrentUserProfile(userProfile);
+    }
   };
 
   const fetchStream = async () => {
@@ -470,7 +481,7 @@ const Watch = () => {
                   <StreamChat 
                     streamId={stream.id}
                     currentUserId={currentUser?.id}
-                    currentUsername={profile?.username}
+                    currentUsername={currentUserProfile?.username}
                   />
                 </div>
               )}
@@ -543,7 +554,7 @@ const Watch = () => {
                   <StreamChat 
                     streamId={stream.id}
                     currentUserId={currentUser?.id}
-                    currentUsername={profile?.username}
+                    currentUsername={currentUserProfile?.username}
                   />
                 </div>
               )}
