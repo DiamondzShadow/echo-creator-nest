@@ -375,6 +375,9 @@ export async function getNFTsByWallet(
       ? `${OPENSEA_API_BASE}/chain/${CHAIN_MAP[chain]}/account/${walletAddress}/nfts?limit=${limit}`
       : `${OPENSEA_API_BASE}/account/${walletAddress}/nfts?limit=${limit}`;
 
+    console.log('Fetching NFTs from OpenSea:', url);
+    console.log('Using API key:', OPENSEA_API_KEY ? 'Set' : 'Not set');
+
     const response = await fetch(url, {
       headers: {
         'X-API-KEY': OPENSEA_API_KEY,
@@ -382,15 +385,20 @@ export async function getNFTsByWallet(
       },
     });
 
+    console.log('OpenSea API response status:', response.status);
+
     if (!response.ok) {
-      throw new Error(`OpenSea API error: ${response.status}`);
+      const errorText = await response.text();
+      console.error('OpenSea API error response:', errorText);
+      throw new Error(`OpenSea API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
+    console.log('OpenSea API response data:', data);
     return data.nfts || [];
   } catch (error) {
     console.error('Error fetching wallet NFTs from OpenSea:', error);
-    return [];
+    throw error; // Re-throw so the caller can handle it
   }
 }
 
