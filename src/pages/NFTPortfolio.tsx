@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Wallet, 
   ExternalLink, 
@@ -18,7 +19,8 @@ import {
 import { 
   getNFTsByWallet, 
   getOpenSeaURL,
-  WalletNFT 
+  WalletNFT,
+  CHAIN_MAP
 } from '@/lib/opensea';
 import { useToast } from '@/hooks/use-toast';
 
@@ -46,18 +48,20 @@ export default function NFTPortfolio() {
   const loadNFTs = async (walletAddress: string) => {
     setIsLoading(true);
     try {
+      console.log('Loading NFTs for address:', walletAddress, 'on chain:', selectedChain || 'all chains');
       const data = await getNFTsByWallet(walletAddress, selectedChain, 200);
+      console.log('Received NFT data:', data);
       setNfts(data);
       
       toast({
         title: "NFTs Loaded",
-        description: `Found ${data.length} NFTs in your wallet`,
+        description: `Found ${data.length} NFTs in ${selectedChain || 'all chains'}`,
       });
     } catch (error) {
       console.error('Error loading NFTs:', error);
       toast({
         title: "Error",
-        description: "Failed to load NFTs from OpenSea",
+        description: error instanceof Error ? error.message : "Failed to load NFTs from OpenSea",
         variant: "destructive",
       });
     } finally {
@@ -121,19 +125,37 @@ export default function NFTPortfolio() {
         {/* Wallet Connection / Search */}
         <Card className="mb-6">
           <CardContent className="pt-6">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1">
-                <Input
-                  placeholder="Search by wallet address (0x...)"
-                  value={customAddress}
-                  onChange={(e) => setCustomAddress(e.target.value)}
-                  className="w-full"
-                />
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex-1">
+                  <Input
+                    placeholder="Search by wallet address (0x...)"
+                    value={customAddress}
+                    onChange={(e) => setCustomAddress(e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+                <Select value={selectedChain || 'all'} onValueChange={(value) => setSelectedChain(value === 'all' ? undefined : value)}>
+                  <SelectTrigger className="w-full md:w-48">
+                    <SelectValue placeholder="Select chain" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Chains</SelectItem>
+                    <SelectItem value="ethereum">Ethereum</SelectItem>
+                    <SelectItem value="polygon">Polygon</SelectItem>
+                    <SelectItem value="arbitrum">Arbitrum</SelectItem>
+                    <SelectItem value="optimism">Optimism</SelectItem>
+                    <SelectItem value="base">Base</SelectItem>
+                    <SelectItem value="avalanche">Avalanche</SelectItem>
+                    <SelectItem value="bsc">BSC</SelectItem>
+                    <SelectItem value="solana">Solana</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button onClick={handleSearchWallet} disabled={!customAddress}>
+                  <Search className="w-4 h-4 mr-2" />
+                  Search Wallet
+                </Button>
               </div>
-              <Button onClick={handleSearchWallet} disabled={!customAddress}>
-                <Search className="w-4 h-4 mr-2" />
-                Search Wallet
-              </Button>
             </div>
             
             {address && isConnected && (

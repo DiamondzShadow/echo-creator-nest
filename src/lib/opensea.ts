@@ -1,10 +1,17 @@
 /**
  * OpenSea API Integration
  * Provides access to OpenSea marketplace data, NFT collections, and trading activity
+ * Uses Supabase Edge Function to avoid CORS issues
  */
+
+import { supabase } from '@/integrations/supabase/client';
 
 const OPENSEA_API_KEY = import.meta.env.VITE_OPENSEA_API_KEY;
 const OPENSEA_API_BASE = 'https://api.opensea.io/api/v2';
+
+// Use Supabase Edge Function for API calls to avoid CORS
+// Set to false to try direct API calls (may have CORS issues)
+const USE_EDGE_FUNCTION = false;
 
 // Chain mapping for OpenSea API
 export const CHAIN_MAP: Record<string, string> = {
@@ -371,26 +378,80 @@ export async function getNFTsByWallet(
   limit: number = 50
 ): Promise<WalletNFT[]> {
   try {
-    const url = chain
-      ? `${OPENSEA_API_BASE}/chain/${CHAIN_MAP[chain]}/account/${walletAddress}/nfts?limit=${limit}`
-      : `${OPENSEA_API_BASE}/account/${walletAddress}/nfts?limit=${limit}`;
+    if (USE_EDGE_FUNCTION) {
+      // Use Supabase Edge Function to avoid CORS
+      const params = new URLSearchParams({
+        action: 'getNFTsByWallet',
+        wallet: walletAddress,
+        limit: limit.toString(),
+      });
+      
+      if (chain) {
+        params.append('chain', CHAIN_MAP[chain] || chain);
+      }
 
-    const response = await fetch(url, {
-      headers: {
-        'X-API-KEY': OPENSEA_API_KEY,
-        'Accept': 'application/json',
-      },
-    });
+      console.log('Fetching NFTs via Edge Function for wallet:', walletAddress, 'chain:', chain || 'all');
 
-    if (!response.ok) {
-      throw new Error(`OpenSea API error: ${response.status}`);
+      const { data, error } = await supabase.functions.invoke('opensea-proxy', {
+        body: {},
+        method: 'GET',
+      });
+
+      // Construct URL manually since Supabase doesn't support query params in invoke
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const url = `${supabaseUrl}/functions/v1/opensea-proxy?${params.toString()}`;
+
+      console.log('Calling Edge Function:', url);
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Edge Function error:', errorText);
+        throw new Error(`Edge Function error: ${response.status} - ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log('NFTs received from Edge Function:', result);
+      return result.nfts || [];
+    } else {
+      // Direct API call (may have CORS issues)
+      const url = chain
+        ? `${OPENSEA_API_BASE}/chain/${CHAIN_MAP[chain]}/account/${walletAddress}/nfts?limit=${limit}`
+        : `${OPENSEA_API_BASE}/account/${walletAddress}/nfts?limit=${limit}`;
+
+      console.log('Fetching NFTs from OpenSea:', url);
+      console.log('Using API key:', OPENSEA_API_KEY ? 'Set' : 'Not set');
+
+      const response = await fetch(url, {
+        headers: {
+          'X-API-KEY': OPENSEA_API_KEY,
+          'Accept': 'application/json',
+        },
+      });
+
+      console.log('OpenSea API response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('OpenSea API error response:', errorText);
+        throw new Error(`OpenSea API error: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('OpenSea API response data:', data);
+      return data.nfts || [];
     }
-
-    const data = await response.json();
-    return data.nfts || [];
   } catch (error) {
     console.error('Error fetching wallet NFTs from OpenSea:', error);
-    return [];
+    throw error; // Re-throw so the caller can handle it
   }
 }
 
