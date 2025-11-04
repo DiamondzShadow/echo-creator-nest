@@ -1,319 +1,253 @@
-# NFT Loading Fix - OpenSea & Wallet Compatibility 🔧
+# Why Your NFTs Aren't Loading & How to Fix It 🔧
 
-## Problem Summary
+## The Problem
 
-NFTs were not loading properly on OpenSea and in wallets because the minting process was creating **invalid metadata URIs** that couldn't be resolved.
+Your NFTs aren't populating because the **OpenSea API blocks direct browser requests** (CORS policy). When you try to fetch NFTs from your wallet address, the browser gets blocked by OpenSea's security.
 
-### Root Cause
+### What is CORS?
+CORS (Cross-Origin Resource Sharing) is a security feature that prevents websites from making API calls to other domains directly from the browser. OpenSea requires API keys to be used server-side to keep them secure.
 
-The NFTMint component was using placeholder metadata URIs like:
+## The Solution
+
+I've created a **Supabase Edge Function** that acts as a secure proxy between your frontend and OpenSea's API. 
+
+### Here's how it works:
+
 ```
-ipfs://placeholder/1234567890
-```
-
-These URIs don't point to actual IPFS files, so when OpenSea or wallets try to fetch the NFT metadata, they fail to load any information about the NFT.
-
-## What Was Fixed ✅
-
-### 1. Smart Contract Updates (`contracts/CreatorNFT.sol`)
-
-- ✅ Added `tokensOfOwner(address)` function without pagination for wallet/OpenSea compatibility
-- ✅ Added `tokensOfOwnerPaginated()` for paginated queries
-- ✅ Added `contractURI()` function for collection-level metadata
-- ✅ Improved error handling for edge cases
-
-### 2. Frontend ABI Updates (`src/lib/web3-config.ts`)
-
-- ✅ Updated `CREATOR_NFT_ABI` with new functions
-- ✅ Updated `NFT_MARKETPLACE_ABI` with duration parameter and withdraw function
-- ✅ Added missing ERC721 standard functions (`name`, `symbol`, `balanceOf`)
-
-### 3. New Metadata Helper (`src/lib/nft-metadata.ts`)
-
-Created a comprehensive metadata utility library that:
-- ✅ Creates OpenSea-compatible metadata JSON
-- ✅ Generates valid metadata URIs (data URIs with embedded JSON)
-- ✅ Handles IPFS, HTTP, and data URI formats
-- ✅ Provides image URL formatting for display
-- ✅ Validates metadata structure
-- ✅ Creates fallback metadata for invalid URIs
-
-### 4. Updated NFT Minting (`src/components/NFTMint.tsx`)
-
-- ✅ Uses proper metadata structure following OpenSea standards
-- ✅ Creates data URI with embedded JSON metadata
-- ✅ Includes all required metadata fields: `name`, `description`, `image`, `external_url`
-- ✅ Adds attributes for royalty and creator information
-- ✅ Better image upload handling
-
-### 5. Enhanced NFT Display (`src/components/NFTCard.tsx`)
-
-- ✅ Uses `formatImageUrl()` to properly handle IPFS URLs and data URIs
-- ✅ Improved error handling for image loading
-- ✅ Better fallback to placeholder images
-
-## How NFT Metadata Works Now 📋
-
-### OpenSea Metadata Standard
-
-NFTs now use the OpenSea metadata standard:
-
-```json
-{
-  "name": "My NFT",
-  "description": "A cool NFT",
-  "image": "https://...",
-  "external_url": "https://creatorhub.io/nft/my-nft",
-  "attributes": [
-    {
-      "trait_type": "Royalty",
-      "value": "10%"
-    },
-    {
-      "trait_type": "Creator",
-      "value": "0x123..."
-    }
-  ],
-  "properties": {
-    "creator": "0x123...",
-    "royalty": 10
-  }
-}
+Browser Request
+    ↓
+Supabase Edge Function (Server-Side)
+    ↓
+OpenSea API (with secure API key)
+    ↓
+Returns NFT Data
+    ↓
+Displays in Your App
 ```
 
-### Metadata Storage
+## Quick Fix Options
 
-**Current Implementation (Working):**
-- Metadata is embedded in the tokenURI as a data URI
-- Format: `data:application/json;base64,eyJuYW1lIjoi...`
-- This allows NFTs to work immediately without external storage
-- OpenSea and wallets can read the metadata directly from the blockchain
+### Option 1: Try Direct API Calls First (Current Setting)
 
-**Production Recommendation:**
-- Upload metadata to IPFS or Arweave for permanent storage
-- Use IPFS URIs like: `ipfs://QmXxxx...`
-- Benefits: Decentralized, permanent, and widely supported
+The code is currently set to try direct API calls. This might work in some browsers or with certain configurations.
 
-## Deployment Instructions 🚀
+**To test:**
+1. Go to http://localhost:5173/nft-portfolio
+2. Enter your wallet address
+3. Click "Search Wallet"
+4. Open browser console (F12) and check for errors
 
-### For New Deployments
+**If you see CORS errors in console:**
+- Error messages like "blocked by CORS policy"
+- Error messages about "Access-Control-Allow-Origin"
 
-The contracts are already deployed on Arbitrum:
-- **CreatorNFT**: `0xc4a19fA378816a7FC1ae79B924940232448e8400`
-- **NFTMarketplace**: `0x2c4aFDfEB45d2b05A33aDb8B96e8a275b54Ccb16`
+Then you need Option 2.
 
-However, to get the contract updates, you need to:
+### Option 2: Deploy Edge Function (Recommended)
 
-1. **Redeploy CreatorNFT contract** with the updated code:
-   ```bash
-   # Update the contract file
-   # Deploy to Arbitrum
-   npx hardhat run scripts/deploy-creator-nft.js --network arbitrum
-   ```
+This is the proper, production-ready solution.
 
-2. **Update web3-config.ts** with the new contract address:
-   ```typescript
-   export const CREATOR_NFT_CONTRACT_ADDRESS = "0xYourNewAddress";
-   ```
-
-3. **Update database** if you track contract addresses in Supabase
-
-### For Existing NFTs (Already Minted)
-
-Unfortunately, NFTs that were already minted with invalid metadata URIs **cannot be fixed on-chain** because:
-- The tokenURI is stored immutably in the contract
-- Only the contract owner could update it if there was an update function
-- The current contract doesn't have a `setTokenURI()` function
-
-**Options for Existing NFTs:**
-
-1. **Option A: Redeploy with Updatable URIs** (Recommended)
-   - Add `setTokenURI()` function to CreatorNFT.sol
-   - Redeploy contract
-   - Migrate existing NFTs by re-minting
-
-2. **Option B: Use OpenSea's Off-Chain Metadata**
-   - OpenSea allows setting metadata through their API
-   - Submit metadata updates through OpenSea's dashboard
-   - This won't fix wallet compatibility but works for OpenSea
-
-3. **Option C: Create Metadata Redirect Service**
-   - Deploy a web server that redirects placeholder URIs to real metadata
-   - Update the placeholder IPFS gateway to point to your server
-   - Not recommended as it's centralized
-
-## Testing the Fix 🧪
-
-### 1. Mint a New NFT
+#### Step 1: Login to Supabase CLI
 
 ```bash
-# Go to your app
-http://localhost:5173/marketplace
-
-# Click "Mint" tab
-# Fill in:
-# - Name: "Test NFT"
-# - Description: "Testing metadata fix"
-# - Upload an image
-# - Set royalty: 10%
-
-# Click "Mint NFT"
-# Pay the 0.001 ETH minting fee
-# Wait for confirmation
+npx supabase login
 ```
 
-### 2. Verify on OpenSea
+This will open a browser window. Log in with your Supabase account.
+
+#### Step 2: Run the Deployment Script
 
 ```bash
-# Visit OpenSea
-https://opensea.io/assets/arbitrum/<contract-address>/<token-id>
-
-# Check:
-# ✅ Name displays correctly
-# ✅ Description shows up
-# ✅ Image loads
-# ✅ Attributes show Creator and Royalty
+./deploy-opensea-function.sh
 ```
 
-### 3. Check in Wallet
+Or manually:
 
 ```bash
-# Open MetaMask or your wallet
-# Go to NFTs tab
-# Your NFT should appear with:
-# ✅ Correct name
-# ✅ Correct image
-# ✅ All metadata visible
+# Set the API key
+npx supabase secrets set OPENSEA_API_KEY="7715571f6eab4ebea3f4b6f7950d6ed6" --project-ref woucixqbnzmvlvnaaelb
+
+# Deploy the function
+npx supabase functions deploy opensea-proxy --project-ref woucixqbnzmvlvnaaelb
 ```
 
-## Known Limitations ⚠️
+#### Step 3: Enable Edge Function in Code
 
-### Current Limitations
-
-1. **Data URI Size**
-   - Data URIs can be large for high-res images
-   - May hit gas limits for very large metadata
-   - **Solution**: Use IPFS for production
-
-2. **No Metadata Updates**
-   - Once minted, metadata cannot be changed
-   - This is by design for immutability
-   - **Solution**: Add update function if needed
-
-3. **Wallet Support**
-   - Some wallets may not support data URIs
-   - Most major wallets (MetaMask, Rainbow, etc.) do support them
-   - **Solution**: Use IPFS URIs for best compatibility
-
-## Production Checklist 📝
-
-Before going to production with real NFTs:
-
-- [ ] Deploy updated CreatorNFT contract
-- [ ] Integrate IPFS storage (Pinata, NFT.Storage, or Web3.Storage)
-- [ ] Update NFTMint to upload images to IPFS
-- [ ] Update NFTMint to upload metadata to IPFS
-- [ ] Use IPFS URIs instead of data URIs
-- [ ] Test on OpenSea Testnet first
-- [ ] Verify metadata displays correctly
-- [ ] Check gas costs for minting
-- [ ] Add metadata update function if needed
-- [ ] Set up automated IPFS pinning
-- [ ] Document the metadata format
-
-## IPFS Integration Guide 🌐
-
-### Recommended IPFS Services
-
-1. **Pinata** (Easiest)
-   - Sign up: https://pinata.cloud
-   - Get API keys
-   - 1GB free storage
-
-2. **NFT.Storage** (Free for NFTs)
-   - Sign up: https://nft.storage
-   - Unlimited free storage for NFTs
-   - Dedicated to NFT hosting
-
-3. **Web3.Storage** (Free)
-   - Sign up: https://web3.storage
-   - Free storage on IPFS/Filecoin
-   - Great for large files
-
-### Example IPFS Upload Code
+Edit `src/lib/opensea.ts` and change:
 
 ```typescript
-// Add to src/lib/ipfs.ts
-import { create } from 'ipfs-http-client';
-
-const client = create({
-  host: 'ipfs.infura.io',
-  port: 5001,
-  protocol: 'https',
-});
-
-export async function uploadToIPFS(file: File): Promise<string> {
-  const added = await client.add(file);
-  return `ipfs://${added.path}`;
-}
-
-export async function uploadMetadataToIPFS(metadata: any): Promise<string> {
-  const json = JSON.stringify(metadata);
-  const added = await client.add(json);
-  return `ipfs://${added.path}`;
-}
+const USE_EDGE_FUNCTION = false;  // Change this
 ```
 
-## Support & Troubleshooting 🆘
+To:
 
-### Common Issues
+```typescript
+const USE_EDGE_FUNCTION = true;   // Use edge function
+```
 
-**Issue**: NFTs still not loading
-- **Fix**: Make sure you're using the updated code and redeployed contracts
+#### Step 4: Restart Dev Server
 
-**Issue**: Images not displaying
-- **Fix**: Check image URLs are valid and accessible
+```bash
+# Stop your current dev server (Ctrl+C)
+# Then restart
+npm run dev
+```
 
-**Issue**: OpenSea shows "No metadata"
-- **Fix**: Wait 5-10 minutes for OpenSea to refresh metadata
-- **Fix**: Force refresh: https://opensea.io/assets/arbitrum/CONTRACT/TOKEN?force_update=true
+#### Step 5: Test
 
-**Issue**: Wallet doesn't show NFT
-- **Fix**: Some wallets cache metadata - try refreshing or re-adding the contract
+Go to http://localhost:5173/nft-portfolio and search for your wallet!
 
-### Getting Help
+## What I've Changed
 
-1. Check contract deployment on Arbiscan
-2. Verify tokenURI returns valid data
-3. Test metadata URI in browser
-4. Check OpenSea collection page
-5. Review browser console for errors
+### 1. Created Edge Function
+**File:** `supabase/functions/opensea-proxy/index.ts`
 
-## Summary 🎯
+A server-side function that:
+- Accepts wallet address, chain, and other parameters
+- Calls OpenSea API with your API key securely
+- Returns NFT data to your frontend
+- Handles CORS properly
 
-✅ **Fixed**:
-- Invalid metadata URIs
-- Missing contract functions
-- Improper metadata structure
-- Image URL handling
-- OpenSea compatibility
+### 2. Updated OpenSea Library
+**File:** `src/lib/opensea.ts`
 
-✅ **New Features**:
-- Proper OpenSea metadata format
-- Data URI support (works immediately)
-- Image format handling
-- Fallback metadata
-- Better error handling
+- Added toggle for Edge Function vs Direct API calls
+- Improved error logging
+- Better error messages
+- Imported Supabase client for edge function calls
 
-✅ **Next Steps**:
-1. Redeploy contracts with updates
-2. Test new NFT minting
-3. Verify on OpenSea
-4. (Optional) Integrate IPFS for production
-5. Document for your team
+### 3. Enhanced NFT Portfolio Page
+**File:** `src/pages/NFTPortfolio.tsx`
+
+- Added chain selector dropdown (Ethereum, Polygon, Arbitrum, etc.)
+- Better error messages
+- Console logging for debugging
+- Improved loading states
+
+## Testing Your Setup
+
+### Test with a Known Wallet
+
+Try this popular wallet that definitely has NFTs:
+
+```
+0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045
+```
+
+### What You Should See
+
+**In Browser Console (F12 → Console):**
+```
+Loading NFTs for wallet: 0x... on chain: all
+Fetching NFTs from OpenSea: https://api.opensea.io/...
+OpenSea API response status: 200
+OpenSea API response data: {nfts: [...]}
+```
+
+**On Screen:**
+- Loading spinner
+- Toast notification: "NFTs Loaded - Found X NFTs"
+- Grid of NFT images
+- Collection stats
+
+### If You See Errors
+
+**CORS Error:**
+```
+Access to fetch at 'https://api.opensea.io/...' has been blocked by CORS policy
+```
+**Solution:** Deploy the Edge Function (Option 2 above)
+
+**401/403 Error:**
+```
+OpenSea API error: 401 - Unauthorized
+```
+**Solution:** API key is wrong or not set correctly
+
+**404 Error:**
+```
+Edge Function error: 404
+```
+**Solution:** Edge function not deployed yet
+
+**No NFTs Found (but you know you have some):**
+- Try selecting a specific chain (Ethereum, Polygon, etc.)
+- Make sure wallet address is correct (starts with 0x)
+- Check if NFTs are on a supported chain
+
+## Supported Blockchains
+
+The OpenSea integration works with:
+- ✅ Ethereum
+- ✅ Polygon (Matic)
+- ✅ Arbitrum
+- ✅ Optimism
+- ✅ Base
+- ✅ Avalanche
+- ✅ BSC (Binance Smart Chain)
+- ✅ Solana
+- ✅ Zora
+
+## Environment Variables Checklist
+
+### In `.env` file:
+```bash
+✅ VITE_SUPABASE_URL="https://woucixqbnzmvlvnaaelb.supabase.co"
+✅ VITE_SUPABASE_PUBLISHABLE_KEY="eyJhbGci..."
+✅ VITE_OPENSEA_API_KEY="7715571f6eab4ebea3f4b6f7950d6ed6"
+```
+
+### In Supabase Secrets (after deployment):
+```bash
+✅ OPENSEA_API_KEY="7715571f6eab4ebea3f4b6f7950d6ed6"
+```
+
+To verify Supabase secrets:
+```bash
+npx supabase secrets list --project-ref woucixqbnzmvlvnaaelb
+```
+
+## Troubleshooting Commands
+
+### Check if Edge Function is Deployed
+```bash
+npx supabase functions list --project-ref woucixqbnzmvlvnaaelb
+```
+
+### View Edge Function Logs
+```bash
+npx supabase functions logs opensea-proxy --project-ref woucixqbnzmvlvnaaelb
+```
+
+### Test Edge Function Directly
+```bash
+curl "https://woucixqbnzmvlvnaaelb.supabase.co/functions/v1/opensea-proxy?action=getNFTsByWallet&wallet=0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045&limit=5" \
+  -H "Authorization: Bearer YOUR_SUPABASE_ANON_KEY"
+```
+
+## Still Having Issues?
+
+1. **Check Browser Console** - Look for specific error messages
+2. **Check Supabase Dashboard** - Go to Edge Functions → opensea-proxy → Logs
+3. **Verify API Key** - Make sure the OpenSea API key is valid
+4. **Try Different Wallet** - Use the test wallet address above
+5. **Check Chain** - Some wallets have NFTs on specific chains only
+
+## Summary
+
+**The issue:** CORS blocks direct OpenSea API calls from browser
+
+**The fix:** Use Supabase Edge Function as a secure proxy
+
+**To deploy:**
+1. `npx supabase login`
+2. `./deploy-opensea-function.sh`
+3. Set `USE_EDGE_FUNCTION = true` in code
+4. Restart dev server
+5. Test at `/nft-portfolio`
+
+**Your API Key:** `7715571f6eab4ebea3f4b6f7950d6ed6` ✅ (Already configured)
 
 ---
 
-**Status**: ✅ Ready for Testing  
-**Last Updated**: 2025-10-30  
-**Compatibility**: OpenSea, MetaMask, Rainbow, all major wallets
+Once deployed, you'll be able to view NFTs from any wallet address across all supported blockchains! 🎨✨
