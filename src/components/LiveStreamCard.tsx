@@ -74,7 +74,7 @@ const LiveStreamCard = ({ stream, isRecording = false, isOwner = false }: LiveSt
   return (
     <Card 
       className="border-0 shadow-card hover:shadow-glow transition-all cursor-pointer group"
-      onClick={() => navigate(`/watch/${stream.id}`)}
+      onClick={() => navigate(isRecording ? `/video/${stream.id}` : `/watch/${stream.id}`)}
     >
       <CardContent className="p-0">
         <div className="relative aspect-video bg-gradient-hero rounded-t-lg overflow-hidden" style={thumbnailStyle}>
