@@ -113,6 +113,20 @@ export type Database = {
             referencedRelation: "live_streams"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "assets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "tip_leaderboard"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       followers: {

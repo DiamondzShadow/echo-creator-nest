@@ -31,6 +31,7 @@ interface Asset {
   created_at: string;
   title?: string | null;
   description?: string | null;
+  profiles?: Profile | null;
 }
 
 const Discover = () => {
@@ -115,7 +116,7 @@ const Discover = () => {
     // Fetch ready recordings from assets table (only public videos)
     const { data: assets, error: assetsError } = await supabase
       .from("assets")
-      .select("*")
+      .select("*, profiles!assets_user_id_fkey(username, display_name, avatar_url)")
       .eq("status", "ready")
       .eq("is_public", true)
       .not("livepeer_playback_id", "is", null)
@@ -212,19 +213,10 @@ const Discover = () => {
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 animate-scale-in">
                 {recordings.map((asset) => {
-                  // Build profile object from asset data
-                  const assetProfile = asset.user_id 
-                    ? { 
-                        username: 'creator', 
-                        display_name: asset.title?.substring(0, 20) || 'Creator',
-                        avatar_url: null 
-                      }
-                    : null;
-                  
                   return (
                     <LiveStreamCard 
                       key={asset.id} 
-                      stream={{ ...asset, title: asset.title || 'Untitled', description: asset.description || asset.title || '', profiles: assetProfile }} 
+                      stream={{ ...asset, title: asset.title || 'Untitled', description: asset.description || asset.title || '', profiles: asset.profiles || null }} 
                       isRecording={true}
                       isOwner={false}
                     />
@@ -242,17 +234,10 @@ const Discover = () => {
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 animate-scale-in">
                 {recordings.map((asset) => {
-                  const assetProfile = asset.user_id 
-                    ? { 
-                        username: 'creator', 
-                        display_name: asset.title?.substring(0, 20) || 'Creator',
-                        avatar_url: null 
-                      }
-                    : null;
                   return (
                     <LiveStreamCard 
                       key={asset.id} 
-                      stream={{ ...asset, title: asset.title || 'Untitled', description: asset.description || asset.title || '', profiles: assetProfile }} 
+                      stream={{ ...asset, title: asset.title || 'Untitled', description: asset.description || asset.title || '', profiles: asset.profiles || null }} 
                       isRecording={true}
                       isOwner={false}
                     />
