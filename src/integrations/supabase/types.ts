@@ -388,6 +388,7 @@ export type Database = {
           updated_at: string
           username: string
           wallet_address: string | null
+          xrp_address: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -405,6 +406,7 @@ export type Database = {
           updated_at?: string
           username: string
           wallet_address?: string | null
+          xrp_address?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -422,6 +424,7 @@ export type Database = {
           updated_at?: string
           username?: string
           wallet_address?: string | null
+          xrp_address?: string | null
         }
         Relationships: []
       }
@@ -703,6 +706,7 @@ export type Database = {
         | "base"
         | "arbitrum"
         | "optimism"
+        | "xrp"
       platform_type: "youtube" | "twitch" | "tiktok"
       reaction_type: "like" | "unlike" | "love" | "what" | "lmao"
     }
@@ -838,6 +842,7 @@ export const Constants = {
         "base",
         "arbitrum",
         "optimism",
+        "xrp",
       ],
       platform_type: ["youtube", "twitch", "tiktok"],
       reaction_type: ["like", "unlike", "love", "what", "lmao"],

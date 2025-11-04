@@ -51,6 +51,8 @@ interface ProfileEditDialogProps {
     theme_color: string | null;
     background_image: string | null;
     soundcloud_url?: string | null;
+    wallet_address?: string | null;
+    xrp_address?: string | null;
   };
   onUpdate: () => void;
 }
@@ -65,6 +67,7 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
   const [themeColor, setThemeColor] = useState(profile.theme_color || '#9333ea');
   const [backgroundImage, setBackgroundImage] = useState(profile.background_image || '');
   const [soundCloudUrl, setSoundCloudUrl] = useState(profile.soundcloud_url || '');
+  const [xrpAddress, setXrpAddress] = useState(profile.xrp_address || '');
   const [uploadingBg, setUploadingBg] = useState(false);
   const { toast } = useToast();
 
@@ -210,6 +213,7 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
           theme_color: themeColor,
           background_image: backgroundImage,
           soundcloud_url: soundCloudUrl || null,
+          xrp_address: xrpAddress || null,
         })
         .eq('id', profile.id);
 
@@ -312,6 +316,29 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
               className="opacity-50"
             />
             <p className="text-xs text-muted-foreground">Username cannot be changed</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="wallet">EVM Wallet Address</Label>
+            <Input
+              id="wallet"
+              value={profile.wallet_address || ''}
+              disabled
+              className="opacity-50"
+              placeholder="Connect wallet from WalletConnect button"
+            />
+            <p className="text-xs text-muted-foreground">Connect via WalletConnect</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="xrp">XRP Address (Optional)</Label>
+            <Input
+              id="xrp"
+              value={xrpAddress}
+              onChange={(e) => setXrpAddress(e.target.value)}
+              placeholder="rXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+            />
+            <p className="text-xs text-muted-foreground">Enter your XRP Ledger address to receive XRP tips</p>
           </div>
 
           <div className="space-y-2">

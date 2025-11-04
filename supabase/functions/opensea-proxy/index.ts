@@ -97,8 +97,8 @@ serve(async (req) => {
     console.error('Error in opensea-proxy:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'Failed to fetch from OpenSea',
-        details: error.toString()
+        error: error instanceof Error ? error.message : 'Failed to fetch from OpenSea',
+        details: error instanceof Error ? error.toString() : String(error)
       }),
       {
         status: 500,
