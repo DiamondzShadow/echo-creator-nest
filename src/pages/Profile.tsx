@@ -17,6 +17,7 @@ import { useXRPBalance } from "@/hooks/useXRPBalance";
 import { useSOLBalance } from "@/hooks/useSOLBalance";
 import { Badge } from "@/components/ui/badge";
 import { SolanaWalletConnect } from "@/components/SolanaWalletConnect";
+import { TransactionHistory } from "@/components/TransactionHistory";
 
 interface ProfileData {
   id: string;
@@ -329,6 +330,10 @@ const Profile = () => {
                   </div>
                 </div>
               )}
+
+              <div className="max-w-3xl mx-auto mt-10">
+                <TransactionHistory userId={profile.id} />
+              </div>
 
               {profile.soundcloud_url && (
                 <div className="max-w-3xl mx-auto mt-8">
