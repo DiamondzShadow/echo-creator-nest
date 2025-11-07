@@ -8,7 +8,7 @@ import FollowButton from "@/components/FollowButton";
 import { WalletConnect } from "@/components/WalletConnect";
 import { MultiChainTipButton } from "@/components/MultiChainTipButton";
 import { ProfileEditDialog } from "@/components/ProfileEditDialog";
-import { Users, UserPlus, Wallet, Coins, Loader2 } from "lucide-react";
+import { Users, UserPlus, Wallet, Coins, Loader2, RefreshCw } from "lucide-react";
 import SoundCloudWidget from "@/components/SoundCloudWidget";
 import { BrandBanner } from "@/components/BrandBanner";
 import LiveStreamCard from "@/components/LiveStreamCard";
@@ -54,7 +54,7 @@ const Profile = () => {
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const navigate = useNavigate();
-  const { balance: xrpBalance, loading: xrpLoading, error: xrpError } = useXRPBalance(profile?.xrp_address);
+  const { balance: xrpBalance, loading: xrpLoading, error: xrpError, refetch: refetchXRPBalance } = useXRPBalance(profile?.xrp_address);
 
   const fetchProfile = async () => {
     const {
@@ -214,7 +214,17 @@ const Profile = () => {
                     ) : xrpError ? (
                       <span className="text-xs text-destructive">{xrpError}</span>
                     ) : xrpBalance ? (
-                      <span className="text-xs font-semibold text-primary">{xrpBalance} XRP</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs font-semibold text-primary">{xrpBalance} XRP</span>
+                        <button
+                          onClick={refetchXRPBalance}
+                          disabled={xrpLoading}
+                          className="p-1 hover:bg-accent rounded-sm transition-colors disabled:opacity-50"
+                          aria-label="Refresh XRP balance"
+                        >
+                          <RefreshCw className="w-3 h-3" />
+                        </button>
+                      </div>
                     ) : null}
                   </div>
                 )}

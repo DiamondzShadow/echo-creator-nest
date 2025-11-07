@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Client } from 'xrpl';
 
 export const useXRPBalance = (xrpAddress: string | null | undefined) => {
@@ -6,7 +6,7 @@ export const useXRPBalance = (xrpAddress: string | null | undefined) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchBalance = useCallback(async () => {
     if (!xrpAddress) {
       setBalance(null);
       setLoading(false);
@@ -14,8 +14,7 @@ export const useXRPBalance = (xrpAddress: string | null | undefined) => {
       return;
     }
 
-    const fetchBalance = async () => {
-      setLoading(true);
+    setLoading(true);
       setError(null);
       
       let client: Client | null = null;
@@ -51,10 +50,11 @@ export const useXRPBalance = (xrpAddress: string | null | undefined) => {
         }
         setLoading(false);
       }
-    };
-
-    fetchBalance();
   }, [xrpAddress]);
 
-  return { balance, loading, error };
+  useEffect(() => {
+    fetchBalance();
+  }, [fetchBalance]);
+
+  return { balance, loading, error, refetch: fetchBalance };
 };
