@@ -4,7 +4,7 @@ import Navbar from '@/components/Navbar';
 import { BrandBanner } from '@/components/BrandBanner';
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { VideoComments } from '@/components/VideoComments';
-import { VideoTipButton } from '@/components/VideoTipButton';
+import { MultiChainTipButton } from '@/components/MultiChainTipButton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -38,6 +38,7 @@ interface Asset {
     display_name: string;
     avatar_url: string;
     wallet_address: string | null;
+    xrp_address: string | null;
   };
 }
 
@@ -76,7 +77,7 @@ const VideoWatch = () => {
       // Fetch profile separately
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('username, display_name, avatar_url, wallet_address')
+        .select('username, display_name, avatar_url, wallet_address, xrp_address')
         .eq('id', data.user_id)
         .single();
       
@@ -87,6 +88,7 @@ const VideoWatch = () => {
           display_name: 'Anonymous',
           avatar_url: '',
           wallet_address: null,
+          xrp_address: null,
         },
       });
     } catch (error) {
@@ -274,11 +276,12 @@ const VideoWatch = () => {
                       >
                         View Profile
                       </Button>
-                      <VideoTipButton
+                      <MultiChainTipButton
                         videoId={asset.id}
-                        creatorUserId={asset.user_id}
-                        creatorWalletAddress={asset.profiles?.wallet_address}
-                        creatorUsername={asset.profiles?.username || 'Creator'}
+                        recipientUserId={asset.user_id}
+                        recipientWalletAddress={asset.profiles?.wallet_address}
+                        recipientXRPAddress={asset.profiles?.xrp_address}
+                        recipientUsername={asset.profiles?.username || 'Creator'}
                       />
                     </div>
                   </div>

@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Navbar from "@/components/Navbar";
 import FollowButton from "@/components/FollowButton";
 import { WalletConnect } from "@/components/WalletConnect";
-import { TipButton } from "@/components/TipButton";
+import { MultiChainTipButton } from "@/components/MultiChainTipButton";
 import { ProfileEditDialog } from "@/components/ProfileEditDialog";
 import { Users, UserPlus, Wallet, Coins } from "lucide-react";
 import SoundCloudWidget from "@/components/SoundCloudWidget";
@@ -24,6 +24,7 @@ interface ProfileData {
   background_image: string | null;
   soundcloud_url: string | null;
   wallet_address: string | null;
+  xrp_address: string | null;
   followers_count?: number;
   following_count?: number;
   total_tips_received?: number;
@@ -199,9 +200,10 @@ const Profile = () => {
                 {!isOwnProfile && (
                   <div className="flex gap-2">
                     <FollowButton profileId={profile.id} currentUserId={user?.id} />
-                    <TipButton 
+                    <MultiChainTipButton 
                       recipientUserId={profile.id}
                       recipientWalletAddress={profile.wallet_address}
+                      recipientXRPAddress={profile.xrp_address}
                       recipientUsername={profile.username}
                     />
                   </div>
