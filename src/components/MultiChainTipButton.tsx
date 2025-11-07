@@ -5,11 +5,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Coins } from 'lucide-react';
 import { TipButton } from './TipButton';
 import { XRPTipButton } from './XRPTipButton';
+import { SOLTipButton } from './SOLTipButton';
 
 interface MultiChainTipButtonProps {
   recipientUserId: string;
   recipientWalletAddress?: string | null;
   recipientXRPAddress?: string | null;
+  recipientSOLAddress?: string | null;
   recipientUsername: string;
   videoId?: string;
 }
@@ -18,6 +20,7 @@ export const MultiChainTipButton = ({
   recipientUserId, 
   recipientWalletAddress,
   recipientXRPAddress,
+  recipientSOLAddress,
   recipientUsername,
   videoId 
 }: MultiChainTipButtonProps) => {
@@ -40,9 +43,10 @@ export const MultiChainTipButton = ({
         </DialogHeader>
 
         <Tabs defaultValue="eth" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="eth">ETH/EVM</TabsTrigger>
             <TabsTrigger value="xrp">XRP</TabsTrigger>
+            <TabsTrigger value="sol">SOL</TabsTrigger>
           </TabsList>
           
           <TabsContent value="eth" className="mt-4">
@@ -67,6 +71,20 @@ export const MultiChainTipButton = ({
               <XRPTipButton
                 recipientUserId={recipientUserId}
                 recipientXRPAddress={recipientXRPAddress}
+                recipientUsername={recipientUsername}
+                videoId={videoId}
+              />
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="sol" className="mt-4">
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Send tips using Solana
+              </p>
+              <SOLTipButton
+                recipientUserId={recipientUserId}
+                recipientSOLAddress={recipientSOLAddress}
                 recipientUsername={recipientUsername}
                 videoId={videoId}
               />

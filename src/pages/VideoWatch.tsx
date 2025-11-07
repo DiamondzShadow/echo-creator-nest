@@ -39,6 +39,7 @@ interface Asset {
     avatar_url: string;
     wallet_address: string | null;
     xrp_address: string | null;
+    sol_address: string | null;
   };
 }
 

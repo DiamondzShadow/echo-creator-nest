@@ -17,6 +17,16 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Pencil, Upload, Loader2 } from 'lucide-react';
 import { z } from 'zod';
 import { isValidAddress } from 'xrpl';
+import { PublicKey } from '@solana/web3.js';
+
+const isValidSolanaAddress = (address: string): boolean => {
+  try {
+    new PublicKey(address);
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 const profileSchema = z.object({
   displayName: z
@@ -48,6 +58,14 @@ const profileSchema = z.object({
       (val) => val === '' || isValidAddress(val),
       { message: "Invalid XRP Ledger address. Please enter a valid address starting with 'r'" }
     ),
+  solAddress: z
+    .string()
+    .trim()
+    .max(50, { message: "SOL address must be less than 50 characters" })
+    .refine(
+      (val) => val === '' || isValidSolanaAddress(val),
+      { message: "Invalid Solana address. Please enter a valid Solana public key" }
+    ),
 });
 
 interface ProfileEditDialogProps {
@@ -62,6 +80,7 @@ interface ProfileEditDialogProps {
     soundcloud_url?: string | null;
     wallet_address?: string | null;
     xrp_address?: string | null;
+    sol_address?: string | null;
   };
   onUpdate: () => void;
 }
@@ -77,6 +96,7 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
   const [backgroundImage, setBackgroundImage] = useState(profile.background_image || '');
   const [soundCloudUrl, setSoundCloudUrl] = useState(profile.soundcloud_url || '');
   const [xrpAddress, setXrpAddress] = useState(profile.xrp_address || '');
+  const [solAddress, setSolAddress] = useState(profile.sol_address || '');
   const [uploadingBg, setUploadingBg] = useState(false);
   const { toast } = useToast();
 
@@ -208,6 +228,7 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
         themeColor,
         soundcloudUrl: soundCloudUrl,
         xrpAddress: xrpAddress,
+        solAddress: solAddress,
       });
 
       if (!validation.success) {
@@ -224,6 +245,7 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
           background_image: backgroundImage,
           soundcloud_url: soundCloudUrl || null,
           xrp_address: xrpAddress || null,
+          sol_address: solAddress || null,
         })
         .eq('id', profile.id);
 
@@ -368,6 +390,25 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
               placeholder="Tell us about yourself..."
               rows={4}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="solAddress">Solana Address (Optional)</Label>
+            <Input
+              id="solAddress"
+              value={solAddress}
+              onChange={(e) => setSolAddress(e.target.value)}
+              placeholder="Enter your Solana address..."
+              className={solAddress && !isValidSolanaAddress(solAddress) ? 'border-destructive' : ''}
+            />
+            <p className="text-xs text-muted-foreground">
+              Enter your Solana wallet address to receive SOL tips.
+            </p>
+            {solAddress && !isValidSolanaAddress(solAddress) && (
+              <p className="text-xs text-destructive">
+                ⚠️ Invalid Solana address format
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
