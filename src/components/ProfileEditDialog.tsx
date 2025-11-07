@@ -16,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Pencil, Upload, Loader2 } from 'lucide-react';
 import { z } from 'zod';
+import { isValidAddress } from 'xrpl';
 
 const profileSchema = z.object({
   displayName: z
@@ -38,6 +39,14 @@ const profileSchema = z.object({
         /^(https?:\/\/)?on\.soundcloud\.com\//i.test(val) ||
         /^(https?:\/\/)?w\.soundcloud\.com\//i.test(val),
       { message: "Enter a valid SoundCloud track or playlist URL" }
+    ),
+  xrpAddress: z
+    .string()
+    .trim()
+    .max(50, { message: "XRP address must be less than 50 characters" })
+    .refine(
+      (val) => val === '' || isValidAddress(val),
+      { message: "Invalid XRP Ledger address. Please enter a valid address starting with 'r'" }
     ),
 });
 
@@ -198,6 +207,7 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
         bio,
         themeColor,
         soundcloudUrl: soundCloudUrl,
+        xrpAddress: xrpAddress,
       });
 
       if (!validation.success) {
@@ -337,8 +347,16 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
               value={xrpAddress}
               onChange={(e) => setXrpAddress(e.target.value)}
               placeholder="rXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+              className={xrpAddress && !isValidAddress(xrpAddress) ? 'border-destructive' : ''}
             />
-            <p className="text-xs text-muted-foreground">Enter your XRP Ledger address to receive XRP tips</p>
+            <p className="text-xs text-muted-foreground">
+              Enter your XRP Ledger address to receive XRP tips. Valid addresses start with 'r'.
+            </p>
+            {xrpAddress && !isValidAddress(xrpAddress) && (
+              <p className="text-xs text-destructive">
+                ⚠️ Invalid XRP address format
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
