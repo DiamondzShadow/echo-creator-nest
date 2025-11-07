@@ -78,7 +78,7 @@ const VideoWatch = () => {
       // Fetch profile separately
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('username, display_name, avatar_url, wallet_address, xrp_address')
+        .select('username, display_name, avatar_url, wallet_address, xrp_address, sol_address')
         .eq('id', data.user_id)
         .single();
       
@@ -90,6 +90,7 @@ const VideoWatch = () => {
           avatar_url: '',
           wallet_address: null,
           xrp_address: null,
+          sol_address: null,
         },
       });
     } catch (error) {
@@ -282,6 +283,7 @@ const VideoWatch = () => {
                         recipientUserId={asset.user_id}
                         recipientWalletAddress={asset.profiles?.wallet_address}
                         recipientXRPAddress={asset.profiles?.xrp_address}
+                        recipientSOLAddress={asset.profiles?.sol_address}
                         recipientUsername={asset.profiles?.username || 'Creator'}
                       />
                     </div>
