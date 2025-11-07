@@ -8,11 +8,13 @@ import FollowButton from "@/components/FollowButton";
 import { WalletConnect } from "@/components/WalletConnect";
 import { MultiChainTipButton } from "@/components/MultiChainTipButton";
 import { ProfileEditDialog } from "@/components/ProfileEditDialog";
-import { Users, UserPlus, Wallet, Coins } from "lucide-react";
+import { Users, UserPlus, Wallet, Coins, Loader2 } from "lucide-react";
 import SoundCloudWidget from "@/components/SoundCloudWidget";
 import { BrandBanner } from "@/components/BrandBanner";
 import LiveStreamCard from "@/components/LiveStreamCard";
 import { User } from "@supabase/supabase-js";
+import { useXRPBalance } from "@/hooks/useXRPBalance";
+import { Badge } from "@/components/ui/badge";
 
 interface ProfileData {
   id: string;
@@ -52,6 +54,7 @@ const Profile = () => {
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const navigate = useNavigate();
+  const { balance: xrpBalance, loading: xrpLoading, error: xrpError } = useXRPBalance(profile?.xrp_address);
 
   const fetchProfile = async () => {
     const {
@@ -191,9 +194,28 @@ const Profile = () => {
                 )}
                 
                 {profile.wallet_address && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
                     <Wallet className="w-4 h-4" />
                     <code className="text-xs">{profile.wallet_address.slice(0, 6)}...{profile.wallet_address.slice(-4)}</code>
+                    <Badge variant="secondary" className="text-xs">EVM</Badge>
+                  </div>
+                )}
+                
+                {profile.xrp_address && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+                    <Wallet className="w-4 h-4" />
+                    <code className="text-xs">{profile.xrp_address.slice(0, 6)}...{profile.xrp_address.slice(-4)}</code>
+                    <Badge variant="secondary" className="text-xs">XRP</Badge>
+                    {xrpLoading ? (
+                      <div className="flex items-center gap-1">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        <span className="text-xs">Loading...</span>
+                      </div>
+                    ) : xrpError ? (
+                      <span className="text-xs text-destructive">{xrpError}</span>
+                    ) : xrpBalance ? (
+                      <span className="text-xs font-semibold text-primary">{xrpBalance} XRP</span>
+                    ) : null}
                   </div>
                 )}
                 
