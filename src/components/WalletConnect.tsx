@@ -3,10 +3,15 @@ import { useAccount } from 'wagmi';
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useEVMBalance } from '@/hooks/useEVMBalance';
+import { Badge } from '@/components/ui/badge';
+import { RefreshCw, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export const WalletConnect = () => {
   const { address, isConnected } = useAccount();
   const { toast } = useToast();
+  const { balance, symbol, chainName, loading, error, refetch } = useEVMBalance();
 
   // Sync wallet address to profile when connected
   useEffect(() => {
@@ -32,5 +37,37 @@ export const WalletConnect = () => {
     syncWalletAddress();
   }, [isConnected, address, toast]);
 
-  return <ConnectButton />;
+  return (
+    <div className="flex flex-col gap-2">
+      <ConnectButton />
+      {isConnected && (
+        <div className="flex items-center gap-2">
+          {loading ? (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Loading balance...
+            </Badge>
+          ) : error ? (
+            <Badge variant="destructive" className="flex items-center gap-1">
+              {error}
+            </Badge>
+          ) : balance ? (
+            <>
+              <Badge variant="secondary" className="flex items-center gap-1">
+                {balance} {symbol} ({chainName})
+              </Badge>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => refetch()}
+                className="h-6 w-6"
+              >
+                <RefreshCw className="h-3 w-3" />
+              </Button>
+            </>
+          ) : null}
+        </div>
+      )}
+    </div>
+  );
 };
