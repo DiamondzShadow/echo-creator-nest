@@ -53,7 +53,8 @@ async function generateSignature(
     .join(';');
   
   // Hash payload
-  const payloadHash = await crypto.subtle.digest('SHA-256', encoder.encode(payload));
+  const payloadData = encoder.encode(payload);
+  const payloadHash = await crypto.subtle.digest('SHA-256', payloadData.buffer as ArrayBuffer);
   const payloadHashHex = Array.from(new Uint8Array(payloadHash))
     .map(b => b.toString(16).padStart(2, '0'))
     .join('');
@@ -73,7 +74,8 @@ async function generateSignature(
   const datetime = new Date().toISOString().replace(/[:-]|\.\d{3}/g, '');
   const credentialScope = `${date}/${region}/s3/aws4_request`;
   
-  const canonicalRequestHash = await crypto.subtle.digest('SHA-256', encoder.encode(canonicalRequest));
+  const canonicalRequestData = encoder.encode(canonicalRequest);
+  const canonicalRequestHash = await crypto.subtle.digest('SHA-256', canonicalRequestData.buffer as ArrayBuffer);
   const canonicalRequestHashHex = Array.from(new Uint8Array(canonicalRequestHash))
     .map(b => b.toString(16).padStart(2, '0'))
     .join('');
@@ -120,7 +122,8 @@ async function hmacSHA256(key: ArrayBuffer | Uint8Array, data: string): Promise<
     false,
     ['sign']
   );
-  return await crypto.subtle.sign('HMAC', cryptoKey, encoder.encode(data));
+  const dataEncoded = encoder.encode(data);
+  return await crypto.subtle.sign('HMAC', cryptoKey, dataEncoded.buffer as ArrayBuffer);
 }
 
 /**
@@ -245,7 +248,7 @@ export async function generatePresignedUploadUrl(
 async function hashString(str: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(str);
-  const hash = await crypto.subtle.digest('SHA-256', data);
+  const hash = await crypto.subtle.digest('SHA-256', data.buffer as ArrayBuffer);
   return Array.from(new Uint8Array(hash))
     .map(b => b.toString(16).padStart(2, '0'))
     .join('');
