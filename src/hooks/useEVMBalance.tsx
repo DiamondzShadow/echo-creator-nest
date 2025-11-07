@@ -1,5 +1,6 @@
 import { useBalance, useAccount, useChainId } from 'wagmi';
 import { mainnet, polygon, base, arbitrum, optimism } from 'wagmi/chains';
+import { useEffect } from 'react';
 
 export const useEVMBalance = () => {
   const { address } = useAccount();
@@ -8,6 +9,13 @@ export const useEVMBalance = () => {
   const { data, isLoading, error, refetch } = useBalance({
     address: address,
   });
+
+  // Auto-refresh balance when chain changes
+  useEffect(() => {
+    if (address) {
+      refetch();
+    }
+  }, [chainId, address, refetch]);
 
   // Get chain-specific symbol
   const getChainSymbol = () => {
