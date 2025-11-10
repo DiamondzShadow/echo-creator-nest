@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { z } from "zod";
+import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
 
 const authSchema = z.object({
   email: z.string().trim().email({ message: "Invalid email address" }).max(255),
@@ -236,6 +237,9 @@ const AuthForm = ({ onSuccess }: AuthFormProps) => {
               required
               minLength={6}
             />
+            {!isLogin && password && (
+              <PasswordStrengthIndicator password={password} />
+            )}
           </div>
           <Button
             type="submit"
