@@ -24,9 +24,21 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const url = new URL(req.url);
-    const action = url.searchParams.get('action');
+    
+    // Get action from query params (for callbacks) or request body (for API calls)
+    let action = url.searchParams.get('action');
     const code = url.searchParams.get('code');
     const state = url.searchParams.get('state');
+    
+    // If no action in query params, try to get it from request body
+    if (!action && req.method === 'POST') {
+      try {
+        const body = await req.json();
+        action = body.action;
+      } catch (e) {
+        // If JSON parsing fails, continue without action
+      }
+    }
 
     console.log('TikTok OAuth action:', action || (code ? 'callback' : 'unknown'));
 
