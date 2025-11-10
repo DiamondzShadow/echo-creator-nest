@@ -123,6 +123,9 @@ export const TipButton = ({ recipientUserId, recipientWalletAddress, recipientUs
                 amount_display: amount,
               },
             },
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
           });
 
           if (error) {
