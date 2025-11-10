@@ -127,82 +127,78 @@ export const TipButton = ({ recipientUserId, recipientWalletAddress, recipientUs
 
   // Record tip after transaction is confirmed
   useEffect(() => {
+    if (!isSuccess || !hash) return;
+    
     const recordTip = async () => {
-      if (isSuccess && hash && !isRecording) {
-        setIsRecording(true);
-        
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session) {
-            toast({
-              title: "Authentication Error",
-              description: "Please sign in to record your tip",
-              variant: "destructive",
-            });
-            return;
-          }
-
-          // Calculate amount in wei/smallest unit
-          let amountInWei: string;
-          if (isERC20 && decimals) {
-            amountInWei = parseUnits(amount, decimals as number).toString();
-          } else {
-            amountInWei = parseEther(amount).toString();
-          }
-
-          // Call edge function to verify and record tip
-          const { data, error } = await supabase.functions.invoke('record-tip', {
-            body: {
-              to_user_id: recipientUserId,
-              to_wallet_address: recipientWalletAddress,
-              from_wallet_address: address,
-              amount: amountInWei,
-              token_symbol: token,
-              network: 'arbitrum',
-              transaction_hash: hash,
-              token_address: isERC20 ? tokenAddress : undefined,
-              metadata: {
-                amount_display: amount,
-              },
-            },
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-            },
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          toast({
+            title: "Authentication Error",
+            description: "Please sign in to record your tip",
+            variant: "destructive",
           });
+          return;
+        }
 
-          if (error) {
-            console.error('Error recording tip:', error);
-            toast({
-              title: "Recording Failed",
-              description: error.message || "Failed to verify and record tip",
-              variant: "destructive",
-            });
-          } else {
-            const { platformFee, creatorAmount } = calculateSplit(amount);
-            toast({
-              title: "Tip Sent! 🎉",
-              description: `${recipientUsername} received ${creatorAmount} ${token} (3% platform fee: ${platformFee} ${token})`,
-            });
-            setOpen(false);
-            setAmount('');
-            setIsApproving(false);
-            refetchAllowance();
-          }
-        } catch (error) {
+        // Calculate amount in wei/smallest unit
+        let amountInWei: string;
+        if (isERC20 && decimals) {
+          amountInWei = parseUnits(amount, decimals as number).toString();
+        } else {
+          amountInWei = parseEther(amount).toString();
+        }
+
+        // Call edge function to verify and record tip
+        const { data, error } = await supabase.functions.invoke('record-tip', {
+          body: {
+            to_user_id: recipientUserId,
+            to_wallet_address: recipientWalletAddress,
+            from_wallet_address: address,
+            amount: amountInWei,
+            token_symbol: token,
+            network: 'arbitrum',
+            transaction_hash: hash,
+            token_address: isERC20 ? tokenAddress : undefined,
+            metadata: {
+              amount_display: amount,
+            },
+          },
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
+
+        if (error) {
           console.error('Error recording tip:', error);
           toast({
             title: "Recording Failed",
-            description: error instanceof Error ? error.message : "Failed to verify and record tip",
+            description: error.message || "Failed to verify and record tip",
             variant: "destructive",
           });
-        } finally {
-          setIsRecording(false);
+        } else {
+          const { platformFee, creatorAmount } = calculateSplit(amount);
+          toast({
+            title: "Tip Sent! 🎉",
+            description: `${recipientUsername} received ${creatorAmount} ${token} (3% platform fee: ${platformFee} ${token})`,
+          });
+          setOpen(false);
+          setAmount('');
+          setIsApproving(false);
+          refetchAllowance();
         }
+      } catch (error) {
+        console.error('Error recording tip:', error);
+        toast({
+          title: "Recording Failed",
+          description: error instanceof Error ? error.message : "Failed to verify and record tip",
+          variant: "destructive",
+        });
       }
     };
 
     recordTip();
-  }, [isSuccess, hash, amount, token, chain, address, recipientUserId, recipientWalletAddress, recipientUsername, toast, isRecording, isERC20, decimals, tokenAddress, refetchAllowance]);
+  }, [isSuccess, hash]);
 
   const handleApprove = async () => {
     if (!tokenAddress || !decimals) return;

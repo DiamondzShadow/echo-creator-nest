@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Web3Provider } from "@/components/Web3Provider";
 import { SolanaWalletProvider } from "@/components/SolanaWalletProvider";
+import { ThirdwebProvider } from "@/components/ThirdwebProvider";
 import { LiveStreamNotification } from "@/components/LiveStreamNotification";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -30,40 +31,42 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <Web3Provider>
-      <SolanaWalletProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <LiveStreamNotification />
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/live" element={<Live />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/profile/:userId" element={<Profile />} />
-              <Route path="/discover" element={<Discover />} />
-              <Route path="/creators" element={<Creators />} />
-              <Route path="/watch/:streamId" element={<Watch />} />
-              <Route path="/storj-transcode" element={<StorjTranscode />} />
-              <Route path="/videos" element={<Videos />} />
-              <Route path="/video/:assetId" element={<VideoWatch />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/meet" element={<Meet />} />
-              <Route path="/fvm" element={<FVM />} />
-              <Route path="/marketplace" element={<NFTMarketplace />} />
-              <Route path="/nft-portfolio" element={<NFTPortfolio />} />
-              <Route path="/terms" element={<TermsOfService />} />
-              <Route path="/privacy" element={<PrivacyPolicy />} />
-              <Route path="/auth/twitch/callback" element={<TwitchCallback />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </SolanaWalletProvider>
-    </Web3Provider>
+    <ThirdwebProvider>
+      <Web3Provider>
+        <SolanaWalletProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <LiveStreamNotification />
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/live" element={<Live />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/profile/:userId" element={<Profile />} />
+                <Route path="/discover" element={<Discover />} />
+                <Route path="/creators" element={<Creators />} />
+                <Route path="/watch/:streamId" element={<Watch />} />
+                <Route path="/storj-transcode" element={<StorjTranscode />} />
+                <Route path="/videos" element={<Videos />} />
+                <Route path="/video/:assetId" element={<VideoWatch />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/meet" element={<Meet />} />
+                <Route path="/fvm" element={<FVM />} />
+                <Route path="/marketplace" element={<NFTMarketplace />} />
+                <Route path="/nft-portfolio" element={<NFTPortfolio />} />
+                <Route path="/terms" element={<TermsOfService />} />
+                <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route path="/auth/twitch/callback" element={<TwitchCallback />} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </SolanaWalletProvider>
+      </Web3Provider>
+    </ThirdwebProvider>
   </QueryClientProvider>
 );
 
