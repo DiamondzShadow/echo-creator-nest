@@ -11,7 +11,7 @@ export const YouTubeEmbed = ({ videoId, title }: YouTubeEmbedProps) => {
       <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
         <iframe
           className="absolute top-0 left-0 w-full h-full"
-          src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0`}
+          src={`https://www.youtube.com/live_embed/${videoId}?autoplay=1&mute=0`}
           title={title || "YouTube Live Stream"}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen

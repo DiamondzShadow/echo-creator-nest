@@ -554,10 +554,10 @@ const Live = () => {
                       <CardTitle className="text-2xl bg-gradient-hero bg-clip-text text-transparent">
                         {title}
                       </CardTitle>
-                      <CardDescription className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse"></div>
                         Streaming on YouTube
-                      </CardDescription>
+                      </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <YouTubeEmbed videoId={youtubeVideoId} title={title} />
