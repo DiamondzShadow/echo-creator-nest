@@ -17,6 +17,8 @@ import { BrandBanner } from "@/components/BrandBanner";
 import { YouTubeConnect } from "@/components/YouTubeConnect";
 import { TikTokConnect } from "@/components/TikTokConnect";
 import { YouTubeEmbed } from "@/components/YouTubeEmbed";
+import { TwitchEmbed } from "@/components/TwitchEmbed";
+import { TikTokEmbed } from "@/components/TikTokEmbed";
 import { TipButton } from "@/components/TipButton";
 import { User } from "@supabase/supabase-js";
 
@@ -33,10 +35,14 @@ const Live = () => {
   const [saveToStorj, setSaveToStorj] = useState(false);
   const [recordingStarted, setRecordingStarted] = useState(false);
   const [endingAll, setEndingAll] = useState(false);
-  const [streamMode, setStreamMode] = useState<'browser' | 'pull' | 'youtube'>('browser');
+  const [streamMode, setStreamMode] = useState<'browser' | 'pull' | 'youtube' | 'twitch' | 'tiktok'>('browser');
   const [pullStreamUrl, setPullStreamUrl] = useState("");
   const [youtubeVideoId, setYoutubeVideoId] = useState("");
   const [youtubeStreamTitle, setYoutubeStreamTitle] = useState("");
+  const [twitchChannel, setTwitchChannel] = useState("");
+  const [twitchTitle, setTwitchTitle] = useState("");
+  const [tiktokUsername, setTiktokUsername] = useState("");
+  const [tiktokTitle, setTiktokTitle] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -288,8 +294,8 @@ const Live = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Tabs value={streamMode} onValueChange={(v) => setStreamMode(v as 'browser' | 'pull' | 'youtube')}>
-                  <TabsList className="grid w-full grid-cols-3 mb-6">
+                <Tabs value={streamMode} onValueChange={(v) => setStreamMode(v as 'browser' | 'pull' | 'youtube' | 'twitch' | 'tiktok')}>
+                  <TabsList className="grid w-full grid-cols-5 mb-6">
                     <TabsTrigger value="browser">
                       <Video className="h-4 w-4 mr-2" />
                       Browser
@@ -298,8 +304,19 @@ const Live = () => {
                       <Youtube className="h-4 w-4 mr-2" />
                       YouTube
                     </TabsTrigger>
+                    <TabsTrigger value="twitch">
+                      <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/>
+                      </svg>
+                      Twitch
+                    </TabsTrigger>
+                    <TabsTrigger value="tiktok">
+                      <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+                      </svg>
+                      TikTok
+                    </TabsTrigger>
                     <TabsTrigger value="pull">
-                      <Youtube className="h-4 w-4 mr-2" />
                       Pull
                     </TabsTrigger>
                   </TabsList>
@@ -447,6 +464,115 @@ const Live = () => {
                     </Card>
                   </TabsContent>
 
+                  <TabsContent value="twitch" className="space-y-6">
+                    <Card className="border-muted bg-muted/20">
+                      <CardContent className="pt-6 space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="twitch-channel">Your Twitch Channel Name</Label>
+                          <Input
+                            id="twitch-channel"
+                            placeholder="yourchannelname"
+                            value={twitchChannel}
+                            onChange={(e) => setTwitchChannel(e.target.value)}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Just your channel name, not the full URL. Twitch embeds work great!
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="twitch-title">Display Title (optional)</Label>
+                          <Input
+                            id="twitch-title"
+                            placeholder="Give it a title for CrabbyTV"
+                            value={twitchTitle}
+                            onChange={(e) => setTwitchTitle(e.target.value)}
+                          />
+                        </div>
+                        <Button
+                          onClick={() => {
+                            if (!twitchChannel) {
+                              toast({
+                                title: 'Missing Channel',
+                                description: 'Please enter your Twitch channel name',
+                                variant: 'destructive',
+                              });
+                              return;
+                            }
+                            setIsLive(true);
+                            setTitle(twitchTitle || `${twitchChannel} on Twitch`);
+                            toast({
+                              title: 'Twitch Embed Active',
+                              description: 'Your stream is now embedded with tip buttons',
+                            });
+                          }}
+                          className="w-full bg-purple-600 hover:bg-purple-700"
+                          disabled={!twitchChannel}
+                        >
+                          <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/>
+                          </svg>
+                          Embed My Twitch Stream
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  <TabsContent value="tiktok" className="space-y-6">
+                    <Card className="border-muted bg-muted/20">
+                      <CardContent className="pt-6 space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="tiktok-username">Your TikTok Username</Label>
+                          <Input
+                            id="tiktok-username"
+                            placeholder="@yourusername"
+                            value={tiktokUsername}
+                            onChange={(e) => {
+                              const val = e.target.value.replace('@', '');
+                              setTiktokUsername(val);
+                            }}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            TikTok doesn't allow embeds, but viewers can watch on TikTok and tip here!
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="tiktok-title">Display Title (optional)</Label>
+                          <Input
+                            id="tiktok-title"
+                            placeholder="Give it a title for CrabbyTV"
+                            value={tiktokTitle}
+                            onChange={(e) => setTiktokTitle(e.target.value)}
+                          />
+                        </div>
+                        <Button
+                          onClick={() => {
+                            if (!tiktokUsername) {
+                              toast({
+                                title: 'Missing Username',
+                                description: 'Please enter your TikTok username',
+                                variant: 'destructive',
+                              });
+                              return;
+                            }
+                            setIsLive(true);
+                            setTitle(tiktokTitle || `@${tiktokUsername} on TikTok`);
+                            toast({
+                              title: 'TikTok Link Active',
+                              description: 'Viewers can watch on TikTok and tip here',
+                            });
+                          }}
+                          className="w-full bg-gradient-to-r from-pink-500 to-cyan-500 hover:opacity-90"
+                          disabled={!tiktokUsername}
+                        >
+                          <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+                          </svg>
+                          Show TikTok Link
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
                   <TabsContent value="pull" className="space-y-6">
                     <Tabs defaultValue="youtube" className="w-full">
                       <TabsList className="grid w-full grid-cols-2">
@@ -582,6 +708,86 @@ const Live = () => {
                         >
                           <StopCircle className="mr-2 h-5 w-5" />
                           Stop Showing Stream
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              ) : streamMode === 'twitch' && twitchChannel ? (
+                <>
+                  <Card className="border-0 shadow-glow bg-gradient-card">
+                    <CardHeader>
+                      <CardTitle className="text-2xl bg-gradient-hero bg-clip-text text-transparent">
+                        {title}
+                      </CardTitle>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <div className="h-2 w-2 rounded-full bg-purple-500 animate-pulse"></div>
+                        Streaming on Twitch
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <TwitchEmbed channelName={twitchChannel} title={title} />
+                      <div className="flex gap-2 items-center justify-center">
+                        <TipButton 
+                          recipientUserId={user.id}
+                          recipientUsername={user.email || 'Creator'}
+                          recipientWalletAddress={null}
+                        />
+                        <Button
+                          onClick={() => {
+                            setIsLive(false);
+                            setTwitchChannel('');
+                            setTwitchTitle('');
+                            toast({
+                              title: 'Embed Removed',
+                              description: 'Your Twitch embed has been removed from CrabbyTV',
+                            });
+                          }}
+                          variant="destructive"
+                          size="lg"
+                        >
+                          <StopCircle className="mr-2 h-5 w-5" />
+                          Stop Showing Stream
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              ) : streamMode === 'tiktok' && tiktokUsername ? (
+                <>
+                  <Card className="border-0 shadow-glow bg-gradient-card">
+                    <CardHeader>
+                      <CardTitle className="text-2xl bg-gradient-hero bg-clip-text text-transparent">
+                        {title}
+                      </CardTitle>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <div className="h-2 w-2 rounded-full bg-pink-500 animate-pulse"></div>
+                        Streaming on TikTok
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <TikTokEmbed username={tiktokUsername} title={title} />
+                      <div className="flex gap-2 items-center justify-center">
+                        <TipButton 
+                          recipientUserId={user.id}
+                          recipientUsername={user.email || 'Creator'}
+                          recipientWalletAddress={null}
+                        />
+                        <Button
+                          onClick={() => {
+                            setIsLive(false);
+                            setTiktokUsername('');
+                            setTiktokTitle('');
+                            toast({
+                              title: 'Link Removed',
+                              description: 'Your TikTok link has been removed from CrabbyTV',
+                            });
+                          }}
+                          variant="destructive"
+                          size="lg"
+                        >
+                          <StopCircle className="mr-2 h-5 w-5" />
+                          Stop Showing Link
                         </Button>
                       </div>
                     </CardContent>
