@@ -9,7 +9,8 @@ const corsHeaders = {
 // RPC providers for different networks
 const RPC_ENDPOINTS: Record<string, string> = {
   ethereum: 'https://eth.llamarpc.com',
-  polygon: 'https://polygon-rpc.com',
+  polygon: 'https://polygon.llamarpc.com',
+  'polygon pos': 'https://polygon.llamarpc.com', // Handle "Polygon PoS" chain name
   base: 'https://mainnet.base.org',
   arbitrum: 'https://arb1.arbitrum.io/rpc',
   optimism: 'https://mainnet.optimism.io',
@@ -32,9 +33,11 @@ async function verifyTransaction(
   expectedFrom: string,
   expectedAmount: string
 ): Promise<{ valid: boolean; error?: string; blockNumber?: number }> {
-  const rpcUrl = RPC_ENDPOINTS[network.toLowerCase()];
+  const normalizedNetwork = network.toLowerCase().trim();
+  const rpcUrl = RPC_ENDPOINTS[normalizedNetwork];
   if (!rpcUrl) {
-    return { valid: false, error: `Unsupported network: ${network}` };
+    console.error('Unsupported network:', network, 'Normalized:', normalizedNetwork, 'Available:', Object.keys(RPC_ENDPOINTS));
+    return { valid: false, error: `Unsupported network: ${network}. Supported networks: ${Object.keys(RPC_ENDPOINTS).join(', ')}` };
   }
 
   try {
@@ -55,9 +58,15 @@ async function verifyTransaction(
       }),
     });
 
+    if (!response.ok) {
+      console.error('RPC request failed:', response.status, response.statusText);
+      return { valid: false, error: `RPC request failed: ${response.status} ${response.statusText}` };
+    }
+
     const data = await response.json();
     
     if (data.error) {
+      console.error('RPC error:', data.error);
       return { valid: false, error: `RPC error: ${data.error.message}` };
     }
 
@@ -100,6 +109,11 @@ async function verifyTransaction(
         params: [txHash],
       }),
     });
+
+    if (!receiptResponse.ok) {
+      console.error('Receipt request failed:', receiptResponse.status, receiptResponse.statusText);
+      return { valid: false, error: `Receipt request failed: ${receiptResponse.status}` };
+    }
 
     const receiptData = await receiptResponse.json();
     const receipt = receiptData.result;
