@@ -36,6 +36,19 @@ export const TipButton = ({ recipientUserId, recipientWalletAddress, recipientUs
     return { platformFee, creatorAmount };
   };
 
+  // Normalize network name for backend
+  const normalizeNetworkName = (chainName?: string): string => {
+    if (!chainName) return 'ethereum';
+    const normalized = chainName.toLowerCase().trim();
+    // Map common chain name variations
+    if (normalized.includes('polygon')) return 'polygon';
+    if (normalized.includes('arbitrum')) return 'arbitrum';
+    if (normalized.includes('optimism')) return 'optimism';
+    if (normalized.includes('base')) return 'base';
+    if (normalized.includes('ethereum') || normalized.includes('mainnet')) return 'ethereum';
+    return normalized;
+  };
+
   // Record tip after transaction is confirmed
   useEffect(() => {
     const recordTip = async () => {
@@ -53,6 +66,9 @@ export const TipButton = ({ recipientUserId, recipientWalletAddress, recipientUs
             return;
           }
 
+          const networkName = normalizeNetworkName(chain?.name);
+          console.log('Recording tip - Chain:', chain?.name, 'Normalized:', networkName, 'Chain ID:', chain?.id);
+
           // Call edge function to verify and record tip
           const { data, error } = await supabase.functions.invoke('record-tip', {
             body: {
@@ -61,10 +77,12 @@ export const TipButton = ({ recipientUserId, recipientWalletAddress, recipientUs
               from_wallet_address: address,
               amount: parseEther(amount).toString(),
               token_symbol: token,
-              network: chain?.name?.toLowerCase() || 'ethereum',
+              network: networkName,
               transaction_hash: hash,
               metadata: {
                 amount_display: amount,
+                chain_id: chain?.id,
+                chain_name: chain?.name,
               },
             },
           });
@@ -73,7 +91,7 @@ export const TipButton = ({ recipientUserId, recipientWalletAddress, recipientUs
             console.error('Error recording tip:', error);
             toast({
               title: "Recording Failed",
-              description: error.message || "Failed to verify and record tip",
+              description: error.message || "Failed to verify and record tip. The transaction was successful but we couldn't verify it. Please contact support.",
               variant: "destructive",
             });
           } else {
