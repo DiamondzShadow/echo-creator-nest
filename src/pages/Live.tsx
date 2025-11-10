@@ -16,6 +16,8 @@ import { StreamChat } from "@/components/StreamChat";
 import { BrandBanner } from "@/components/BrandBanner";
 import { YouTubeConnect } from "@/components/YouTubeConnect";
 import { TikTokConnect } from "@/components/TikTokConnect";
+import { YouTubeEmbed } from "@/components/YouTubeEmbed";
+import { TipButton } from "@/components/TipButton";
 import { User } from "@supabase/supabase-js";
 
 const Live = () => {
@@ -31,8 +33,10 @@ const Live = () => {
   const [saveToStorj, setSaveToStorj] = useState(false);
   const [recordingStarted, setRecordingStarted] = useState(false);
   const [endingAll, setEndingAll] = useState(false);
-  const [streamMode, setStreamMode] = useState<'browser' | 'pull'>('browser');
+  const [streamMode, setStreamMode] = useState<'browser' | 'pull' | 'youtube'>('browser');
   const [pullStreamUrl, setPullStreamUrl] = useState("");
+  const [youtubeVideoId, setYoutubeVideoId] = useState("");
+  const [youtubeStreamTitle, setYoutubeStreamTitle] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -284,15 +288,19 @@ const Live = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Tabs value={streamMode} onValueChange={(v) => setStreamMode(v as 'browser' | 'pull')}>
-                  <TabsList className="grid w-full grid-cols-2 mb-6">
+                <Tabs value={streamMode} onValueChange={(v) => setStreamMode(v as 'browser' | 'pull' | 'youtube')}>
+                  <TabsList className="grid w-full grid-cols-3 mb-6">
                     <TabsTrigger value="browser">
                       <Video className="h-4 w-4 mr-2" />
-                      Browser Stream
+                      Browser
+                    </TabsTrigger>
+                    <TabsTrigger value="youtube">
+                      <Youtube className="h-4 w-4 mr-2" />
+                      YouTube
                     </TabsTrigger>
                     <TabsTrigger value="pull">
                       <Youtube className="h-4 w-4 mr-2" />
-                      Pull Stream
+                      Pull
                     </TabsTrigger>
                   </TabsList>
 
@@ -377,6 +385,66 @@ const Live = () => {
                         )}
                       </Button>
                     </form>
+                  </TabsContent>
+
+                  <TabsContent value="youtube" className="space-y-6">
+                    <Card className="border-muted bg-muted/20">
+                      <CardContent className="pt-6 space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="yt-link">Your YouTube Live Stream Link</Label>
+                          <Input
+                            id="yt-link"
+                            placeholder="https://youtube.com/live/zd3AAZhxI7M"
+                            value={youtubeVideoId}
+                            onChange={(e) => {
+                              const url = e.target.value;
+                              // Extract video ID from various YouTube URL formats
+                              const match = url.match(/(?:youtube\.com\/live\/|youtu\.be\/|youtube\.com\/watch\?v=)([a-zA-Z0-9_-]+)/);
+                              if (match) {
+                                setYoutubeVideoId(match[1]);
+                              } else {
+                                setYoutubeVideoId(url);
+                              }
+                            }}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Paste your YouTube live stream link. Your stream will be embedded here with tip buttons.
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="yt-title">Display Title (optional)</Label>
+                          <Input
+                            id="yt-title"
+                            placeholder="Give it a title for CrabbyTV"
+                            value={youtubeStreamTitle}
+                            onChange={(e) => setYoutubeStreamTitle(e.target.value)}
+                          />
+                        </div>
+                        <Button
+                          onClick={() => {
+                            if (!youtubeVideoId) {
+                              toast({
+                                title: 'Missing Link',
+                                description: 'Please paste your YouTube live stream link',
+                                variant: 'destructive',
+                              });
+                              return;
+                            }
+                            setIsLive(true);
+                            setTitle(youtubeStreamTitle || 'Live on YouTube');
+                            toast({
+                              title: 'YouTube Embed Active',
+                              description: 'Your stream is now showing with tip buttons',
+                            });
+                          }}
+                          className="w-full bg-gradient-hero hover:opacity-90"
+                          disabled={!youtubeVideoId}
+                        >
+                          <Youtube className="mr-2 h-5 w-5" />
+                          Show My YouTube Stream
+                        </Button>
+                      </CardContent>
+                    </Card>
                   </TabsContent>
 
                   <TabsContent value="pull" className="space-y-6">
@@ -479,7 +547,49 @@ const Live = () => {
             </Card>
           ) : (
             <div className="space-y-6">
-              {livekitToken && (
+              {streamMode === 'youtube' && youtubeVideoId ? (
+                <>
+                  <Card className="border-0 shadow-glow bg-gradient-card">
+                    <CardHeader>
+                      <CardTitle className="text-2xl bg-gradient-hero bg-clip-text text-transparent">
+                        {title}
+                      </CardTitle>
+                      <CardDescription className="flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse"></div>
+                        Streaming on YouTube
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <YouTubeEmbed videoId={youtubeVideoId} title={title} />
+                      <div className="flex gap-2 items-center justify-center">
+                        <TipButton 
+                          recipientUserId={user.id}
+                          recipientUsername={user.email || 'Creator'}
+                          recipientWalletAddress={null}
+                        />
+                        <Button
+                          onClick={() => {
+                            setIsLive(false);
+                            setYoutubeVideoId('');
+                            setYoutubeStreamTitle('');
+                            toast({
+                              title: 'Embed Removed',
+                              description: 'Your YouTube embed has been removed from CrabbyTV',
+                            });
+                          }}
+                          variant="destructive"
+                          size="lg"
+                        >
+                          <StopCircle className="mr-2 h-5 w-5" />
+                          Stop Showing Stream
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              ) : (
+                <>
+                  {livekitToken && (
                 <InstantLiveStreamLiveKit
                   roomToken={livekitToken}
                   onStreamEnd={handleEndStream}
@@ -617,6 +727,8 @@ const Live = () => {
                   </>
                 )}
               </Button>
+                </>
+              )}
             </div>
           )}
         </div>
