@@ -158,7 +158,7 @@ export const TipButton = ({ recipientUserId, recipientWalletAddress, recipientUs
               from_wallet_address: address,
               amount: amountInWei,
               token_symbol: token,
-              network: chain?.name?.toLowerCase() || 'ethereum',
+              network: 'arbitrum',
               transaction_hash: hash,
               token_address: isERC20 ? tokenAddress : undefined,
               metadata: {
