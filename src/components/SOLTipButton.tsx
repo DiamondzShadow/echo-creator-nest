@@ -27,6 +27,15 @@ export const SOLTipButton = ({
   const { publicKey, sendTransaction } = useWallet();
 
   const handleTip = async () => {
+    // Temporarily disabled: platform is Arbitrum-only right now
+    toast({
+      title: 'Solana tips are temporarily disabled',
+      description: 'Tipping is currently limited to Arbitrum. Please use the EVM Tip button with MetaMask.',
+    });
+    return;
+
+    // The code below will be used when Solana tips are re-enabled
+    /*
     if (!publicKey) {
       toast({
         title: 'Wallet not connected',
@@ -44,6 +53,7 @@ export const SOLTipButton = ({
       });
       return;
     }
+    */
 
     const tipAmount = parseFloat(amount);
     if (!tipAmount || tipAmount <= 0) {
