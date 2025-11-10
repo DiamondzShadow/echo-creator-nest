@@ -16,6 +16,7 @@ import { StreamChat } from "@/components/StreamChat";
 import { BrandBanner } from "@/components/BrandBanner";
 import { YouTubeConnect } from "@/components/YouTubeConnect";
 import { TikTokConnect } from "@/components/TikTokConnect";
+import { TwitchConnect } from "@/components/TwitchConnect";
 import { YouTubeEmbed } from "@/components/YouTubeEmbed";
 import { TwitchEmbed } from "@/components/TwitchEmbed";
 import { TikTokEmbed } from "@/components/TikTokEmbed";
@@ -465,6 +466,8 @@ const Live = () => {
                   </TabsContent>
 
                   <TabsContent value="twitch" className="space-y-6">
+                    <TwitchConnect />
+                    
                     <Card className="border-muted bg-muted/20">
                       <CardContent className="pt-6 space-y-4">
                         <div className="space-y-2">

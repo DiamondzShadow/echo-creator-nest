@@ -53,3 +53,6 @@ verify_jwt = false
 
 [functions.tiktok-streams]
 verify_jwt = true
+
+[functions.twitch-oauth]
+verify_jwt = true

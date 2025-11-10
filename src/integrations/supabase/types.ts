@@ -567,6 +567,42 @@ export type Database = {
         }
         Relationships: []
       }
+      twitch_connections: {
+        Row: {
+          access_token: string
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          refresh_token: string | null
+          twitch_user_id: string
+          twitch_username: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          refresh_token?: string | null
+          twitch_user_id: string
+          twitch_username: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          refresh_token?: string | null
+          twitch_user_id?: string
+          twitch_username?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       video_comments: {
         Row: {
           asset_id: string
