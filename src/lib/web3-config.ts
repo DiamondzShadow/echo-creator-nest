@@ -27,9 +27,10 @@ export const filecoinHyperspace: Chain = {
 
 export const web3Config = getDefaultConfig({
   appName: "CreatorHub",
-  projectId: "7a8854ee7c58b56eb8d461175ac5032c", // Get from https://cloud.walletconnect.com
-  chains: [mainnet, polygon, base, arbitrum, optimism, filecoinHyperspace],
+  projectId: "7a8854ee7c58b56eb8d461175ac5032c",
+  chains: [arbitrum, mainnet, polygon, base, optimism, filecoinHyperspace],
   ssr: false,
+  wallets: [],
 });
 
 // Platform token contract addresses (deploy your own ERC-20)
