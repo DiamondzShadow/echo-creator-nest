@@ -18,6 +18,8 @@ import { useSOLBalance } from "@/hooks/useSOLBalance";
 import { Badge } from "@/components/ui/badge";
 import { SolanaWalletConnect } from "@/components/SolanaWalletConnect";
 import { TransactionHistory } from "@/components/TransactionHistory";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Sparkles } from "lucide-react";
 
 interface ProfileData {
   id: string;
@@ -197,6 +199,15 @@ const Profile = () => {
                   </div>
                 )}
                 {profile.bio && <p className="text-muted-foreground max-w-md mb-4">{profile.bio}</p>}
+                
+                {isOwnProfile && !profile.bio && !profile.location && !profile.social_twitter && !profile.social_instagram && !profile.social_youtube && (!profile.stream_types || profile.stream_types.length === 0) && (!profile.content_categories || profile.content_categories.length === 0) && (
+                  <Alert className="mb-4 bg-primary/5 border-primary/20">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    <AlertDescription className="text-sm">
+                      <strong>Complete your profile!</strong> Add your bio, location, social links, stream types, and content categories to help others discover you.
+                    </AlertDescription>
+                  </Alert>
+                )}
                 
                 {profile.content_categories && profile.content_categories.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-4">
