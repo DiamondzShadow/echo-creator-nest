@@ -8,7 +8,7 @@ import FollowButton from "@/components/FollowButton";
 import { WalletConnect } from "@/components/WalletConnect";
 import { MultiChainTipButton } from "@/components/MultiChainTipButton";
 import { ProfileEditDialog } from "@/components/ProfileEditDialog";
-import { Users, UserPlus, Wallet, Coins, Loader2, RefreshCw } from "lucide-react";
+import { Users, UserPlus, Wallet, Coins, Loader2, RefreshCw, MapPin, Twitter, Instagram, Youtube, Tv, Music, Gamepad2, Palette, Radio } from "lucide-react";
 import SoundCloudWidget from "@/components/SoundCloudWidget";
 import { BrandBanner } from "@/components/BrandBanner";
 import LiveStreamCard from "@/components/LiveStreamCard";
@@ -34,6 +34,12 @@ interface ProfileData {
   followers_count?: number;
   following_count?: number;
   total_tips_received?: number;
+  stream_types?: string[] | null;
+  content_categories?: string[] | null;
+  location?: string | null;
+  social_twitter?: string | null;
+  social_instagram?: string | null;
+  social_youtube?: string | null;
 }
 
 interface Recording {
@@ -184,7 +190,68 @@ const Profile = () => {
                 </Avatar>
                 <h1 className="text-3xl font-bold mb-2">{profile.display_name}</h1>
                 <p className="text-muted-foreground mb-4">@{profile.username}</p>
+                {profile.location && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                    <MapPin className="w-4 h-4" />
+                    <span>{profile.location}</span>
+                  </div>
+                )}
                 {profile.bio && <p className="text-muted-foreground max-w-md mb-4">{profile.bio}</p>}
+                
+                {profile.content_categories && profile.content_categories.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {profile.content_categories.map((category) => (
+                      <Badge key={category} variant="secondary" className="capitalize">
+                        {category === 'irl' ? 'IRL' : category.replace('_', ' ')}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                
+                {profile.stream_types && profile.stream_types.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {profile.stream_types.map((type) => (
+                      <Badge key={type} variant="outline" className="capitalize">
+                        {type === 'native' ? 'CrabbyTV' : type}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                
+                {(profile.social_twitter || profile.social_instagram || profile.social_youtube) && (
+                  <div className="flex gap-3 mb-4">
+                    {profile.social_twitter && (
+                      <a 
+                        href={`https://twitter.com/${profile.social_twitter.replace('@', '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        <Twitter className="w-5 h-5" />
+                      </a>
+                    )}
+                    {profile.social_instagram && (
+                      <a 
+                        href={`https://instagram.com/${profile.social_instagram.replace('@', '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        <Instagram className="w-5 h-5" />
+                      </a>
+                    )}
+                    {profile.social_youtube && (
+                      <a 
+                        href={`https://youtube.com/${profile.social_youtube.replace('@', '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        <Youtube className="w-5 h-5" />
+                      </a>
+                    )}
+                  </div>
+                )}
                 
                 {isOwnProfile && (
                   <div className="mb-4">

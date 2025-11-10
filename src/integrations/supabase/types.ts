@@ -376,13 +376,19 @@ export type Database = {
           avatar_url: string | null
           background_image: string | null
           bio: string | null
+          content_categories: string[] | null
           created_at: string
           display_name: string | null
           follower_count: number | null
           following_count: number | null
           id: string
+          location: string | null
+          social_instagram: string | null
+          social_twitter: string | null
+          social_youtube: string | null
           sol_address: string | null
           soundcloud_url: string | null
+          stream_types: string[] | null
           theme_color: string | null
           tip_count: number | null
           total_tips_received: number | null
@@ -395,13 +401,19 @@ export type Database = {
           avatar_url?: string | null
           background_image?: string | null
           bio?: string | null
+          content_categories?: string[] | null
           created_at?: string
           display_name?: string | null
           follower_count?: number | null
           following_count?: number | null
           id: string
+          location?: string | null
+          social_instagram?: string | null
+          social_twitter?: string | null
+          social_youtube?: string | null
           sol_address?: string | null
           soundcloud_url?: string | null
+          stream_types?: string[] | null
           theme_color?: string | null
           tip_count?: number | null
           total_tips_received?: number | null
@@ -414,13 +426,19 @@ export type Database = {
           avatar_url?: string | null
           background_image?: string | null
           bio?: string | null
+          content_categories?: string[] | null
           created_at?: string
           display_name?: string | null
           follower_count?: number | null
           following_count?: number | null
           id?: string
+          location?: string | null
+          social_instagram?: string | null
+          social_twitter?: string | null
+          social_youtube?: string | null
           sol_address?: string | null
           soundcloud_url?: string | null
+          stream_types?: string[] | null
           theme_color?: string | null
           tip_count?: number | null
           total_tips_received?: number | null

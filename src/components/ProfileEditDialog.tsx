@@ -14,10 +14,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Pencil, Upload, Loader2 } from 'lucide-react';
+import { Pencil, Upload, Loader2, Tv, Music, Gamepad2, Palette, Radio, MapPin, Twitter, Instagram, Youtube } from 'lucide-react';
 import { z } from 'zod';
 import { isValidAddress } from 'xrpl';
 import { PublicKey } from '@solana/web3.js';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const isValidSolanaAddress = (address: string): boolean => {
   try {
@@ -27,6 +29,24 @@ const isValidSolanaAddress = (address: string): boolean => {
     return false;
   }
 };
+
+const STREAM_TYPES = [
+  { id: 'native', label: 'CrabbyTV Native', icon: Tv },
+  { id: 'youtube', label: 'YouTube', icon: Youtube },
+  { id: 'twitch', label: 'Twitch', icon: Tv },
+  { id: 'tiktok', label: 'TikTok', icon: Radio },
+];
+
+const CONTENT_CATEGORIES = [
+  { id: 'gaming', label: 'Gaming', icon: Gamepad2 },
+  { id: 'music', label: 'Music', icon: Music },
+  { id: 'art', label: 'Art & Design', icon: Palette },
+  { id: 'irl', label: 'IRL', icon: Radio },
+  { id: 'tech', label: 'Tech & Science', icon: Tv },
+  { id: 'entertainment', label: 'Entertainment', icon: Tv },
+  { id: 'education', label: 'Education', icon: Tv },
+  { id: 'sports', label: 'Sports & Fitness', icon: Tv },
+];
 
 const profileSchema = z.object({
   displayName: z
@@ -66,6 +86,10 @@ const profileSchema = z.object({
       (val) => val === '' || isValidSolanaAddress(val),
       { message: "Invalid Solana address. Please enter a valid Solana public key" }
     ),
+  location: z.string().trim().max(100, { message: "Location must be less than 100 characters" }),
+  socialTwitter: z.string().trim().max(100, { message: "Twitter handle must be less than 100 characters" }),
+  socialInstagram: z.string().trim().max(100, { message: "Instagram handle must be less than 100 characters" }),
+  socialYoutube: z.string().trim().max(100, { message: "YouTube channel must be less than 100 characters" }),
 });
 
 interface ProfileEditDialogProps {
@@ -81,6 +105,12 @@ interface ProfileEditDialogProps {
     wallet_address?: string | null;
     xrp_address?: string | null;
     sol_address?: string | null;
+    stream_types?: string[] | null;
+    content_categories?: string[] | null;
+    location?: string | null;
+    social_twitter?: string | null;
+    social_instagram?: string | null;
+    social_youtube?: string | null;
   };
   onUpdate: () => void;
 }
@@ -98,6 +128,12 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
   const [xrpAddress, setXrpAddress] = useState(profile.xrp_address || '');
   const [solAddress, setSolAddress] = useState(profile.sol_address || '');
   const [uploadingBg, setUploadingBg] = useState(false);
+  const [streamTypes, setStreamTypes] = useState<string[]>(profile.stream_types || []);
+  const [contentCategories, setContentCategories] = useState<string[]>(profile.content_categories || []);
+  const [location, setLocation] = useState(profile.location || '');
+  const [socialTwitter, setSocialTwitter] = useState(profile.social_twitter || '');
+  const [socialInstagram, setSocialInstagram] = useState(profile.social_instagram || '');
+  const [socialYoutube, setSocialYoutube] = useState(profile.social_youtube || '');
   const { toast } = useToast();
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -229,6 +265,10 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
         soundcloudUrl: soundCloudUrl,
         xrpAddress: xrpAddress,
         solAddress: solAddress,
+        location: location,
+        socialTwitter: socialTwitter,
+        socialInstagram: socialInstagram,
+        socialYoutube: socialYoutube,
       });
 
       if (!validation.success) {
@@ -246,6 +286,12 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
           soundcloud_url: soundCloudUrl || null,
           xrp_address: xrpAddress || null,
           sol_address: solAddress || null,
+          stream_types: streamTypes,
+          content_categories: contentCategories,
+          location: location || null,
+          social_twitter: socialTwitter || null,
+          social_instagram: socialInstagram || null,
+          social_youtube: socialYoutube || null,
         })
         .eq('id', profile.id);
 
@@ -390,6 +436,111 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
               placeholder="Tell us about yourself..."
               rows={4}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="location">Location (Optional)</Label>
+            <div className="flex gap-2 items-center">
+              <MapPin className="w-4 h-4 text-muted-foreground" />
+              <Input
+                id="location"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="New York, USA"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <Label>Stream Types</Label>
+            <p className="text-xs text-muted-foreground">Select where you stream</p>
+            <div className="grid grid-cols-2 gap-2">
+              {STREAM_TYPES.map((type) => {
+                const Icon = type.icon;
+                const isSelected = streamTypes.includes(type.id);
+                return (
+                  <div
+                    key={type.id}
+                    onClick={() => {
+                      if (isSelected) {
+                        setStreamTypes(streamTypes.filter(t => t !== type.id));
+                      } else {
+                        setStreamTypes([...streamTypes, type.id]);
+                      }
+                    }}
+                    className={`flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-all ${
+                      isSelected 
+                        ? 'border-primary bg-primary/10' 
+                        : 'border-border hover:border-primary/50'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span className="text-sm">{type.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <Label>Content Categories</Label>
+            <p className="text-xs text-muted-foreground">What do you create?</p>
+            <div className="grid grid-cols-2 gap-2">
+              {CONTENT_CATEGORIES.map((category) => {
+                const Icon = category.icon;
+                const isSelected = contentCategories.includes(category.id);
+                return (
+                  <div
+                    key={category.id}
+                    onClick={() => {
+                      if (isSelected) {
+                        setContentCategories(contentCategories.filter(c => c !== category.id));
+                      } else {
+                        setContentCategories([...contentCategories, category.id]);
+                      }
+                    }}
+                    className={`flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-all ${
+                      isSelected 
+                        ? 'border-primary bg-primary/10' 
+                        : 'border-border hover:border-primary/50'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span className="text-sm">{category.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Social Links (Optional)</Label>
+            <div className="space-y-3">
+              <div className="flex gap-2 items-center">
+                <Twitter className="w-4 h-4 text-muted-foreground" />
+                <Input
+                  value={socialTwitter}
+                  onChange={(e) => setSocialTwitter(e.target.value)}
+                  placeholder="@username"
+                />
+              </div>
+              <div className="flex gap-2 items-center">
+                <Instagram className="w-4 h-4 text-muted-foreground" />
+                <Input
+                  value={socialInstagram}
+                  onChange={(e) => setSocialInstagram(e.target.value)}
+                  placeholder="@username"
+                />
+              </div>
+              <div className="flex gap-2 items-center">
+                <Youtube className="w-4 h-4 text-muted-foreground" />
+                <Input
+                  value={socialYoutube}
+                  onChange={(e) => setSocialYoutube(e.target.value)}
+                  placeholder="@channel"
+                />
+              </div>
+            </div>
           </div>
 
           <div className="space-y-2">
