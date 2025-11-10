@@ -19,20 +19,11 @@ export const TwitchConnect = () => {
   useEffect(() => {
     checkConnection();
     
-    // Handle OAuth callback
-    const handleCallback = async () => {
-      const params = new URLSearchParams(window.location.search);
-      const code = params.get('code');
-      const fromTwitch = params.get('from') === 'twitch';
-      
-      if (code && fromTwitch) {
-        await handleOAuthCallback(code);
-        // Clean up URL
-        window.history.replaceState({}, '', window.location.pathname);
-      }
-    };
+    // Re-check connection when user returns from OAuth
+    const handleFocus = () => checkConnection();
+    window.addEventListener('focus', handleFocus);
     
-    handleCallback();
+    return () => window.removeEventListener('focus', handleFocus);
   }, []);
 
   const checkConnection = async () => {
@@ -59,47 +50,6 @@ export const TwitchConnect = () => {
     }
   };
 
-  const handleOAuthCallback = async (code: string) => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('No session');
-
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const callbackUrl = `${supabaseUrl}/functions/v1/twitch-oauth?code=${encodeURIComponent(code)}`;
-
-      const response = await fetch(callbackUrl, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to connect');
-      }
-
-      const data = await response.json();
-
-      setIsConnected(true);
-      setConnection({
-        twitch_username: data.twitch_username,
-        twitch_user_id: data.twitch_user_id,
-      });
-
-      toast({
-        title: "Connected to Twitch!",
-        description: `Your Twitch account @${data.twitch_username} is now connected.`,
-      });
-    } catch (error) {
-      console.error('OAuth callback error:', error);
-      toast({
-        title: "Connection failed",
-        description: "Failed to connect your Twitch account. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleConnect = () => {
     const clientId = import.meta.env.VITE_TWITCH_CLIENT_ID;
