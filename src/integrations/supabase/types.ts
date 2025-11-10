@@ -377,6 +377,7 @@ export type Database = {
           background_image: string | null
           bio: string | null
           content_categories: string[] | null
+          cover_photo_url: string | null
           created_at: string
           display_name: string | null
           follower_count: number | null
@@ -402,6 +403,7 @@ export type Database = {
           background_image?: string | null
           bio?: string | null
           content_categories?: string[] | null
+          cover_photo_url?: string | null
           created_at?: string
           display_name?: string | null
           follower_count?: number | null
@@ -427,6 +429,7 @@ export type Database = {
           background_image?: string | null
           bio?: string | null
           content_categories?: string[] | null
+          cover_photo_url?: string | null
           created_at?: string
           display_name?: string | null
           follower_count?: number | null

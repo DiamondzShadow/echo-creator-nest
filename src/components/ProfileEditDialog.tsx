@@ -101,6 +101,7 @@ interface ProfileEditDialogProps {
     avatar_url: string | null;
     theme_color: string | null;
     background_image: string | null;
+    cover_photo_url?: string | null;
     soundcloud_url?: string | null;
     wallet_address?: string | null;
     xrp_address?: string | null;
@@ -124,10 +125,12 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url || '');
   const [themeColor, setThemeColor] = useState(profile.theme_color || '#9333ea');
   const [backgroundImage, setBackgroundImage] = useState(profile.background_image || '');
+  const [coverPhotoUrl, setCoverPhotoUrl] = useState(profile.cover_photo_url || '');
   const [soundCloudUrl, setSoundCloudUrl] = useState(profile.soundcloud_url || '');
   const [xrpAddress, setXrpAddress] = useState(profile.xrp_address || '');
   const [solAddress, setSolAddress] = useState(profile.sol_address || '');
   const [uploadingBg, setUploadingBg] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
   const [streamTypes, setStreamTypes] = useState<string[]>(profile.stream_types || []);
   const [contentCategories, setContentCategories] = useState<string[]>(profile.content_categories || []);
   const [location, setLocation] = useState(profile.location || '');
@@ -248,6 +251,60 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
     }
   };
 
+  const handleCoverPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session || session.user.id !== profile.id) {
+      toast({
+        title: 'Unauthorized',
+        description: 'You can only upload cover photos to your own profile',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'File too large',
+        description: 'Cover photo must be less than 5MB',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setUploadingCover(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${profile.id}/cover-${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      setCoverPhotoUrl(publicUrl);
+      toast({
+        title: '✅ Cover photo uploaded',
+        description: 'Click "Save Changes" to apply!',
+      });
+    } catch (error) {
+      toast({
+        title: 'Upload failed',
+        description: error instanceof Error ? error.message : 'An error occurred',
+        variant: 'destructive',
+      });
+    } finally {
+      setUploadingCover(false);
+    }
+  };
+
   const handleSave = async () => {
     setLoading(true);
     try {
@@ -283,6 +340,7 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
           avatar_url: avatarUrl,
           theme_color: themeColor,
           background_image: backgroundImage,
+          cover_photo_url: coverPhotoUrl || null,
           soundcloud_url: soundCloudUrl || null,
           xrp_address: xrpAddress || null,
           sol_address: solAddress || null,
@@ -330,6 +388,49 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 overflow-y-auto flex-1 pr-2">
+          <div className="space-y-2">
+            <Label htmlFor="coverPhoto">Cover Photo</Label>
+            <div className="flex flex-col gap-2">
+              {coverPhotoUrl && (
+                <div className="relative w-full h-32 rounded-md overflow-hidden border">
+                  <img src={coverPhotoUrl} alt="Cover photo preview" className="w-full h-full object-cover" />
+                </div>
+              )}
+              <Label htmlFor="coverPhoto" className="cursor-pointer">
+                <div className="flex items-center justify-center gap-2 text-sm border rounded-md p-3 hover:bg-accent transition-colors">
+                  {uploadingCover ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4" />
+                      {coverPhotoUrl ? 'Change Cover Photo' : 'Upload Cover Photo'}
+                    </>
+                  )}
+                </div>
+                <Input
+                  id="coverPhoto"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleCoverPhotoUpload}
+                  disabled={uploadingCover}
+                />
+              </Label>
+              {coverPhotoUrl && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCoverPhotoUrl('')}
+                >
+                  Remove Cover Photo
+                </Button>
+              )}
+            </div>
+          </div>
+
           <div className="flex flex-col items-center gap-4">
             <Avatar className="w-24 h-24 ring-4 ring-primary/20">
               <AvatarImage src={avatarUrl} />

@@ -32,6 +32,7 @@ interface ProfileData {
   avatar_url: string | null;
   theme_color: string | null;
   background_image: string | null;
+  cover_photo_url?: string | null;
   soundcloud_url: string | null;
   wallet_address: string | null;
   xrp_address: string | null;
@@ -175,6 +176,18 @@ const Profile = () => {
               backgroundColor: profile.background_image ? 'transparent' : undefined,
             }}
           >
+            {/* Cover Photo */}
+            {profile.cover_photo_url && (
+              <div className="w-full h-48 md:h-64 relative overflow-hidden">
+                <img 
+                  src={profile.cover_photo_url} 
+                  alt="Profile cover" 
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background/80" />
+              </div>
+            )}
+            
             {profile.background_image && (
               <div 
                 className="absolute inset-0 opacity-20"
@@ -185,11 +198,11 @@ const Profile = () => {
                 }}
               />
             )}
-            <CardContent className="pt-8 pb-8 relative z-10">
+            <CardContent className={`${profile.cover_photo_url ? '-mt-20' : 'pt-8'} pb-8 relative z-10`}>
               {/* Header Section */}
               <div className="flex flex-col items-center text-center mb-8">
                 <Avatar 
-                  className="w-32 h-32 mb-6 ring-4 ring-primary/20 shadow-lg"
+                  className="w-32 h-32 mb-6 ring-4 shadow-lg bg-background"
                   style={{
                     borderColor: profile.theme_color || 'hsl(var(--primary))',
                   }}
