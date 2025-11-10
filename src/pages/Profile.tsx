@@ -8,7 +8,7 @@ import FollowButton from "@/components/FollowButton";
 import { WalletConnect } from "@/components/WalletConnect";
 import { MultiChainTipButton } from "@/components/MultiChainTipButton";
 import { ProfileEditDialog } from "@/components/ProfileEditDialog";
-import { Users, UserPlus, Wallet, Coins, Loader2, RefreshCw, MapPin, Twitter, Instagram, Youtube, Tv, Music, Gamepad2, Palette, Radio } from "lucide-react";
+import { Users, UserPlus, Wallet, Coins, Loader2, RefreshCw, MapPin, Twitter, Instagram, Youtube, Tv, Music, Gamepad2, Palette, Radio, LogOut } from "lucide-react";
 import SoundCloudWidget from "@/components/SoundCloudWidget";
 import { BrandBanner } from "@/components/BrandBanner";
 import LiveStreamCard from "@/components/LiveStreamCard";
@@ -20,6 +20,8 @@ import { SolanaWalletConnect } from "@/components/SolanaWalletConnect";
 import { TransactionHistory } from "@/components/TransactionHistory";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProfileData {
   id: string;
@@ -66,8 +68,18 @@ const Profile = () => {
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { balance: xrpBalance, loading: xrpLoading, error: xrpError, refetch: refetchXRPBalance } = useXRPBalance(profile?.xrp_address);
   const { balance: solBalance, loading: solLoading, error: solError, refetch: refetchSOLBalance } = useSOLBalance(profile?.sol_address);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    toast({
+      title: "Signed out",
+      description: "You've been successfully signed out.",
+    });
+    navigate("/");
+  };
 
   const fetchProfile = async () => {
     const {
@@ -265,8 +277,12 @@ const Profile = () => {
                 )}
                 
                 {isOwnProfile && (
-                  <div className="mb-4">
+                  <div className="flex gap-2 mb-4">
                     <ProfileEditDialog profile={profile} onUpdate={handleProfileUpdate} />
+                    <Button variant="outline" size="sm" onClick={handleSignOut}>
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sign Out
+                    </Button>
                   </div>
                 )}
                 

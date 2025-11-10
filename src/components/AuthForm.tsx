@@ -21,12 +21,46 @@ interface AuthFormProps {
 
 const AuthForm = ({ onSuccess }: AuthFormProps) => {
   const [isLogin, setIsLogin] = useState(true);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const validation = z.string().email().safeParse(email);
+      if (!validation.success) {
+        throw new Error("Please enter a valid email address");
+      }
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Check your email",
+        description: "We've sent you a password reset link.",
+      });
+      setIsForgotPassword(false);
+      setEmail("");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to send reset email",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,14 +140,55 @@ const AuthForm = ({ onSuccess }: AuthFormProps) => {
     <Card className="w-full max-w-md border-0 shadow-glow bg-gradient-card">
       <CardHeader>
         <CardTitle className="text-2xl bg-gradient-hero bg-clip-text text-transparent">
-          {isLogin ? "Welcome Back" : "Join Us"}
+          {isForgotPassword ? "Reset Password" : isLogin ? "Welcome Back" : "Join Us"}
         </CardTitle>
         <CardDescription>
-          {isLogin ? "Sign in to your account" : "Create your creator account"}
+          {isForgotPassword ? "Enter your email to receive a reset link" : isLogin ? "Sign in to your account" : "Create your creator account"}
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleAuth} className="space-y-4">
+        {isForgotPassword ? (
+          <form onSubmit={handlePasswordReset} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="reset-email">Email</Label>
+              <Input
+                id="reset-email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <Button
+              type="submit"
+              className="w-full bg-gradient-hero hover:opacity-90"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                "Send Reset Link"
+              )}
+            </Button>
+            <div className="text-center text-sm">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsForgotPassword(false);
+                  setEmail("");
+                }}
+                className="text-primary hover:underline"
+              >
+                Back to sign in
+              </button>
+            </div>
+          </form>
+        ) : (
+          <form onSubmit={handleAuth} className="space-y-4">
           {!isLogin && (
             <>
               <div className="space-y-2">
@@ -178,16 +253,26 @@ const AuthForm = ({ onSuccess }: AuthFormProps) => {
               "Create Account"
             )}
           </Button>
-          <div className="text-center text-sm">
+          <div className="text-center text-sm space-y-2">
             <button
               type="button"
               onClick={() => setIsLogin(!isLogin)}
-              className="text-primary hover:underline"
+              className="text-primary hover:underline block w-full"
             >
               {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
             </button>
+            {isLogin && (
+              <button
+                type="button"
+                onClick={() => setIsForgotPassword(true)}
+                className="text-muted-foreground hover:text-primary transition-colors block w-full"
+              >
+                Forgot password?
+              </button>
+            )}
           </div>
         </form>
+        )}
       </CardContent>
     </Card>
   );

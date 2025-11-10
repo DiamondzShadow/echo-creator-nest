@@ -176,8 +176,11 @@ const Navbar = () => {
                     <Video className="w-4 h-4 mr-2" />
                     Go Live
                   </Button>
-                  <Button variant="ghost" onClick={() => navigate("/profile")}>
+              <Button variant="ghost" onClick={() => navigate("/profile")}>
                     <UserIcon className="w-4 h-4 mr-2" />
+                  </Button>
+                  <Button variant="ghost" onClick={handleSignOut}>
+                    <LogOut className="w-4 h-4" />
                   </Button>
                 </>
               ) : (
