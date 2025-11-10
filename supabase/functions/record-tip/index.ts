@@ -30,7 +30,6 @@ async function verifyTransaction(
   txHash: string,
   network: string,
   expectedFrom: string,
-  expectedTo: string,
   expectedAmount: string
 ): Promise<{ valid: boolean; error?: string; blockNumber?: number }> {
   const rpcUrl = RPC_ENDPOINTS[network.toLowerCase()];
@@ -78,14 +77,6 @@ async function verifyTransaction(
       return { 
         valid: false, 
         error: `Transaction sender mismatch. Expected: ${expectedFrom}, Got: ${tx.from}` 
-      };
-    }
-
-    // Verify recipient matches expected wallet
-    if (tx.to.toLowerCase() !== expectedTo.toLowerCase()) {
-      return { 
-        valid: false, 
-        error: `Transaction recipient mismatch. Expected: ${expectedTo}, Got: ${tx.to}` 
       };
     }
 
@@ -195,7 +186,6 @@ serve(async (req) => {
       transaction_hash,
       network,
       from_wallet_address,
-      to_wallet_address,
       amount
     );
 
