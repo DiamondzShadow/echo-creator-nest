@@ -47,3 +47,9 @@ verify_jwt = false
 
 [functions.end-stream]
 verify_jwt = true
+
+[functions.tiktok-oauth]
+verify_jwt = false
+
+[functions.tiktok-streams]
+verify_jwt = true
