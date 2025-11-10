@@ -14,10 +14,10 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const tiktokClientId = Deno.env.get('TIKTOK_CLIENT_ID');
+    const tiktokClientKey = Deno.env.get('TIKTOK_CLIENT_KEY');
     const tiktokClientSecret = Deno.env.get('TIKTOK_CLIENT_SECRET');
 
-    if (!tiktokClientId || !tiktokClientSecret) {
+    if (!tiktokClientKey || !tiktokClientSecret) {
       throw new Error('TikTok API credentials not configured');
     }
 
@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
           'Cache-Control': 'no-cache',
         },
         body: new URLSearchParams({
-          client_key: tiktokClientId,
+          client_key: tiktokClientKey,
           client_secret: tiktokClientSecret,
           code: code,
           grant_type: 'authorization_code',
@@ -154,8 +154,8 @@ Deno.serve(async (req) => {
 
       // Build TikTok OAuth URL
       const authUrl = new URL('https://www.tiktok.com/v2/auth/authorize/');
-      authUrl.searchParams.set('client_key', tiktokClientId);
-      authUrl.searchParams.set('scope', 'user.info.basic,video.list');
+      authUrl.searchParams.set('client_key', tiktokClientKey);
+      authUrl.searchParams.set('scope', 'user.info.basic,user.info.stats,video.list');
       authUrl.searchParams.set('response_type', 'code');
       authUrl.searchParams.set('redirect_uri', `${supabaseUrl}/functions/v1/tiktok-oauth`);
       authUrl.searchParams.set('state', state);
