@@ -32,6 +32,14 @@ export const TwitchEmbed = ({ channelName, title }: TwitchEmbedProps) => {
     
     script.onload = () => {
       try {
+        const parentDomains = [
+          window.location.hostname,
+          'lovable.app',
+          'lovableproject.com',
+          'crabbytv.com',
+          'localhost'
+        ].filter(Boolean);
+
         embedRef.current = new window.Twitch.Embed(containerRef.current, {
           width: '100%',
           height: '100%',
@@ -39,7 +47,7 @@ export const TwitchEmbed = ({ channelName, title }: TwitchEmbedProps) => {
           layout: 'video',
           autoplay: true,
           muted: false,
-          parent: [window.location.hostname, 'lovableproject.com'],
+          parent: parentDomains,
         });
 
         embedRef.current.addEventListener(window.Twitch.Embed.VIDEO_READY, () => {
