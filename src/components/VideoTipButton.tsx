@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useSwitchChain } from 'wagmi';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useSwitchChain, useConnect } from 'wagmi';
 import { parseEther } from 'viem';
 import { arbitrum } from 'wagmi/chains';
 import { supabase } from '@/integrations/supabase/client';
@@ -32,6 +32,7 @@ export const VideoTipButton = ({
   const { writeContract, data: hash } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
   const { switchChain } = useSwitchChain();
+  const { connectAsync, connectors } = useConnect();
   const { toast } = useToast();
 
   // Check if on correct network (Arbitrum)
@@ -47,6 +48,29 @@ export const VideoTipButton = ({
         title: "Network Switch Failed",
         description: error instanceof Error ? error.message : "Failed to switch to Arbitrum",
         variant: "destructive",
+      });
+    }
+  };
+
+  // Explicitly connect MetaMask to avoid Phantom injected provider
+  const handleConnectMetaMask = async () => {
+    try {
+      const mm = connectors.find((c) => c.name.toLowerCase().includes('metamask'));
+      if (!mm) {
+        toast({
+          title: 'MetaMask Not Found',
+          description: 'Please install MetaMask or enable it in your browser.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      await connectAsync({ connector: mm });
+      toast({ title: 'MetaMask Connected', description: 'Now switch to Arbitrum to tip.' });
+    } catch (error) {
+      toast({
+        title: 'Connection Failed',
+        description: error instanceof Error ? error.message : 'Failed to connect MetaMask',
+        variant: 'destructive',
       });
     }
   };
@@ -220,9 +244,14 @@ export const VideoTipButton = ({
                   VideoTipping is deployed on Arbitrum. Please switch to Arbitrum network to send tips.
                 </AlertDescription>
               </Alert>
-              <Button onClick={handleSwitchToArbitrum} className="w-full">
-                Switch to Arbitrum
-              </Button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Button onClick={handleSwitchToArbitrum} className="w-full">
+                  Switch to Arbitrum
+                </Button>
+                <Button onClick={handleConnectMetaMask} variant="outline" className="w-full">
+                  Connect MetaMask
+                </Button>
+              </div>
             </div>
           ) : (
             <>
