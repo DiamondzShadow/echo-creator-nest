@@ -7,12 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Video, StopCircle, Loader2 } from "lucide-react";
+import { Video, StopCircle, Loader2, Youtube } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { InstantLiveStreamLiveKit } from "@/components/InstantLiveStreamLiveKit";
 import { StreamChat } from "@/components/StreamChat";
 import { BrandBanner } from "@/components/BrandBanner";
+import { YouTubeConnect } from "@/components/YouTubeConnect";
 import { User } from "@supabase/supabase-js";
 
 const Live = () => {
@@ -28,6 +30,8 @@ const Live = () => {
   const [saveToStorj, setSaveToStorj] = useState(false);
   const [recordingStarted, setRecordingStarted] = useState(false);
   const [endingAll, setEndingAll] = useState(false);
+  const [streamMode, setStreamMode] = useState<'browser' | 'pull'>('browser');
+  const [pullStreamUrl, setPullStreamUrl] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -173,6 +177,44 @@ const Live = () => {
     }
   };
 
+  const handleStartPullStream = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      console.log('Creating pull stream from:', pullStreamUrl);
+
+      const { data, error } = await supabase.functions.invoke('livepeer-pull-stream', {
+        body: {
+          action: 'create',
+          pullUrl: pullStreamUrl,
+          title: title || 'Pull Stream',
+          description: description || '',
+        },
+      });
+
+      if (error) throw error;
+
+      console.log('Pull stream created:', data);
+      setStreamId(data.streamId);
+      setIsLive(true);
+
+      toast({
+        title: "Pull stream started!",
+        description: "Your external stream is now live",
+      });
+    } catch (error) {
+      console.error('Pull stream error:', error);
+      toast({
+        title: "Failed to start pull stream",
+        description: error instanceof Error ? error.message : "Please check console for details",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleEndAllStreams = async () => {
     setEndingAll(true);
     try {
@@ -237,90 +279,172 @@ const Live = () => {
                   Start Your Live Stream
                 </CardTitle>
                 <CardDescription>
-                  Stream directly from your browser - no software needed!
+                  Choose your streaming source
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleStartStream} className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="title">Stream Title</Label>
-                    <Input
-                      id="title"
-                      placeholder="What are you streaming today?"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="description">Description</Label>
-                    <Textarea
-                      id="description"
-                      placeholder="Tell viewers what to expect..."
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      rows={4}
-                    />
-                  </div>
+                <Tabs value={streamMode} onValueChange={(v) => setStreamMode(v as 'browser' | 'pull')}>
+                  <TabsList className="grid w-full grid-cols-2 mb-6">
+                    <TabsTrigger value="browser">
+                      <Video className="h-4 w-4 mr-2" />
+                      Browser Stream
+                    </TabsTrigger>
+                    <TabsTrigger value="pull">
+                      <Youtube className="h-4 w-4 mr-2" />
+                      Pull Stream
+                    </TabsTrigger>
+                  </TabsList>
 
-                  {/* Recording Options */}
-                  <Card className="border-muted bg-muted/20">
-                    <CardContent className="pt-6 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="enable-recording" className="text-base">
-                            Record Stream
-                          </Label>
-                          <p className="text-sm text-muted-foreground">
-                            Save your stream for viewers to watch later
-                          </p>
-                        </div>
-                        <Switch
-                          id="enable-recording"
-                          checked={enableRecording}
-                          onCheckedChange={setEnableRecording}
+                  <TabsContent value="browser">
+                    <form onSubmit={handleStartStream} className="space-y-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="title">Stream Title</Label>
+                        <Input
+                          id="title"
+                          placeholder="What are you streaming today?"
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="description">Description</Label>
+                        <Textarea
+                          id="description"
+                          placeholder="Tell viewers what to expect..."
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
+                          rows={4}
                         />
                       </div>
 
-                      {enableRecording && (
-                        <div className="flex items-center justify-between pl-4 border-l-2 border-primary/30">
-                          <div className="space-y-0.5">
-                            <Label htmlFor="save-to-storj" className="text-sm">
-                              Save to Storj (Decentralized)
-                            </Label>
-                            <p className="text-xs text-muted-foreground">
-                              Permanently store on decentralized storage
-                            </p>
+                      {/* Recording Options */}
+                      <Card className="border-muted bg-muted/20">
+                        <CardContent className="pt-6 space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                              <Label htmlFor="enable-recording" className="text-base">
+                                Record Stream
+                              </Label>
+                              <p className="text-sm text-muted-foreground">
+                                Save your stream for viewers to watch later
+                              </p>
+                            </div>
+                            <Switch
+                              id="enable-recording"
+                              checked={enableRecording}
+                              onCheckedChange={setEnableRecording}
+                            />
                           </div>
-                          <Switch
-                            id="save-to-storj"
-                            checked={saveToStorj}
-                            onCheckedChange={setSaveToStorj}
-                          />
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                  
-                  <Button
-                    type="submit"
-                    size="lg"
-                    className="w-full bg-gradient-hero hover:opacity-90"
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Creating Stream...
-                      </>
-                    ) : (
-                      <>
-                        <Video className="mr-2 h-5 w-5" />
-                        Create Stream
-                      </>
-                    )}
-                  </Button>
-                </form>
+
+                          {enableRecording && (
+                            <div className="flex items-center justify-between pl-4 border-l-2 border-primary/30">
+                              <div className="space-y-0.5">
+                                <Label htmlFor="save-to-storj" className="text-sm">
+                                  Save to Storj (Decentralized)
+                                </Label>
+                                <p className="text-xs text-muted-foreground">
+                                  Permanently store on decentralized storage
+                                </p>
+                              </div>
+                              <Switch
+                                id="save-to-storj"
+                                checked={saveToStorj}
+                                onCheckedChange={setSaveToStorj}
+                              />
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                      
+                      <Button
+                        type="submit"
+                        size="lg"
+                        className="w-full bg-gradient-hero hover:opacity-90"
+                        disabled={loading}
+                      >
+                        {loading ? (
+                          <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            Creating Stream...
+                          </>
+                        ) : (
+                          <>
+                            <Video className="mr-2 h-5 w-5" />
+                            Start Browser Stream
+                          </>
+                        )}
+                      </Button>
+                    </form>
+                  </TabsContent>
+
+                  <TabsContent value="pull" className="space-y-6">
+                    <YouTubeConnect
+                      onSelectStream={(streamUrl) => {
+                        setPullStreamUrl(streamUrl);
+                        toast({
+                          title: 'Stream selected',
+                          description: 'Fill in details below and click Start Pull Stream',
+                        });
+                      }}
+                    />
+
+                    <form onSubmit={handleStartPullStream} className="space-y-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="pull-title">Stream Title</Label>
+                        <Input
+                          id="pull-title"
+                          placeholder="What are you streaming?"
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="pull-description">Description</Label>
+                        <Textarea
+                          id="pull-description"
+                          placeholder="Tell viewers about this stream..."
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
+                          rows={3}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="pull-url">Stream URL (RTMP or HLS)</Label>
+                        <Input
+                          id="pull-url"
+                          placeholder="rtmp://... or https://.../playlist.m3u8"
+                          value={pullStreamUrl}
+                          onChange={(e) => setPullStreamUrl(e.target.value)}
+                          required
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Select a YouTube stream above or paste any RTMP/HLS URL
+                        </p>
+                      </div>
+
+                      <Button
+                        type="submit"
+                        size="lg"
+                        className="w-full bg-gradient-hero hover:opacity-90"
+                        disabled={loading}
+                      >
+                        {loading ? (
+                          <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            Starting Pull Stream...
+                          </>
+                        ) : (
+                          <>
+                            <Youtube className="mr-2 h-5 w-5" />
+                            Start Pull Stream
+                          </>
+                        )}
+                      </Button>
+                    </form>
+                  </TabsContent>
+                </Tabs>
               </CardContent>
             </Card>
           ) : (
