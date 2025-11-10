@@ -8,6 +8,7 @@ import FollowButton from "@/components/FollowButton";
 import { WalletConnect } from "@/components/WalletConnect";
 import { MultiChainTipButton } from "@/components/MultiChainTipButton";
 import { ProfileEditDialog } from "@/components/ProfileEditDialog";
+import { PasswordChangeDialog } from "@/components/PasswordChangeDialog";
 import { Users, UserPlus, Wallet, Coins, Loader2, RefreshCw, MapPin, Twitter, Instagram, Youtube, Tv, Music, Gamepad2, Palette, Radio, LogOut } from "lucide-react";
 import SoundCloudWidget from "@/components/SoundCloudWidget";
 import { BrandBanner } from "@/components/BrandBanner";
@@ -279,6 +280,7 @@ const Profile = () => {
                 {isOwnProfile && (
                   <div className="flex gap-2 mb-4">
                     <ProfileEditDialog profile={profile} onUpdate={handleProfileUpdate} />
+                    <PasswordChangeDialog />
                     <Button variant="outline" size="sm" onClick={handleSignOut}>
                       <LogOut className="w-4 h-4 mr-2" />
                       Sign Out
