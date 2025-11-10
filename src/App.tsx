@@ -23,6 +23,7 @@ import NFTMarketplace from "./pages/NFTMarketplace";
 import NFTPortfolio from "./pages/NFTPortfolio";
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TwitchCallback from "./pages/TwitchCallback";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -55,6 +56,7 @@ const App = () => (
               <Route path="/nft-portfolio" element={<NFTPortfolio />} />
               <Route path="/terms" element={<TermsOfService />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/auth/twitch/callback" element={<TwitchCallback />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

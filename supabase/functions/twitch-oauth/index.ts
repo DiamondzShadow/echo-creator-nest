@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
 
     const clientId = Deno.env.get('VITE_TWITCH_CLIENT_ID');
     const clientSecret = Deno.env.get('TWITCH_CLIENT_SECRET');
-    const redirectUri = 'https://crabbytv.com/live?from=twitch';
+    const redirectUri = 'https://crabbytv.com/auth/twitch/callback';
 
     console.log('Exchanging code for token...');
 
