@@ -155,7 +155,7 @@ Deno.serve(async (req) => {
       // Build TikTok OAuth URL
       const authUrl = new URL('https://www.tiktok.com/v2/auth/authorize/');
       authUrl.searchParams.set('client_key', tiktokClientKey);
-      authUrl.searchParams.set('scope', 'user.info.basic,user.info.stats,video.list');
+      authUrl.searchParams.set('scope', 'user.info.basic,user.info.stats,video.list,video.upload');
       authUrl.searchParams.set('response_type', 'code');
       authUrl.searchParams.set('redirect_uri', `${supabaseUrl}/functions/v1/tiktok-oauth`);
       authUrl.searchParams.set('state', state);
