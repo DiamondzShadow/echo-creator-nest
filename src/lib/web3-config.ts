@@ -30,7 +30,6 @@ export const web3Config = getDefaultConfig({
   projectId: "7a8854ee7c58b56eb8d461175ac5032c",
   chains: [arbitrum, mainnet, polygon, base, optimism, filecoinHyperspace],
   ssr: false,
-  wallets: [],
 });
 
 // Platform token contract addresses (deploy your own ERC-20)
