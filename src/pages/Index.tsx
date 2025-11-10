@@ -5,6 +5,7 @@ import CreatorBenefits from "@/components/CreatorBenefits";
 import TopProfiles from "@/components/TopProfiles";
 import { PublicVideos } from "@/components/PublicVideos";
 import CTA from "@/components/CTA";
+import Footer from "@/components/Footer";
 
 const Index = () => {
   return (
@@ -16,6 +17,7 @@ const Index = () => {
       <Features />
       <CreatorBenefits />
       <CTA />
+      <Footer />
     </div>
   );
 };
