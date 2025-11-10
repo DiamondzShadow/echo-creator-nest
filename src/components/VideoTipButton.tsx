@@ -3,13 +3,14 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useSwitchChain } from 'wagmi';
 import { parseEther } from 'viem';
+import { arbitrum } from 'wagmi/chains';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Coins, Loader2, Info } from 'lucide-react';
+import { Coins, Loader2, Info, AlertCircle } from 'lucide-react';
 import { VIDEO_TIPPING_CONTRACT_ADDRESS, VIDEO_TIPPING_ABI } from '@/lib/web3-config';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface VideoTipButtonProps {
   videoId: string;
@@ -30,7 +31,25 @@ export const VideoTipButton = ({
   const { address, isConnected, chain } = useAccount();
   const { writeContract, data: hash } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+  const { switchChain } = useSwitchChain();
   const { toast } = useToast();
+
+  // Check if on correct network (Arbitrum)
+  const isCorrectNetwork = chain?.id === arbitrum.id;
+  const wrongNetwork = isConnected && !isCorrectNetwork;
+
+  // Handle network switch
+  const handleSwitchToArbitrum = async () => {
+    try {
+      await switchChain({ chainId: arbitrum.id });
+    } catch (error) {
+      toast({
+        title: "Network Switch Failed",
+        description: error instanceof Error ? error.message : "Failed to switch to Arbitrum",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Record tip after transaction is confirmed
   useEffect(() => {
@@ -57,11 +76,14 @@ export const VideoTipButton = ({
               to_wallet_address: creatorWalletAddress,
               from_wallet_address: address,
               amount: parseEther(amount).toString(),
-              network: chain?.name?.toLowerCase() || 'ethereum',
+              network: 'arbitrum',
               transaction_hash: hash,
               metadata: {
                 amount_display: amount,
               },
+            },
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
             },
           });
 
@@ -101,6 +123,15 @@ export const VideoTipButton = ({
       toast({
         title: "Connect Wallet",
         description: "Please connect your wallet first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!isCorrectNetwork) {
+      toast({
+        title: "Wrong Network",
+        description: "Please switch to Arbitrum network",
         variant: "destructive",
       });
       return;
@@ -181,6 +212,18 @@ export const VideoTipButton = ({
                 Connect your wallet to send tips
               </AlertDescription>
             </Alert>
+          ) : wrongNetwork ? (
+            <div className="space-y-4">
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  VideoTipping is deployed on Arbitrum. Please switch to Arbitrum network to send tips.
+                </AlertDescription>
+              </Alert>
+              <Button onClick={handleSwitchToArbitrum} className="w-full">
+                Switch to Arbitrum
+              </Button>
+            </div>
           ) : (
             <>
               <div>
@@ -227,7 +270,7 @@ export const VideoTipButton = ({
               </Button>
 
               <p className="text-xs text-muted-foreground text-center">
-                Network: {chain?.name || 'Not connected'}
+                Network: Arbitrum
               </p>
             </>
           )}

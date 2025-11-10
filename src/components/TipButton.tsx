@@ -4,11 +4,13 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, useSwitchChain } from 'wagmi';
 import { parseEther, parseUnits, formatUnits } from 'viem';
+import { arbitrum } from 'wagmi/chains';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Coins, Loader2 } from 'lucide-react';
+import { Coins, Loader2, AlertCircle } from 'lucide-react';
 import { TIPJAR_CONTRACT_ADDRESS, TIPJAR_ABI, ERC20_TOKENS, ERC20_ABI } from '@/lib/web3-config';
 
 interface TipButtonProps {
@@ -29,19 +31,36 @@ export const TipButton = ({ recipientUserId, recipientWalletAddress, recipientUs
   const { address, isConnected, chain } = useAccount();
   const { writeContract, data: hash } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+  const { switchChain } = useSwitchChain();
   const { toast } = useToast();
+
+  // Check if on correct network (Arbitrum)
+  const isCorrectNetwork = chain?.id === arbitrum.id;
+  const wrongNetwork = isConnected && !isCorrectNetwork;
 
   // Check if token is ERC20
   const isERC20 = token === 'USDC' || token === 'DAI';
 
-  // Get token contract address
+  // Get token contract address (only for Arbitrum)
   const getTokenAddress = () => {
-    if (!chain || !isERC20) return undefined;
-    const chainName = chain.name.toLowerCase() as keyof typeof ERC20_TOKENS;
-    return ERC20_TOKENS[chainName]?.[token];
+    if (!isERC20 || !isCorrectNetwork) return undefined;
+    return ERC20_TOKENS.arbitrum?.[token];
   };
 
   const tokenAddress = getTokenAddress();
+
+  // Handle network switch
+  const handleSwitchToArbitrum = async () => {
+    try {
+      await switchChain({ chainId: arbitrum.id });
+    } catch (error) {
+      toast({
+        title: "Network Switch Failed",
+        description: error instanceof Error ? error.message : "Failed to switch to Arbitrum",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Check allowance for ERC20 tokens
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
@@ -203,6 +222,15 @@ export const TipButton = ({ recipientUserId, recipientWalletAddress, recipientUs
       return;
     }
 
+    if (!isCorrectNetwork) {
+      toast({
+        title: "Wrong Network",
+        description: "Please switch to Arbitrum network",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!recipientWalletAddress) {
       toast({
         title: "No Wallet Connected",
@@ -221,11 +249,11 @@ export const TipButton = ({ recipientUserId, recipientWalletAddress, recipientUs
       return;
     }
 
-    // Check if token is available on current chain
+    // Check if token is available on Arbitrum
     if (isERC20 && !tokenAddress) {
       toast({
         title: "Token Not Available",
-        description: `${token} is not available on ${chain?.name}`,
+        description: `${token} is not available on Arbitrum`,
         variant: "destructive",
       });
       return;
@@ -304,6 +332,18 @@ export const TipButton = ({ recipientUserId, recipientWalletAddress, recipientUs
                 Connect your wallet to send tips
               </p>
             </div>
+          ) : wrongNetwork ? (
+            <div className="space-y-4">
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  TipJar is deployed on Arbitrum. Please switch to Arbitrum network to send tips.
+                </AlertDescription>
+              </Alert>
+              <Button onClick={handleSwitchToArbitrum} className="w-full">
+                Switch to Arbitrum
+              </Button>
+            </div>
           ) : (
             <>
               <div>
@@ -325,17 +365,11 @@ export const TipButton = ({ recipientUserId, recipientWalletAddress, recipientUs
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ETH">ETH (Ethereum)</SelectItem>
-                    <SelectItem value="MATIC">MATIC (Polygon)</SelectItem>
+                    <SelectItem value="ETH">ETH (Native)</SelectItem>
                     <SelectItem value="USDC">USDC (Stablecoin)</SelectItem>
                     <SelectItem value="DAI">DAI (Stablecoin)</SelectItem>
                   </SelectContent>
                 </Select>
-                {isERC20 && !tokenAddress && (
-                  <p className="text-xs text-destructive mt-1">
-                    {token} not available on {chain?.name}
-                  </p>
-                )}
               </div>
 
               {amount && parseFloat(amount) > 0 && (
@@ -394,7 +428,7 @@ export const TipButton = ({ recipientUserId, recipientWalletAddress, recipientUs
               </Button>
 
               <p className="text-xs text-muted-foreground text-center">
-                Network: {chain?.name || 'Not connected'}
+                Network: Arbitrum
               </p>
             </>
           )}

@@ -6,13 +6,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// RPC providers for different networks
+// RPC providers for Arbitrum network only
 const RPC_ENDPOINTS: Record<string, string> = {
-  ethereum: 'https://eth.llamarpc.com',
-  polygon: 'https://polygon-rpc.com',
-  base: 'https://mainnet.base.org',
   arbitrum: 'https://arb1.arbitrum.io/rpc',
-  optimism: 'https://mainnet.optimism.io',
 };
 
 interface TipRequest {
@@ -178,6 +174,17 @@ serve(async (req) => {
     if (!to_user_id || !to_wallet_address || !from_wallet_address || !amount || !token_symbol || !network || !transaction_hash) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Enforce Arbitrum network only
+    if (network.toLowerCase() !== 'arbitrum') {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid network', 
+          details: 'TipJar contract is only deployed on Arbitrum. Please use Arbitrum network.' 
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
