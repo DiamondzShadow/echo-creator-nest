@@ -20,6 +20,7 @@ import { isValidAddress } from 'xrpl';
 import { PublicKey } from '@solana/web3.js';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { CoverPhotoCropper } from './CoverPhotoCropper';
 
 const isValidSolanaAddress = (address: string): boolean => {
   try {
@@ -137,6 +138,8 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
   const [socialTwitter, setSocialTwitter] = useState(profile.social_twitter || '');
   const [socialInstagram, setSocialInstagram] = useState(profile.social_instagram || '');
   const [socialYoutube, setSocialYoutube] = useState(profile.social_youtube || '');
+  const [tempCoverImage, setTempCoverImage] = useState<string>('');
+  const [showCropper, setShowCropper] = useState(false);
   const { toast } = useToast();
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -274,14 +277,23 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
       return;
     }
 
+    // Create temporary URL for cropping
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setTempCoverImage(reader.result as string);
+      setShowCropper(true);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCroppedImage = async (croppedBlob: Blob) => {
     setUploadingCover(true);
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${profile.id}/cover-${Date.now()}.${fileExt}`;
+      const fileName = `${profile.id}/cover-${Date.now()}.jpg`;
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(fileName, file, { upsert: true });
+        .upload(fileName, croppedBlob, { upsert: true });
 
       if (uploadError) throw uploadError;
 
@@ -742,6 +754,13 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
           </Button>
         </div>
       </DialogContent>
+
+      <CoverPhotoCropper
+        open={showCropper}
+        onOpenChange={setShowCropper}
+        imageSrc={tempCoverImage}
+        onCropComplete={handleCroppedImage}
+      />
     </Dialog>
   );
 };
