@@ -23,6 +23,7 @@ interface TipRequest {
   token_symbol: string;
   network: string;
   transaction_hash: string;
+  token_address?: string;
   metadata?: Record<string, unknown>;
 }
 
@@ -169,6 +170,7 @@ serve(async (req) => {
       token_symbol,
       network,
       transaction_hash,
+      token_address,
       metadata,
     } = tipRequest;
 
@@ -232,6 +234,7 @@ serve(async (req) => {
         to_wallet_address,
         amount,
         token_symbol,
+        token_address,
         network: network.toLowerCase(),
         transaction_hash,
         block_number: verification.blockNumber,

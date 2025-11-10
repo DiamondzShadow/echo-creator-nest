@@ -41,6 +41,30 @@ export const PLATFORM_TOKEN_ADDRESSES = {
   optimism: "0x...",
 } as const;
 
+// ERC20 Token Addresses for Tipping
+export const ERC20_TOKENS = {
+  mainnet: {
+    USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+    DAI: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+  },
+  polygon: {
+    USDC: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", // USDC native on Polygon
+    DAI: "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063",
+  },
+  base: {
+    USDC: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    DAI: "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",
+  },
+  arbitrum: {
+    USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", // USDC native on Arbitrum
+    DAI: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+  },
+  optimism: {
+    USDC: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+    DAI: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+  },
+} as const;
+
 // Token gating thresholds
 export const TOKEN_GATE_THRESHOLDS = {
   BASIC_ACCESS: BigInt(0), // No tokens required
@@ -67,6 +91,44 @@ export const NFT_MARKETPLACE_CONTRACT_ADDRESS = "0x2c4aFDfEB45d2b05A33aDb8B96e8a
 
 // Platform fee wallet (receives 3% of all tips)
 export const PLATFORM_WALLET = "0x18b2b2ce7d05Bfe0883Ff874ba0C536A89D07363";
+
+// Standard ERC20 ABI (for token approval and balance checks)
+export const ERC20_ABI = [
+  {
+    "inputs": [
+      { "internalType": "address", "name": "spender", "type": "address" },
+      { "internalType": "uint256", "name": "amount", "type": "uint256" }
+    ],
+    "name": "approve",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "owner", "type": "address" },
+      { "internalType": "address", "name": "spender", "type": "address" }
+    ],
+    "name": "allowance",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "account", "type": "address" }],
+    "name": "balanceOf",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "decimals",
+    "outputs": [{ "internalType": "uint8", "name": "", "type": "uint8" }],
+    "stateMutability": "view",
+    "type": "function"
+  }
+] as const;
 
 // TipJar contract ABI
 export const TIPJAR_ABI = [

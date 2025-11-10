@@ -52,7 +52,7 @@ export const MultiChainTipButton = ({
           <TabsContent value="eth" className="mt-4">
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Send tips using Ethereum, Polygon, or other EVM chains
+                Send tips using ETH, USDC, DAI on Ethereum, Polygon, Base, Arbitrum, or Optimism
               </p>
               {/* Embed the existing TipButton component */}
               <TipButton

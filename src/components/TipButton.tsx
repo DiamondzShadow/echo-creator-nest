@@ -4,12 +4,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { parseEther, formatEther } from 'viem';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
+import { parseEther, parseUnits, formatUnits } from 'viem';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Coins, Loader2 } from 'lucide-react';
-import { TIPJAR_CONTRACT_ADDRESS, TIPJAR_ABI } from '@/lib/web3-config';
+import { TIPJAR_CONTRACT_ADDRESS, TIPJAR_ABI, ERC20_TOKENS, ERC20_ABI } from '@/lib/web3-config';
 
 interface TipButtonProps {
   recipientUserId: string;
@@ -17,15 +17,62 @@ interface TipButtonProps {
   recipientUsername: string;
 }
 
+type TokenType = 'ETH' | 'MATIC' | 'USDC' | 'DAI';
+
 export const TipButton = ({ recipientUserId, recipientWalletAddress, recipientUsername }: TipButtonProps) => {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState('');
-  const [token, setToken] = useState<'ETH' | 'MATIC' | 'custom'>('ETH');
+  const [token, setToken] = useState<TokenType>('ETH');
   const [isRecording, setIsRecording] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
+  const [needsApproval, setNeedsApproval] = useState(false);
   const { address, isConnected, chain } = useAccount();
   const { writeContract, data: hash } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
   const { toast } = useToast();
+
+  // Check if token is ERC20
+  const isERC20 = token === 'USDC' || token === 'DAI';
+
+  // Get token contract address
+  const getTokenAddress = () => {
+    if (!chain || !isERC20) return undefined;
+    const chainName = chain.name.toLowerCase() as keyof typeof ERC20_TOKENS;
+    return ERC20_TOKENS[chainName]?.[token];
+  };
+
+  const tokenAddress = getTokenAddress();
+
+  // Check allowance for ERC20 tokens
+  const { data: allowance, refetch: refetchAllowance } = useReadContract({
+    address: tokenAddress as `0x${string}`,
+    abi: ERC20_ABI,
+    functionName: 'allowance',
+    args: address && tokenAddress ? [address as `0x${string}`, TIPJAR_CONTRACT_ADDRESS as `0x${string}`] : undefined,
+    query: {
+      enabled: isERC20 && !!address && !!tokenAddress,
+    },
+  });
+
+  // Get token decimals
+  const { data: decimals } = useReadContract({
+    address: tokenAddress as `0x${string}`,
+    abi: ERC20_ABI,
+    functionName: 'decimals',
+    query: {
+      enabled: isERC20 && !!tokenAddress,
+    },
+  });
+
+  // Check if approval is needed
+  useEffect(() => {
+    if (isERC20 && allowance !== undefined && amount && decimals) {
+      const amountWei = parseUnits(amount, decimals as number);
+      setNeedsApproval(allowance < amountWei);
+    } else {
+      setNeedsApproval(false);
+    }
+  }, [isERC20, allowance, amount, decimals]);
   
   // Calculate fee split (3% platform, 97% creator)
   const calculateSplit = (tipAmount: string) => {
@@ -53,16 +100,25 @@ export const TipButton = ({ recipientUserId, recipientWalletAddress, recipientUs
             return;
           }
 
+          // Calculate amount in wei/smallest unit
+          let amountInWei: string;
+          if (isERC20 && decimals) {
+            amountInWei = parseUnits(amount, decimals as number).toString();
+          } else {
+            amountInWei = parseEther(amount).toString();
+          }
+
           // Call edge function to verify and record tip
           const { data, error } = await supabase.functions.invoke('record-tip', {
             body: {
               to_user_id: recipientUserId,
               to_wallet_address: recipientWalletAddress,
               from_wallet_address: address,
-              amount: parseEther(amount).toString(),
+              amount: amountInWei,
               token_symbol: token,
               network: chain?.name?.toLowerCase() || 'ethereum',
               transaction_hash: hash,
+              token_address: isERC20 ? tokenAddress : undefined,
               metadata: {
                 amount_display: amount,
               },
@@ -84,6 +140,8 @@ export const TipButton = ({ recipientUserId, recipientWalletAddress, recipientUs
             });
             setOpen(false);
             setAmount('');
+            setIsApproving(false);
+            refetchAllowance();
           }
         } catch (error) {
           console.error('Error recording tip:', error);
@@ -99,7 +157,38 @@ export const TipButton = ({ recipientUserId, recipientWalletAddress, recipientUs
     };
 
     recordTip();
-  }, [isSuccess, hash, amount, token, chain, address, recipientUserId, recipientWalletAddress, recipientUsername, toast, isRecording]);
+  }, [isSuccess, hash, amount, token, chain, address, recipientUserId, recipientWalletAddress, recipientUsername, toast, isRecording, isERC20, decimals, tokenAddress, refetchAllowance]);
+
+  const handleApprove = async () => {
+    if (!tokenAddress || !decimals) return;
+
+    setIsApproving(true);
+    try {
+      const amountWei = parseUnits(amount, decimals as number);
+      
+      writeContract({
+        address: tokenAddress as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: 'approve',
+        args: [TIPJAR_CONTRACT_ADDRESS as `0x${string}`, amountWei],
+        account: address as `0x${string}`,
+        chain,
+      });
+
+      toast({
+        title: "Approval Sent",
+        description: "Waiting for approval confirmation...",
+      });
+    } catch (error) {
+      console.error('Approval error:', error);
+      toast({
+        title: "Approval Failed",
+        description: error instanceof Error ? error.message : "Failed to approve token",
+        variant: "destructive",
+      });
+      setIsApproving(false);
+    }
+  };
 
   const handleTip = async () => {
     if (!isConnected || !address) {
@@ -129,17 +218,45 @@ export const TipButton = ({ recipientUserId, recipientWalletAddress, recipientUs
       return;
     }
 
-    try {
-      // Call TipJar contract - automatically takes 3% platform fee
-      writeContract({
-        address: TIPJAR_CONTRACT_ADDRESS as `0x${string}`,
-        abi: TIPJAR_ABI,
-        functionName: 'tipWithNative',
-        args: [recipientWalletAddress as `0x${string}`],
-        value: parseEther(amount),
-        account: address as `0x${string}`,
-        chain,
+    // Check if token is available on current chain
+    if (isERC20 && !tokenAddress) {
+      toast({
+        title: "Token Not Available",
+        description: `${token} is not available on ${chain?.name}`,
+        variant: "destructive",
       });
+      return;
+    }
+
+    try {
+      if (isERC20 && tokenAddress && decimals) {
+        // ERC20 tip
+        const amountWei = parseUnits(amount, decimals as number);
+        
+        writeContract({
+          address: TIPJAR_CONTRACT_ADDRESS as `0x${string}`,
+          abi: TIPJAR_ABI,
+          functionName: 'tipWithToken',
+          args: [
+            recipientWalletAddress as `0x${string}`,
+            tokenAddress as `0x${string}`,
+            amountWei,
+          ],
+          account: address as `0x${string}`,
+          chain,
+        });
+      } else {
+        // Native currency tip
+        writeContract({
+          address: TIPJAR_CONTRACT_ADDRESS as `0x${string}`,
+          abi: TIPJAR_ABI,
+          functionName: 'tipWithNative',
+          args: [recipientWalletAddress as `0x${string}`],
+          value: parseEther(amount),
+          account: address as `0x${string}`,
+          chain,
+        });
+      }
 
       toast({
         title: "Transaction Sent",
@@ -200,15 +317,22 @@ export const TipButton = ({ recipientUserId, recipientWalletAddress, recipientUs
 
               <div>
                 <Label htmlFor="token">Token</Label>
-                <Select value={token} onValueChange={(value) => setToken(value as 'ETH' | 'MATIC' | 'custom')}>
+                <Select value={token} onValueChange={(value) => setToken(value as TokenType)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ETH">ETH (Ethereum)</SelectItem>
                     <SelectItem value="MATIC">MATIC (Polygon)</SelectItem>
+                    <SelectItem value="USDC">USDC (Stablecoin)</SelectItem>
+                    <SelectItem value="DAI">DAI (Stablecoin)</SelectItem>
                   </SelectContent>
                 </Select>
+                {isERC20 && !tokenAddress && (
+                  <p className="text-xs text-destructive mt-1">
+                    {token} not available on {chain?.name}
+                  </p>
+                )}
               </div>
 
               {amount && parseFloat(amount) > 0 && (
@@ -228,9 +352,27 @@ export const TipButton = ({ recipientUserId, recipientWalletAddress, recipientUs
                 </div>
               )}
 
+              {isERC20 && needsApproval && (
+                <Button 
+                  onClick={handleApprove} 
+                  disabled={isApproving || isConfirming}
+                  className="w-full"
+                  variant="outline"
+                >
+                  {isApproving || isConfirming ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Approving...
+                    </>
+                  ) : (
+                    `Approve ${token}`
+                  )}
+                </Button>
+              )}
+
               <Button 
                 onClick={handleTip} 
-                disabled={isConfirming || isRecording}
+                disabled={isConfirming || isRecording || (isERC20 && needsApproval)}
                 className="w-full"
               >
                 {isConfirming ? (
