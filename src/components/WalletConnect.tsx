@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { RefreshCw, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { createThirdwebClient, defineChain } from "thirdweb";
+import { NetworkSwitcher } from './NetworkSwitcher';
 
 const thirdwebClient = createThirdwebClient({
   clientId: "b1c4d85a2601e8268c98039ccb1de1db",
@@ -70,7 +71,10 @@ export const WalletConnect = () => {
     <div className="flex flex-col gap-4">
       <div className="space-y-2">
         <h3 className="text-sm font-medium text-muted-foreground">Connect with Web3 Wallet</h3>
-        <ConnectButton />
+        <div className="flex items-center gap-2">
+          <ConnectButton />
+          {isConnected && <NetworkSwitcher />}
+        </div>
       </div>
       
       <div className="space-y-2">
