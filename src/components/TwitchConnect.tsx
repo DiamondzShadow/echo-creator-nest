@@ -55,12 +55,14 @@ export const TwitchConnect = () => {
     const clientId = import.meta.env.VITE_TWITCH_CLIENT_ID;
     // Always use production URL for consistent OAuth flow
     const redirectUri = 'https://crabbytv.com/auth/twitch/callback';
-    const scope = 'user:read:email channel:read:stream_key';
+    // Only request user:read:email - sufficient for EventSub webhooks
+    const scope = 'user:read:email';
     
-    console.log('Initiating Twitch OAuth with:', { clientId, redirectUri });
+    console.log('Initiating Twitch OAuth with:', { clientId, redirectUri, scope });
     
     const authUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}`;
     
+    console.log('Auth URL:', authUrl);
     window.location.href = authUrl;
   };
 
