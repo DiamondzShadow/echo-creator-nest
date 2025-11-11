@@ -18,6 +18,8 @@ interface LiveStream {
   started_at: string;
   ended_at: string | null;
   livepeer_playback_id: string | null;
+  thumbnail_url?: string | null;
+  viewer_count?: number;
   created_at: string;
   title?: string;
   profiles?: Profile | null;
@@ -193,7 +195,18 @@ const Discover = () => {
                 {liveStreams.map((stream) => {
                   const profiles = stream.profiles || { username: 'Unknown', display_name: 'Unknown', avatar_url: null };
                   return (
-                    <LiveStreamCard key={stream.id} stream={{ ...stream, title: stream.title || 'Untitled Stream', description: stream.title || '', profiles }} />
+                    <LiveStreamCard 
+                      key={stream.id} 
+                      stream={{ 
+                        ...stream, 
+                        title: stream.title || 'Untitled Stream', 
+                        description: stream.title || '', 
+                        profiles,
+                        livepeer_playback_id: stream.livepeer_playback_id,
+                        thumbnail_url: stream.thumbnail_url,
+                        viewer_count: stream.viewer_count
+                      }} 
+                    />
                   );
                 })}
               </div>

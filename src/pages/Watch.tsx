@@ -10,6 +10,7 @@ import { LiveKitViewer } from "@/components/LiveKitViewer";
 import { TipButton } from "@/components/TipButton";
 import FollowButton from "@/components/FollowButton";
 import { StreamChat } from "@/components/StreamChat";
+import { TwitchEmbed } from "@/components/TwitchEmbed";
 import { Eye, ArrowLeft, Loader2, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { BrandBanner } from "@/components/BrandBanner";
@@ -54,6 +55,8 @@ const Watch = () => {
   const [loading, setLoading] = useState(true);
   const [livekitToken, setLivekitToken] = useState<string | null>(null);
   const [isLiveKitStream, setIsLiveKitStream] = useState(false);
+  const [isTwitchStream, setIsTwitchStream] = useState(false);
+  const [twitchChannelName, setTwitchChannelName] = useState<string | null>(null);
   const [hasRecording, setHasRecording] = useState(false);
   const [checkingRecording, setCheckingRecording] = useState(false);
   const [reactionTargetId, setReactionTargetId] = useState<string | null>(null);
@@ -246,6 +249,24 @@ const Watch = () => {
       // LiveKit streams have room names starting with "stream-"
       const isLiveKit = streamData.livepeer_playback_id?.startsWith('stream-');
       setIsLiveKitStream(isLiveKit);
+      
+      // Check if this is a Twitch stream
+      // Twitch streams have playback IDs starting with "twitch_"
+      const isTwitch = streamData.livepeer_playback_id?.startsWith('twitch_');
+      setIsTwitchStream(isTwitch);
+      
+      // If Twitch stream, fetch the Twitch username
+      if (isTwitch) {
+        const { data: twitchConn } = await supabase
+          .from('twitch_connections')
+          .select('twitch_username')
+          .eq('user_id', streamData.user_id)
+          .maybeSingle();
+        
+        if (twitchConn?.twitch_username) {
+          setTwitchChannelName(twitchConn.twitch_username);
+        }
+      }
 
       // If LiveKit stream AND actually live (broadcaster has published tracks), get viewer token
       if (isLiveKit && streamData.is_live) {
@@ -381,7 +402,13 @@ const Watch = () => {
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-4 gap-6">
             <div className="lg:col-span-3 space-y-4">
-              {isLiveKitStream && stream.is_live && livekitToken ? (
+              {isTwitchStream && twitchChannelName ? (
+                <Card className="border-0 shadow-glow bg-gradient-card">
+                  <CardContent className="pt-6">
+                    <TwitchEmbed channelName={twitchChannelName} title={stream.title} />
+                  </CardContent>
+                </Card>
+              ) : isLiveKitStream && stream.is_live && livekitToken ? (
                 <LiveKitViewer
                   roomToken={livekitToken}
                   title={stream.title}
