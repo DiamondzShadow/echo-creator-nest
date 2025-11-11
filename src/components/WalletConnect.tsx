@@ -1,4 +1,6 @@
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { ConnectButton as ThirdwebConnectButton } from "thirdweb/react";
+import { createWallet } from "thirdweb/wallets";
 import { useAccount } from 'wagmi';
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,6 +9,23 @@ import { useEVMBalance } from '@/hooks/useEVMBalance';
 import { Badge } from '@/components/ui/badge';
 import { RefreshCw, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { createThirdwebClient } from "thirdweb";
+
+const thirdwebClient = createThirdwebClient({
+  clientId: "b1c4d85a2601e8268c98039ccb1de1db",
+});
+
+const wallets = [
+  createWallet("io.metamask"),
+  createWallet("com.coinbase.wallet"),
+  createWallet("me.rainbow"),
+  createWallet("com.trustwallet.app"),
+  createWallet("inApp", {
+    auth: {
+      options: ["google", "apple", "facebook", "email", "phone"],
+    },
+  }),
+];
 
 export const WalletConnect = () => {
   const { address, isConnected } = useAccount();
@@ -38,8 +57,29 @@ export const WalletConnect = () => {
   }, [isConnected, address, toast]);
 
   return (
-    <div className="flex flex-col gap-2">
-      <ConnectButton />
+    <div className="flex flex-col gap-4">
+      <div className="space-y-2">
+        <h3 className="text-sm font-medium text-muted-foreground">Connect with Web3 Wallet</h3>
+        <ConnectButton />
+      </div>
+      
+      <div className="space-y-2">
+        <h3 className="text-sm font-medium text-muted-foreground">Or Create Social Wallet</h3>
+        <ThirdwebConnectButton
+          client={thirdwebClient}
+          wallets={wallets}
+          theme="dark"
+          connectButton={{
+            label: "Sign in with Social",
+          }}
+          connectModal={{
+            size: "compact",
+            title: "Connect Your Wallet",
+            showThirdwebBranding: false,
+          }}
+        />
+      </div>
+      
       {isConnected && (
         <div className="flex items-center gap-2">
           {loading ? (
