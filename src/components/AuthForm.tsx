@@ -24,6 +24,8 @@ const AuthForm = ({ onSuccess }: AuthFormProps) => {
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [isRecoveryMode, setIsRecoveryMode] = useState(false);
+  const [showVerificationMessage, setShowVerificationMessage] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -42,6 +44,34 @@ const AuthForm = ({ onSuccess }: AuthFormProps) => {
       }
     });
   }, []);
+
+  const handleResendVerification = async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: verificationEmail,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Verification email sent",
+        description: "Please check your inbox and spam folder.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to resend verification email",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,7 +177,7 @@ const AuthForm = ({ onSuccess }: AuthFormProps) => {
         });
         onSuccess();
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -161,11 +191,21 @@ const AuthForm = ({ onSuccess }: AuthFormProps) => {
 
         if (error) throw error;
 
-        toast({
-          title: "Account created!",
-          description: "Welcome to the creator community.",
-        });
-        onSuccess();
+        // Check if email confirmation is required
+        if (data?.user && !data.session) {
+          setVerificationEmail(email);
+          setShowVerificationMessage(true);
+          setEmail("");
+          setPassword("");
+          setUsername("");
+          setDisplayName("");
+        } else {
+          toast({
+            title: "Account created!",
+            description: "Welcome to the creator community.",
+          });
+          onSuccess();
+        }
       }
     } catch (error) {
       let errorMessage = error instanceof Error ? error.message : "An error occurred";
@@ -194,10 +234,20 @@ const AuthForm = ({ onSuccess }: AuthFormProps) => {
     <Card className="w-full max-w-md border-0 shadow-glow bg-gradient-card">
       <CardHeader>
         <CardTitle className="text-2xl bg-gradient-hero bg-clip-text text-transparent">
-          {isRecoveryMode ? "Set New Password" : isForgotPassword ? "Reset Password" : isLogin ? "Welcome Back" : "Join Us"}
+          {showVerificationMessage 
+            ? "Verify Your Email" 
+            : isRecoveryMode 
+            ? "Set New Password" 
+            : isForgotPassword 
+            ? "Reset Password" 
+            : isLogin 
+            ? "Welcome Back" 
+            : "Join Us"}
         </CardTitle>
         <CardDescription>
-          {isRecoveryMode 
+          {showVerificationMessage
+            ? "Check your inbox to verify your account"
+            : isRecoveryMode 
             ? "Enter your new password below" 
             : isForgotPassword 
             ? "Enter your email to receive a reset link" 
@@ -207,7 +257,49 @@ const AuthForm = ({ onSuccess }: AuthFormProps) => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {isRecoveryMode ? (
+        {showVerificationMessage ? (
+          <div className="space-y-4">
+            <div className="bg-muted/50 border border-border rounded-lg p-4 space-y-3">
+              <p className="text-sm text-foreground">
+                We've sent a verification email to <span className="font-semibold">{verificationEmail}</span>
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Please check your inbox and click the verification link to activate your account.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Don't forget to check your spam folder if you don't see it.
+              </p>
+            </div>
+            <Button
+              onClick={handleResendVerification}
+              variant="outline"
+              className="w-full"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                "Resend Verification Email"
+              )}
+            </Button>
+            <div className="text-center text-sm">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowVerificationMessage(false);
+                  setVerificationEmail("");
+                  setIsLogin(true);
+                }}
+                className="text-primary hover:underline"
+              >
+                Back to sign in
+              </button>
+            </div>
+          </div>
+        ) : isRecoveryMode ? (
           <form onSubmit={handleUpdatePassword} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="new-password">New Password</Label>
