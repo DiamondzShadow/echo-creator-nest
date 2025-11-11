@@ -606,6 +606,39 @@ export type Database = {
         }
         Relationships: []
       }
+      twitch_eventsub_subscriptions: {
+        Row: {
+          created_at: string
+          id: string
+          status: string
+          subscription_id: string
+          subscription_type: string
+          twitch_user_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          status?: string
+          subscription_id: string
+          subscription_type: string
+          twitch_user_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          status?: string
+          subscription_id?: string
+          subscription_type?: string
+          twitch_user_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       video_comments: {
         Row: {
           asset_id: string
