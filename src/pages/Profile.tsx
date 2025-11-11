@@ -9,6 +9,7 @@ import { WalletConnect } from "@/components/WalletConnect";
 import { MultiChainTipButton } from "@/components/MultiChainTipButton";
 import { ProfileEditDialog } from "@/components/ProfileEditDialog";
 import { PasswordChangeDialog } from "@/components/PasswordChangeDialog";
+import { WalletManagementDialog } from "@/components/WalletManagementDialog";
 import { Users, UserPlus, Wallet, Coins, Loader2, RefreshCw, MapPin, Twitter, Instagram, Youtube, Tv, Music, Gamepad2, Palette, Radio, LogOut } from "lucide-react";
 import SoundCloudWidget from "@/components/SoundCloudWidget";
 import { BrandBanner } from "@/components/BrandBanner";
@@ -69,6 +70,7 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [recordings, setRecordings] = useState<Recording[]>([]);
+  const [walletDialogOpen, setWalletDialogOpen] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { balance: xrpBalance, loading: xrpLoading, error: xrpError, refetch: refetchXRPBalance } = useXRPBalance(profile?.xrp_address);
@@ -313,14 +315,14 @@ const Profile = () => {
                       <div className="flex gap-2 justify-center">
                         <ProfileEditDialog profile={profile} onUpdate={handleProfileUpdate} />
                         <PasswordChangeDialog />
+                        <Button variant="outline" size="sm" onClick={() => setWalletDialogOpen(true)}>
+                          <Wallet className="w-4 h-4 mr-2" />
+                          Manage Wallets
+                        </Button>
                         <Button variant="outline" size="sm" onClick={handleSignOut}>
                           <LogOut className="w-4 h-4 mr-2" />
                           Sign Out
                         </Button>
-                      </div>
-                      <div className="flex gap-2 justify-center">
-                        <WalletConnect />
-                        <SolanaWalletConnect />
                       </div>
                     </>
                   ) : (
@@ -491,6 +493,11 @@ const Profile = () => {
           </Card>
         </div>
       </div>
+      
+      <WalletManagementDialog 
+        open={walletDialogOpen} 
+        onOpenChange={setWalletDialogOpen} 
+      />
     </div>
   );
 };
