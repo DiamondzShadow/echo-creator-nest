@@ -5,6 +5,74 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helper function to create EventSub subscription
+async function createEventSubSubscription(
+  type: string,
+  broadcasterUserId: string,
+  clientId: string,
+  accessToken: string,
+  webhookSecret: string
+): Promise<{ subscription_id: string; status: string }> {
+  const webhookUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/twitch-webhook`;
+  
+  const response = await fetch('https://api.twitch.tv/helix/eventsub/subscriptions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Client-Id': clientId,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      type,
+      version: '1',
+      condition: {
+        broadcaster_user_id: broadcasterUserId,
+      },
+      transport: {
+        method: 'webhook',
+        callback: webhookUrl,
+        secret: webhookSecret,
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`Failed to create ${type} subscription:`, errorText);
+    throw new Error(`Failed to create ${type} subscription: ${errorText}`);
+  }
+
+  const data = await response.json();
+  return {
+    subscription_id: data.data[0].id,
+    status: data.data[0].status,
+  };
+}
+
+// Helper function to delete EventSub subscription
+async function deleteEventSubSubscription(
+  subscriptionId: string,
+  clientId: string,
+  accessToken: string
+): Promise<void> {
+  const response = await fetch(
+    `https://api.twitch.tv/helix/eventsub/subscriptions?id=${subscriptionId}`,
+    {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Client-Id': clientId,
+      },
+    }
+  );
+
+  if (!response.ok && response.status !== 404) {
+    const errorText = await response.text();
+    console.error(`Failed to delete subscription ${subscriptionId}:`, errorText);
+    // Don't throw error, just log it - subscription might already be deleted
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -13,7 +81,7 @@ Deno.serve(async (req) => {
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       {
         auth: {
           autoRefreshToken: false,
@@ -37,9 +105,47 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const code = url.searchParams.get('code');
     const action = url.searchParams.get('action');
+    const clientId = Deno.env.get('TWITCH_CLIENT_ID');
 
     // Handle disconnect
     if (action === 'disconnect') {
+      // Get existing connection to retrieve access token and subscriptions
+      const { data: connection } = await supabaseClient
+        .from('twitch_connections')
+        .select('access_token')
+        .eq('user_id', user.id)
+        .single();
+
+      // Get and delete all EventSub subscriptions
+      if (connection?.access_token) {
+        const { data: subscriptions } = await supabaseClient
+          .from('twitch_eventsub_subscriptions')
+          .select('subscription_id')
+          .eq('user_id', user.id);
+
+        if (subscriptions) {
+          for (const sub of subscriptions) {
+            try {
+              await deleteEventSubSubscription(
+                sub.subscription_id,
+                clientId!,
+                connection.access_token
+              );
+            } catch (error) {
+              console.error('Error deleting subscription:', error);
+              // Continue even if deletion fails
+            }
+          }
+        }
+
+        // Delete subscription records
+        await supabaseClient
+          .from('twitch_eventsub_subscriptions')
+          .delete()
+          .eq('user_id', user.id);
+      }
+
+      // Delete connection
       const { error: deleteError } = await supabaseClient
         .from('twitch_connections')
         .delete()
@@ -58,7 +164,6 @@ Deno.serve(async (req) => {
       throw new Error('No authorization code provided');
     }
 
-    const clientId = Deno.env.get('TWITCH_CLIENT_ID');
     const clientSecret = Deno.env.get('TWITCH_CLIENT_SECRET');
     const redirectUri = 'https://crabbytv.com/auth/twitch/callback';
 
@@ -129,6 +234,41 @@ Deno.serve(async (req) => {
     }
 
     console.log('Connection saved successfully');
+
+    // Create EventSub subscriptions for stream events
+    console.log('Creating EventSub subscriptions...');
+    const subscriptionTypes = ['stream.online', 'stream.offline'];
+    
+    for (const subType of subscriptionTypes) {
+      try {
+        const { subscription_id, status } = await createEventSubSubscription(
+          subType,
+          twitchUser.id,
+          clientId!,
+          tokenData.access_token,
+          clientSecret!
+        );
+
+        // Save subscription to database
+        await supabaseClient
+          .from('twitch_eventsub_subscriptions')
+          .upsert({
+            user_id: user.id,
+            twitch_user_id: twitchUser.id,
+            subscription_id: subscription_id,
+            subscription_type: subType,
+            status: status,
+            updated_at: new Date().toISOString(),
+          }, {
+            onConflict: 'twitch_user_id,subscription_type',
+          });
+
+        console.log(`Created ${subType} subscription: ${subscription_id}`);
+      } catch (error) {
+        console.error(`Error creating ${subType} subscription:`, error);
+        // Continue even if subscription fails - connection is still valid
+      }
+    }
 
     return new Response(
       JSON.stringify({
