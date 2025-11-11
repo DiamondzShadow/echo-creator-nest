@@ -35,14 +35,26 @@ const AuthForm = ({ onSuccess }: AuthFormProps) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check if user arrived via password recovery link
-    supabase.auth.onAuthStateChange((event, session) => {
+    // Check if user arrived via password recovery link from URL hash
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const type = hashParams.get('type');
+    
+    if (type === 'recovery') {
+      setIsRecoveryMode(true);
+      setIsForgotPassword(false);
+      setIsLogin(false);
+    }
+
+    // Also listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "PASSWORD_RECOVERY") {
         setIsRecoveryMode(true);
         setIsForgotPassword(false);
         setIsLogin(false);
       }
     });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleResendVerification = async () => {

@@ -11,7 +11,16 @@ const Auth = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Redirect if already logged in
+    // Check for recovery/reset password flow first
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const type = hashParams.get('type');
+    
+    // Don't redirect if this is a password recovery flow
+    if (type === 'recovery') {
+      return;
+    }
+
+    // Redirect if already logged in (but not during recovery)
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         navigate("/");
