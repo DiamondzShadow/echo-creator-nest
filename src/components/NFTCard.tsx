@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useActiveAccount, useSendTransaction } from 'thirdweb/react';
 import { parseEther } from 'viem';
 import { arbitrum } from 'wagmi/chains';
 import { useToast } from '@/hooks/use-toast';
@@ -11,6 +12,12 @@ import { Loader2, ExternalLink, ShoppingCart, Tag, User } from 'lucide-react';
 import { NFT_MARKETPLACE_CONTRACT_ADDRESS, NFT_MARKETPLACE_ABI, CREATOR_NFT_CONTRACT_ADDRESS } from '@/lib/web3-config';
 import { OpenSeaLinkButton } from './OpenSeaLinkButton';
 import { formatImageUrl } from '@/lib/nft-metadata';
+import { getContract, prepareContractCall } from 'thirdweb';
+import { createThirdwebClient, defineChain } from 'thirdweb';
+
+const thirdwebClient = createThirdwebClient({
+  clientId: "b1c4d85a2601e8268c98039ccb1de1db",
+});
 
 interface NFTCardProps {
   listingId: number;
@@ -46,10 +53,18 @@ export const NFTCard = ({
   onPurchaseSuccess,
 }: NFTCardProps) => {
   const [open, setOpen] = useState(false);
-  const { address, isConnected } = useAccount();
+  
+  // Support both wagmi and Thirdweb wallets
+  const { address: wagmiAddress, isConnected: wagmiConnected } = useAccount();
+  const thirdwebAccount = useActiveAccount();
+  const { mutate: sendThirdwebTransaction } = useSendTransaction();
   const { writeContract, data: hash } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
   const { toast } = useToast();
+
+  // Use whichever wallet is connected
+  const address = wagmiAddress || thirdwebAccount?.address;
+  const isConnected = wagmiConnected || !!thirdwebAccount;
 
   const calculateBreakdown = () => {
     const total = parseFloat(price);
@@ -85,17 +100,52 @@ export const NFTCard = ({
     }
 
     try {
-      if (!address) return;
-      
-      writeContract({
-        address: NFT_MARKETPLACE_CONTRACT_ADDRESS as `0x${string}`,
-        abi: NFT_MARKETPLACE_ABI,
-        functionName: 'buyNFT',
-        args: [BigInt(listingId)],
-        value: parseEther(price),
-        account: address,
-        chain: arbitrum,
-      });
+      if (wagmiConnected && wagmiAddress) {
+        // Use wagmi for RainbowKit wallets
+        writeContract({
+          address: NFT_MARKETPLACE_CONTRACT_ADDRESS as `0x${string}`,
+          abi: NFT_MARKETPLACE_ABI,
+          functionName: 'buyNFT',
+          args: [BigInt(listingId)],
+          value: parseEther(price),
+          account: wagmiAddress,
+          chain: arbitrum,
+        });
+      } else if (thirdwebAccount) {
+        // Use Thirdweb for Thirdweb wallets
+        const contract = getContract({
+          client: thirdwebClient,
+          address: NFT_MARKETPLACE_CONTRACT_ADDRESS,
+          chain: defineChain(42161), // Arbitrum
+        });
+
+        const transaction = prepareContractCall({
+          contract,
+          method: "function buyNFT(uint256 listingId) payable",
+          params: [BigInt(listingId)],
+          value: parseEther(price),
+        });
+
+        sendThirdwebTransaction(transaction, {
+          onSuccess: () => {
+            toast({
+              title: "NFT Purchased! 🎉",
+              description: "You are now the owner of this NFT",
+            });
+            setOpen(false);
+            if (onPurchaseSuccess) {
+              onPurchaseSuccess();
+            }
+          },
+          onError: (error) => {
+            toast({
+              title: "Purchase Failed",
+              description: error.message,
+              variant: "destructive",
+            });
+          },
+        });
+      }
 
       toast({
         title: "Purchase Initiated",
