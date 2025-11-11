@@ -247,7 +247,30 @@ Deno.serve(async (req) => {
 
     console.log('Connection saved successfully');
 
-    // Create EventSub subscriptions for stream events
+    // Get app access token for EventSub webhook subscriptions
+    console.log('Getting app access token for EventSub...');
+    const appTokenResponse = await fetch('https://id.twitch.tv/oauth2/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        client_id: clientId!,
+        client_secret: clientSecret!,
+        grant_type: 'client_credentials',
+      }),
+    });
+
+    if (!appTokenResponse.ok) {
+      const errorText = await appTokenResponse.text();
+      console.error('Failed to get app access token:', errorText);
+      throw new Error('Failed to get app access token for webhooks');
+    }
+
+    const appTokenData = await appTokenResponse.json();
+    console.log('App access token obtained');
+
+    // Create EventSub subscriptions for stream events using app token
     console.log('Creating EventSub subscriptions...');
     const subscriptionTypes = ['stream.online', 'stream.offline'];
     
@@ -257,7 +280,7 @@ Deno.serve(async (req) => {
           subType,
           twitchUser.id,
           clientId!,
-          tokenData.access_token,
+          appTokenData.access_token, // Use app token, not user token
           clientSecret!
         );
 
