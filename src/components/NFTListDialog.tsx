@@ -5,12 +5,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi';
+import { useActiveAccount, useSendTransaction } from 'thirdweb/react';
 import { parseEther, formatEther } from 'viem';
 import { arbitrum } from 'wagmi/chains';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Tag, Clock, Info } from 'lucide-react';
 import { NFT_MARKETPLACE_CONTRACT_ADDRESS, NFT_MARKETPLACE_ABI, CREATOR_NFT_CONTRACT_ADDRESS, CREATOR_NFT_ABI } from '@/lib/web3-config';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { getContract, prepareContractCall } from 'thirdweb';
+import { createThirdwebClient, defineChain } from 'thirdweb';
+
+const thirdwebClient = createThirdwebClient({
+  clientId: "b1c4d85a2601e8268c98039ccb1de1db",
+});
 
 interface NFTListDialogProps {
   open: boolean;
@@ -33,7 +40,10 @@ export const NFTListDialog = ({
   const [duration, setDuration] = useState('90'); // days
   const [step, setStep] = useState<'approve' | 'list'>('approve');
   
-  const { address } = useAccount();
+  // Support both wagmi and Thirdweb wallets
+  const { address: wagmiAddress, isConnected: wagmiConnected } = useAccount();
+  const thirdwebAccount = useActiveAccount();
+  const { mutate: sendThirdwebTransaction } = useSendTransaction();
   const { toast } = useToast();
   
   const { writeContract: writeApprove, data: approveHash } = useWriteContract();
@@ -42,18 +52,55 @@ export const NFTListDialog = ({
   const { isLoading: isApprovePending } = useWaitForTransactionReceipt({ hash: approveHash });
   const { isLoading: isListPending, isSuccess: isListSuccess } = useWaitForTransactionReceipt({ hash: listHash });
 
+  // Use whichever wallet is connected
+  const address = wagmiAddress || thirdwebAccount?.address;
+  const isConnected = wagmiConnected || !!thirdwebAccount;
+
   const handleApprove = async () => {
     if (!address) return;
 
     try {
-      writeApprove({
-        address: CREATOR_NFT_CONTRACT_ADDRESS as `0x${string}`,
-        abi: CREATOR_NFT_ABI,
-        functionName: 'approve',
-        args: [NFT_MARKETPLACE_CONTRACT_ADDRESS as `0x${string}`, BigInt(tokenId)],
-        account: address,
-        chain: arbitrum,
-      });
+      if (wagmiConnected && wagmiAddress) {
+        // Use wagmi for RainbowKit wallets
+        writeApprove({
+          address: CREATOR_NFT_CONTRACT_ADDRESS as `0x${string}`,
+          abi: CREATOR_NFT_ABI,
+          functionName: 'approve',
+          args: [NFT_MARKETPLACE_CONTRACT_ADDRESS as `0x${string}`, BigInt(tokenId)],
+          account: wagmiAddress,
+          chain: arbitrum,
+        });
+      } else if (thirdwebAccount) {
+        // Use Thirdweb for Thirdweb wallets
+        const contract = getContract({
+          client: thirdwebClient,
+          address: CREATOR_NFT_CONTRACT_ADDRESS,
+          chain: defineChain(42161), // Arbitrum
+        });
+
+        const transaction = prepareContractCall({
+          contract,
+          method: "function approve(address to, uint256 tokenId)",
+          params: [NFT_MARKETPLACE_CONTRACT_ADDRESS as `0x${string}`, BigInt(tokenId)],
+        });
+
+        sendThirdwebTransaction(transaction, {
+          onSuccess: () => {
+            setStep('list');
+            toast({
+              title: "Approval Confirmed",
+              description: "Now you can list your NFT for sale",
+            });
+          },
+          onError: (error) => {
+            toast({
+              title: "Approval Failed",
+              description: error.message,
+              variant: "destructive",
+            });
+          },
+        });
+      }
 
       toast({
         title: "Approval Requested",
@@ -76,20 +123,65 @@ export const NFTListDialog = ({
     const durationSeconds = BigInt(Number(duration) * 24 * 60 * 60); // Convert days to seconds
     
     try {
-      writeList({
-        address: NFT_MARKETPLACE_CONTRACT_ADDRESS as `0x${string}`,
-        abi: NFT_MARKETPLACE_ABI,
-        functionName: 'listNFT',
-        args: [
-          CREATOR_NFT_CONTRACT_ADDRESS as `0x${string}`,
-          BigInt(tokenId),
-          priceWei,
-          '0x0000000000000000000000000000000000000000', // ETH payment
-          durationSeconds,
-        ],
-        account: address,
-        chain: arbitrum,
-      });
+      if (wagmiConnected && wagmiAddress) {
+        // Use wagmi for RainbowKit wallets
+        writeList({
+          address: NFT_MARKETPLACE_CONTRACT_ADDRESS as `0x${string}`,
+          abi: NFT_MARKETPLACE_ABI,
+          functionName: 'listNFT',
+          args: [
+            CREATOR_NFT_CONTRACT_ADDRESS as `0x${string}`,
+            BigInt(tokenId),
+            priceWei,
+            '0x0000000000000000000000000000000000000000', // ETH payment
+            durationSeconds,
+          ],
+          account: wagmiAddress,
+          chain: arbitrum,
+        });
+      } else if (thirdwebAccount) {
+        // Use Thirdweb for Thirdweb wallets
+        const contract = getContract({
+          client: thirdwebClient,
+          address: NFT_MARKETPLACE_CONTRACT_ADDRESS,
+          chain: defineChain(42161), // Arbitrum
+        });
+
+        const transaction = prepareContractCall({
+          contract,
+          method: "function listNFT(address nftContract, uint256 tokenId, uint256 price, address paymentToken, uint256 duration)",
+          params: [
+            CREATOR_NFT_CONTRACT_ADDRESS as `0x${string}`,
+            BigInt(tokenId),
+            priceWei,
+            '0x0000000000000000000000000000000000000000' as `0x${string}`, // ETH payment
+            durationSeconds,
+          ],
+        });
+
+        sendThirdwebTransaction(transaction, {
+          onSuccess: () => {
+            toast({
+              title: "NFT Listed! 🎉",
+              description: "Your NFT is now available in the marketplace",
+            });
+            onOpenChange(false);
+            setPrice('');
+            setDuration('90');
+            setStep('approve');
+            if (onListSuccess) {
+              onListSuccess();
+            }
+          },
+          onError: (error) => {
+            toast({
+              title: "Listing Failed",
+              description: error.message,
+              variant: "destructive",
+            });
+          },
+        });
+      }
 
       toast({
         title: "Listing NFT",
