@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,12 +23,25 @@ interface AuthFormProps {
 const AuthForm = ({ onSuccess }: AuthFormProps) => {
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Check if user arrived via password recovery link
+    supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setIsRecoveryMode(true);
+        setIsForgotPassword(false);
+        setIsLogin(false);
+      }
+    });
+  }, []);
 
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,7 +61,7 @@ const AuthForm = ({ onSuccess }: AuthFormProps) => {
 
       toast({
         title: "Check your email",
-        description: "We've sent you a password reset link.",
+        description: "We've sent you a password reset link. Click the link in your email to reset your password.",
       });
       setIsForgotPassword(false);
       setEmail("");
@@ -56,6 +69,46 @@ const AuthForm = ({ onSuccess }: AuthFormProps) => {
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to send reset email",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      if (password.length < 6) {
+        throw new Error("Password must be at least 6 characters long");
+      }
+
+      if (password !== confirmPassword) {
+        throw new Error("Passwords don't match");
+      }
+
+      const { error } = await supabase.auth.updateUser({
+        password: password,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Password updated successfully",
+        description: "You can now sign in with your new password.",
+      });
+
+      setIsRecoveryMode(false);
+      setIsLogin(true);
+      setPassword("");
+      setConfirmPassword("");
+      onSuccess();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update password",
         variant: "destructive",
       });
     } finally {
@@ -141,14 +194,62 @@ const AuthForm = ({ onSuccess }: AuthFormProps) => {
     <Card className="w-full max-w-md border-0 shadow-glow bg-gradient-card">
       <CardHeader>
         <CardTitle className="text-2xl bg-gradient-hero bg-clip-text text-transparent">
-          {isForgotPassword ? "Reset Password" : isLogin ? "Welcome Back" : "Join Us"}
+          {isRecoveryMode ? "Set New Password" : isForgotPassword ? "Reset Password" : isLogin ? "Welcome Back" : "Join Us"}
         </CardTitle>
         <CardDescription>
-          {isForgotPassword ? "Enter your email to receive a reset link" : isLogin ? "Sign in to your account" : "Create your creator account"}
+          {isRecoveryMode 
+            ? "Enter your new password below" 
+            : isForgotPassword 
+            ? "Enter your email to receive a reset link" 
+            : isLogin 
+            ? "Sign in to your account" 
+            : "Create your creator account"}
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {isForgotPassword ? (
+        {isRecoveryMode ? (
+          <form onSubmit={handleUpdatePassword} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-password">New Password</Label>
+              <Input
+                id="new-password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+              />
+              {password && <PasswordStrengthIndicator password={password} />}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password">Confirm Password</Label>
+              <Input
+                id="confirm-password"
+                type="password"
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                minLength={6}
+              />
+            </div>
+            <Button
+              type="submit"
+              className="w-full bg-gradient-hero hover:opacity-90"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                "Update Password"
+              )}
+            </Button>
+          </form>
+        ) : isForgotPassword ? (
           <form onSubmit={handlePasswordReset} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="reset-email">Email</Label>
