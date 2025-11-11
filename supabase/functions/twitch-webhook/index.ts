@@ -76,8 +76,13 @@ Deno.serve(async (req) => {
     // Handle webhook verification challenge
     if (messageType === 'webhook_callback_verification') {
       console.log('Webhook verification challenge received');
+      console.log('Challenge value:', data.challenge);
+      
+      // Return ONLY the challenge string with minimal headers
+      // Twitch requires exact format: 200 status, text/plain, raw challenge
       return new Response(data.challenge, {
-        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+        status: 200,
+        headers: { 'Content-Type': 'text/plain' },
       });
     }
 
