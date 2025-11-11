@@ -165,13 +165,14 @@ Deno.serve(async (req) => {
     }
 
     const clientSecret = Deno.env.get('TWITCH_CLIENT_SECRET');
-    // Accept redirect from any origin (will be validated by Twitch)
-    const origin = req.headers.get('origin') || req.headers.get('referer');
-    const redirectUri = origin 
-      ? `${new URL(origin).origin}/auth/twitch/callback`
-      : 'https://crabbytv.com/auth/twitch/callback';
+    
+    // Determine redirect URI - prefer production URL for stability
+    // The redirect URI MUST match what was sent in the authorization request
+    const redirectUri = 'https://crabbytv.com/auth/twitch/callback';
 
     console.log('Exchanging code for token...');
+    console.log('Using redirect URI:', redirectUri);
+    console.log('Client ID:', clientId);
 
     // Exchange code for access token
     const tokenResponse = await fetch('https://id.twitch.tv/oauth2/token', {
@@ -188,10 +189,17 @@ Deno.serve(async (req) => {
       }),
     });
 
+    console.log('Token response status:', tokenResponse.status);
+    
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
-      console.error('Token exchange failed:', errorText);
-      throw new Error('Failed to exchange code for token');
+      console.error('Token exchange failed:', {
+        status: tokenResponse.status,
+        statusText: tokenResponse.statusText,
+        error: errorText,
+        redirectUri: redirectUri
+      });
+      throw new Error(`Failed to exchange code for token: ${errorText}`);
     }
 
     const tokenData = await tokenResponse.json();
