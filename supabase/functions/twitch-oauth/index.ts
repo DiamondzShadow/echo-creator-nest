@@ -165,7 +165,11 @@ Deno.serve(async (req) => {
     }
 
     const clientSecret = Deno.env.get('TWITCH_CLIENT_SECRET');
-    const redirectUri = 'https://crabbytv.com/auth/twitch/callback';
+    // Accept redirect from any origin (will be validated by Twitch)
+    const origin = req.headers.get('origin') || req.headers.get('referer');
+    const redirectUri = origin 
+      ? `${new URL(origin).origin}/auth/twitch/callback`
+      : 'https://crabbytv.com/auth/twitch/callback';
 
     console.log('Exchanging code for token...');
 

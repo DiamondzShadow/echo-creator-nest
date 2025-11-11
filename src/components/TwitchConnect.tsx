@@ -53,7 +53,8 @@ export const TwitchConnect = () => {
 
   const handleConnect = () => {
     const clientId = import.meta.env.VITE_TWITCH_CLIENT_ID;
-    const redirectUri = 'https://crabbytv.com/auth/twitch/callback';
+    // Use current domain for redirect (works in preview and production)
+    const redirectUri = `${window.location.origin}/auth/twitch/callback`;
     const scope = 'user:read:email channel:read:stream_key';
     
     const authUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}`;
