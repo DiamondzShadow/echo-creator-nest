@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
       throw new Error('No authorization code provided');
     }
 
-    const clientId = Deno.env.get('VITE_TWITCH_CLIENT_ID');
+    const clientId = Deno.env.get('TWITCH_CLIENT_ID');
     const clientSecret = Deno.env.get('TWITCH_CLIENT_SECRET');
     const redirectUri = 'https://crabbytv.com/auth/twitch/callback';
 
