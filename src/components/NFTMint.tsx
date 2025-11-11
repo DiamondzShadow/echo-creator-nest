@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useActiveAccount, useSendTransaction } from 'thirdweb/react';
 import { parseEther } from 'viem';
 import { arbitrum } from 'wagmi/chains';
 import { useToast } from '@/hooks/use-toast';
@@ -12,6 +13,12 @@ import { Loader2, ImagePlus, Upload } from 'lucide-react';
 import { CREATOR_NFT_CONTRACT_ADDRESS, CREATOR_NFT_ABI } from '@/lib/web3-config';
 import { createNFTMetadata, createMetadataURI, prepareImageForNFT } from '@/lib/nft-metadata';
 import type { NFTMetadata } from '@/lib/nft-metadata';
+import { getContract, prepareContractCall } from 'thirdweb';
+import { createThirdwebClient, defineChain } from 'thirdweb';
+
+const thirdwebClient = createThirdwebClient({
+  clientId: "b1c4d85a2601e8268c98039ccb1de1db",
+});
 
 export const NFTMint = () => {
   const [name, setName] = useState('');
@@ -21,10 +28,17 @@ export const NFTMint = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
-  const { address, isConnected } = useAccount();
+  // Support both wagmi and Thirdweb wallets
+  const { address: wagmiAddress, isConnected: wagmiConnected } = useAccount();
+  const thirdwebAccount = useActiveAccount();
+  const { mutate: sendThirdwebTransaction } = useSendTransaction();
   const { writeContract, data: hash } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
   const { toast } = useToast();
+
+  // Use whichever wallet is connected
+  const address = wagmiAddress || thirdwebAccount?.address;
+  const isConnected = wagmiConnected || !!thirdwebAccount;
 
   const handleImageUpload = async (file: File) => {
     setIsUploading(true);
@@ -118,15 +132,34 @@ export const NFTMint = () => {
       const royaltyBasisPoints = Math.floor(royalty * 100);
 
       // Mint NFT (requires minting fee)
-      writeContract({
-        address: CREATOR_NFT_CONTRACT_ADDRESS as `0x${string}`,
-        abi: CREATOR_NFT_ABI,
-        functionName: 'mintNFT',
-        args: [address, metadataUri, BigInt(royaltyBasisPoints)],
-        value: parseEther('0.001'), // Minting fee
-        account: address,
-        chain: arbitrum,
-      });
+      if (wagmiConnected && wagmiAddress) {
+        // Use wagmi for RainbowKit wallets
+        writeContract({
+          address: CREATOR_NFT_CONTRACT_ADDRESS as `0x${string}`,
+          abi: CREATOR_NFT_ABI,
+          functionName: 'mintNFT',
+          args: [wagmiAddress, metadataUri, BigInt(royaltyBasisPoints)],
+          value: parseEther('0.001'), // Minting fee
+          account: wagmiAddress,
+          chain: arbitrum,
+        });
+      } else if (thirdwebAccount) {
+        // Use Thirdweb for Thirdweb wallets
+        const contract = getContract({
+          client: thirdwebClient,
+          address: CREATOR_NFT_CONTRACT_ADDRESS,
+          chain: defineChain(42161), // Arbitrum
+        });
+
+        const transaction = prepareContractCall({
+          contract,
+          method: "function mintNFT(address to, string memory uri, uint96 royaltyBasisPoints) payable",
+          params: [thirdwebAccount.address as `0x${string}`, metadataUri, BigInt(royaltyBasisPoints)],
+          value: BigInt(1000000000000000), // 0.001 ETH in wei
+        });
+
+        sendThirdwebTransaction(transaction);
+      }
 
       toast({
         title: "Minting NFT",
