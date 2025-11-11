@@ -56,3 +56,6 @@ verify_jwt = true
 
 [functions.twitch-oauth]
 verify_jwt = true
+
+[functions.twitch-webhook]
+verify_jwt = false
