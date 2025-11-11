@@ -9,11 +9,21 @@ import { useEVMBalance } from '@/hooks/useEVMBalance';
 import { Badge } from '@/components/ui/badge';
 import { RefreshCw, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { createThirdwebClient } from "thirdweb";
+import { createThirdwebClient, defineChain } from "thirdweb";
 
 const thirdwebClient = createThirdwebClient({
   clientId: "b1c4d85a2601e8268c98039ccb1de1db",
 });
+
+// Define supported chains for Thirdweb
+const supportedChains = [
+  defineChain(1), // Ethereum Mainnet
+  defineChain(137), // Polygon
+  defineChain(8453), // Base
+  defineChain(42161), // Arbitrum One
+  defineChain(10), // Optimism
+  defineChain(3141), // Filecoin Hyperspace
+];
 
 const wallets = [
   createWallet("io.metamask"),
@@ -68,6 +78,7 @@ export const WalletConnect = () => {
         <ThirdwebConnectButton
           client={thirdwebClient}
           wallets={wallets}
+          chains={supportedChains}
           theme="dark"
           connectButton={{
             label: "Sign in with Social",
