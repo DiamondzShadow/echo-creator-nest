@@ -160,6 +160,48 @@ Deno.serve(async (req) => {
 
         console.log('Created live stream:', liveStream);
 
+        // Get the broadcaster's profile info
+        const { data: broadcasterProfile } = await supabaseClient
+          .from('profiles')
+          .select('display_name, username')
+          .eq('id', twitchConnection.user_id)
+          .single();
+
+        const broadcasterName = broadcasterProfile?.display_name || broadcasterProfile?.username || twitchConnection.twitch_username;
+
+        // Get all followers of this user
+        const { data: followers } = await supabaseClient
+          .from('followers')
+          .select('follower_id')
+          .eq('following_id', twitchConnection.user_id);
+
+        // Create notifications for all followers
+        if (followers && followers.length > 0) {
+          const notifications = followers.map(follower => ({
+            user_id: follower.follower_id,
+            type: 'stream_live',
+            title: `${broadcasterName} is live!`,
+            message: stream?.title || `${broadcasterName} is streaming on Twitch`,
+            link: `/watch/${liveStream.id}`,
+            metadata: {
+              stream_id: liveStream.id,
+              broadcaster_id: twitchConnection.user_id,
+              twitch_username: twitchConnection.twitch_username,
+              game_name: stream?.game_name,
+            }
+          }));
+
+          const { error: notificationError } = await supabaseClient
+            .from('notifications')
+            .insert(notifications);
+
+          if (notificationError) {
+            console.error('Error creating notifications:', notificationError);
+          } else {
+            console.log(`Created ${notifications.length} notifications for followers`);
+          }
+        }
+
       } else if (event === 'stream.offline') {
         // Find and update the stream
         const { data: twitchConnection } = await supabaseClient

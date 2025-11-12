@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import crabbyLogo from "@/assets/crabby-logo.jpg";
+import { NotificationDropdown } from "./NotificationDropdown";
 
 const Navbar = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -63,6 +64,7 @@ const Navbar = () => {
         </button>
 
         <div className="flex items-center gap-2">
+          {user && <NotificationDropdown />}
           {isMobile ? (
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
