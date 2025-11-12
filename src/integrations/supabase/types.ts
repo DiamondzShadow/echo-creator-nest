@@ -195,6 +195,7 @@ export type Database = {
           thumbnail_url: string | null
           title: string
           total_tips: number | null
+          twitch_username: string | null
           updated_at: string
           user_id: string
           viewer_count: number | null
@@ -214,6 +215,7 @@ export type Database = {
           thumbnail_url?: string | null
           title: string
           total_tips?: number | null
+          twitch_username?: string | null
           updated_at?: string
           user_id: string
           viewer_count?: number | null
@@ -233,6 +235,7 @@ export type Database = {
           thumbnail_url?: string | null
           title?: string
           total_tips?: number | null
+          twitch_username?: string | null
           updated_at?: string
           user_id?: string
           viewer_count?: number | null

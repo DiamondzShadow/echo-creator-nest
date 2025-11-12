@@ -255,17 +255,9 @@ const Watch = () => {
       const isTwitch = streamData.livepeer_playback_id?.startsWith('twitch_');
       setIsTwitchStream(isTwitch);
       
-      // If Twitch stream, fetch the Twitch username
-      if (isTwitch) {
-        const { data: twitchConn } = await supabase
-          .from('twitch_connections')
-          .select('twitch_username')
-          .eq('user_id', streamData.user_id)
-          .maybeSingle();
-        
-        if (twitchConn?.twitch_username) {
-          setTwitchChannelName(twitchConn.twitch_username);
-        }
+      // If Twitch stream, get the username from the stream record
+      if (isTwitch && streamData.twitch_username) {
+        setTwitchChannelName(streamData.twitch_username);
       }
 
       // If LiveKit stream AND actually live (broadcaster has published tracks), get viewer token

@@ -148,6 +148,7 @@ Deno.serve(async (req) => {
             thumbnail_url: stream?.thumbnail_url?.replace('{width}', '1920').replace('{height}', '1080'),
             livepeer_stream_id: `twitch_${eventData.broadcaster_user_id}_${Date.now()}`,
             livepeer_playback_id: `twitch_${eventData.broadcaster_user_id}`,
+            twitch_username: twitchConnection.twitch_username,
           })
           .select()
           .single();
