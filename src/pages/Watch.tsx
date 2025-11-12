@@ -29,6 +29,7 @@ interface StreamData {
   livepeer_stream_id: string | null;
   started_at: string;
   ended_at: string | null;
+  twitch_username?: string | null;
 }
 
 interface ProfileData {

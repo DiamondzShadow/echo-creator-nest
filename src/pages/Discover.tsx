@@ -23,6 +23,7 @@ interface LiveStream {
   created_at: string;
   title?: string;
   profiles?: Profile | null;
+  twitch_username?: string | null;
 }
 
 interface Asset {
