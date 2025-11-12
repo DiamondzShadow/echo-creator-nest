@@ -804,27 +804,45 @@ const Live = () => {
                   onStreamEnd={handleEndStream}
                   onStreamConnected={async () => {
                     console.log('🔴 Stream connected! Recording:', enableRecording, 'Room:', roomName, 'Already started:', recordingStarted);
+                    console.log('🔴 Marking stream as live with ID:', streamId);
                     
                     // CRITICAL: Now mark stream as live since broadcaster has published tracks
                     try {
-                      const { error: updateError } = await supabase
+                      const { data: updateData, error: updateError } = await supabase
                         .from("live_streams")
                         .update({ is_live: true })
-                        .eq("id", streamId);
+                        .eq("id", streamId)
+                        .select();
                       
                       if (updateError) {
-                        console.error('Failed to update stream status:', updateError);
+                        console.error('❌ Failed to update stream status:', updateError);
+                        toast({
+                          title: "Stream Status Error",
+                          description: `Stream is running but might not be visible: ${updateError.message}`,
+                          variant: "destructive",
+                        });
+                      } else if (!updateData || updateData.length === 0) {
+                        console.error('❌ Stream update returned no rows');
+                        toast({
+                          title: "Stream Status Warning",
+                          description: "Stream might not be visible to viewers. Please try ending and restarting.",
+                          variant: "destructive",
+                        });
                       } else {
-                        console.log('✅ Stream marked as live in database - viewers can now join!');
+                        console.log('✅ Stream marked as live in database:', updateData);
+                        toast({
+                          title: "🎉 You're Live!",
+                          description: "Viewers can now see your stream",
+                        });
                       }
                     } catch (err) {
-                      console.error('Error updating stream status:', err);
+                      console.error('❌ Exception updating stream status:', err);
+                      toast({
+                        title: "Stream Status Error",
+                        description: err instanceof Error ? err.message : "Failed to mark stream as live",
+                        variant: "destructive",
+                      });
                     }
-                    
-                    toast({
-                      title: "🎉 You're Live!",
-                      description: "Viewers can now see your stream",
-                    });
                     
                     // CRITICAL FIX: Delay recording start to stabilize broadcaster connection
                     // Starting egress immediately can cause connection issues when viewers join
