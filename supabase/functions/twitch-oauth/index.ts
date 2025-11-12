@@ -5,8 +5,36 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Helper function to create EventSub subscription
-async function createEventSubSubscription(
+// Helper function to list existing EventSub subscriptions
+async function listEventSubSubscriptions(
+  clientId: string,
+  accessToken: string,
+  userId?: string
+): Promise<any[]> {
+  let url = 'https://api.twitch.tv/helix/eventsub/subscriptions';
+  if (userId) {
+    url += `?user_id=${userId}`;
+  }
+  
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Client-Id': clientId,
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Failed to list subscriptions:', errorText);
+    return [];
+  }
+
+  const data = await response.json();
+  return data.data || [];
+}
+
+// Helper function to create EventSub subscription or find existing one
+async function createOrGetEventSubSubscription(
   type: string,
   broadcasterUserId: string,
   clientId: string,
@@ -36,17 +64,39 @@ async function createEventSubSubscription(
     }),
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`Failed to create ${type} subscription:`, errorText);
-    throw new Error(`Failed to create ${type} subscription: ${errorText}`);
+  if (response.ok) {
+    const data = await response.json();
+    return {
+      subscription_id: data.data[0].id,
+      status: data.data[0].status,
+    };
   }
 
-  const data = await response.json();
-  return {
-    subscription_id: data.data[0].id,
-    status: data.data[0].status,
-  };
+  // If we got a 409 conflict, the subscription already exists
+  const errorData = await response.json();
+  if (response.status === 409) {
+    console.log(`Subscription ${type} already exists, looking it up...`);
+    
+    // List all subscriptions and find the matching one
+    const existingSubscriptions = await listEventSubSubscriptions(clientId, accessToken);
+    const matchingSubscription = existingSubscriptions.find(
+      sub => sub.type === type && 
+             sub.condition?.broadcaster_user_id === broadcasterUserId &&
+             sub.transport?.callback === webhookUrl
+    );
+    
+    if (matchingSubscription) {
+      console.log(`Found existing ${type} subscription: ${matchingSubscription.id}`);
+      return {
+        subscription_id: matchingSubscription.id,
+        status: matchingSubscription.status,
+      };
+    }
+  }
+  
+  // If we couldn't find it or got a different error, throw
+  console.error(`Failed to create ${type} subscription:`, errorData);
+  throw new Error(`Failed to create ${type} subscription: ${JSON.stringify(errorData)}`);
 }
 
 // Helper function to delete EventSub subscription
@@ -276,7 +326,7 @@ Deno.serve(async (req) => {
     
     for (const subType of subscriptionTypes) {
       try {
-        const { subscription_id, status } = await createEventSubSubscription(
+        const { subscription_id, status } = await createOrGetEventSubSubscription(
           subType,
           twitchUser.id,
           clientId!,
