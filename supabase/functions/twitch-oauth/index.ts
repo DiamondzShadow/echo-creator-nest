@@ -195,6 +195,16 @@ Deno.serve(async (req) => {
           .eq('user_id', user.id);
       }
 
+      // End any active live streams for this user
+      await supabaseClient
+        .from('live_streams')
+        .update({ 
+          is_live: false, 
+          ended_at: new Date().toISOString() 
+        })
+        .eq('user_id', user.id)
+        .eq('is_live', true);
+
       // Delete connection
       const { error: deleteError } = await supabaseClient
         .from('twitch_connections')
