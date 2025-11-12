@@ -66,7 +66,6 @@ export const LiveStreamNotification = () => {
         .select('id, title, user_id, viewer_count, started_at, updated_at, profiles(username, display_name, avatar_url)')
         .eq('is_live', true)
         .is('ended_at', null)
-        .not('livepeer_playback_id', 'is', null)
         .order('started_at', { ascending: false })
         .limit(20);
 
