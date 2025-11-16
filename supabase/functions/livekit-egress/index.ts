@@ -63,32 +63,30 @@ serve(async (req) => {
       .from('live_streams')
       .select('save_to_storj')
       .eq('id', streamId)
-      .single();
+      .maybeSingle();
     
-    const saveToStorj = streamCheck?.save_to_storj ?? false;
-    console.log(`Save to storage enabled: ${saveToStorj}`);
+    const saveToStorage = streamCheck?.save_to_storj ?? false;
+    console.log(`Save to storage enabled: ${saveToStorage}`);
 
-    // Always use LiveKit's default storage
-    // The webhook will download and save to Supabase Storage after
-    console.log('Using LiveKit default storage...');
+    // Create egress request with proper file output
+    const timestamp = Date.now();
+    const filename = `${user.id}/recording-${timestamp}.mp4`;
     
-    // Create egress request
     const egressRequest: any = {
       roomName: roomName,
-      roomComposite: {
-        layout: 'grid',
-        videoOnly: false,
-        customBaseUrl: '',
-      },
-      fileOutputs: [
-        {
-          fileType: 'MP4',
-          disableManifest: true,
+      file: {
+        filepath: filename,
+        output: {
+          case: 'file',
+          value: {
+            filepath: filename,
+            disableManifest: true,
+          }
         }
-      ],
+      }
     };
-
-    const filename = `${roomName}_${Date.now()}.mp4`;
+    
+    console.log('Starting egress with file output:', filename);
 
     // Create JWT token for LiveKit API authentication with video grants
     const encoder = new TextEncoder();
@@ -170,7 +168,7 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         egressId: egressData.egress_id,
-        filename,
+        roomName: roomName,
         message: 'Recording started successfully',
       }),
       { 
