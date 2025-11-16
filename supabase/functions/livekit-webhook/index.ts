@@ -200,8 +200,8 @@ serve(async (req) => {
       console.log(`Egress ended: ${egressInfo?.egressId}`);
       const fileResult = egressInfo?.fileResults?.[0];
       
-      if (fileResult && fileResult.filename) {
-        console.log(`Recording saved: ${fileResult.filename}`);
+      if (fileResult && fileResult.download) {
+        console.log(`Recording available at: ${fileResult.download}`);
         console.log(`File size: ${fileResult.size} bytes`);
         console.log(`Duration: ${fileResult.duration}ms`);
 
@@ -214,7 +214,7 @@ serve(async (req) => {
             .from('live_streams')
             .select('*')
             .eq('livepeer_playback_id', roomName)
-            .single();
+            .maybeSingle();
 
           if (streamError || !streamData) {
             console.error('Stream not found:', roomName);
@@ -224,43 +224,58 @@ serve(async (req) => {
             );
           }
 
-          // Create Storj URL for the recording
-          const storjUrl = fileResult.filename 
-            ? `${Deno.env.get('STORJ_ENDPOINT') || 'https://gateway.storjshare.io'}/${Deno.env.get('STORJ_BUCKET') || 'livepeer-videos'}/${fileResult.filename}`
-            : null;
-
-          console.log('📤 Uploading recording to Livepeer with IPFS...');
-          
-          // Import recording into Livepeer with IPFS enabled
-          try {
-            const { data: livepeerData, error: livepeerError } = await supabase.functions.invoke(
-              'livepeer-asset',
-              {
-                body: {
-                  action: 'import-url',
-                  name: streamData.title || 'Untitled Recording',
-                  url: storjUrl,
-                  enableIPFS: true,
-                }
+          // Only save to storage if enabled
+          if (streamData.save_to_storj) {
+            console.log('📥 Downloading recording from LiveKit...');
+            
+            try {
+              // Download the file from LiveKit
+              const fileResponse = await fetch(fileResult.download);
+              if (!fileResponse.ok) {
+                throw new Error(`Failed to download: ${fileResponse.statusText}`);
               }
-            );
-
-            if (livepeerError) {
-              console.error('❌ Failed to import to Livepeer:', livepeerError);
               
-              // Still create asset with Storj URL
+              const fileBlob = await fileResponse.blob();
+              const fileName = `${streamData.user_id}/stream-${roomName}-${Date.now()}.mp4`;
+              
+              console.log('📤 Uploading to Supabase Storage...');
+              
+              // Upload to Supabase Storage
+              const { data: uploadData, error: uploadError } = await supabase
+                .storage
+                .from('recordings')
+                .upload(fileName, fileBlob, {
+                  contentType: 'video/mp4',
+                  upsert: false
+                });
+
+              if (uploadError) {
+                console.error('Error uploading to storage:', uploadError);
+                throw uploadError;
+              }
+
+              // Get public URL
+              const { data: { publicUrl } } = supabase
+                .storage
+                .from('recordings')
+                .getPublicUrl(fileName);
+
+              console.log('✅ Recording saved to:', publicUrl);
+              
+              // Create asset record
               const { data: asset, error: assetError } = await supabase
                 .from('assets')
                 .insert({
                   user_id: streamData.user_id,
                   stream_id: streamData.id,
                   title: streamData.title || 'Untitled Recording',
-                  description: `LiveKit recording\nStorj URL: ${storjUrl}\nFile: ${fileResult.filename}`,
+                  description: `LiveKit recording saved to Supabase Storage`,
                   livepeer_asset_id: egressInfo.egressId,
-                  livepeer_playback_id: storjUrl,
+                  livepeer_playback_id: publicUrl,
                   status: 'ready',
                   duration: fileResult.duration ? fileResult.duration / 1000 : null,
                   size: fileResult.size,
+                  storage_provider: 'supabase',
                   ready_at: new Date().toISOString(),
                 })
                 .select()
@@ -268,35 +283,24 @@ serve(async (req) => {
 
               if (assetError) {
                 console.error('Error creating asset:', assetError);
-              }
-            } else {
-              console.log('✅ Recording imported to Livepeer:', livepeerData);
-              
-              // Create asset with Livepeer playback ID
-              const { data: asset, error: assetError } = await supabase
-                .from('assets')
-                .insert({
-                  user_id: streamData.user_id,
-                  stream_id: streamData.id,
-                  title: streamData.title || 'Untitled Recording',
-                  description: `LiveKit recording\nStorj URL: ${storjUrl}\nFile: ${fileResult.filename}`,
-                  livepeer_asset_id: livepeerData.assetId,
-                  livepeer_playback_id: livepeerData.playbackId,
-                  status: 'processing',
-                  duration: fileResult.duration ? fileResult.duration / 1000 : null,
-                  size: fileResult.size,
-                })
-                .select()
-                .single();
-
-              if (assetError) {
-                console.error('Error creating asset:', assetError);
               } else {
-                console.log('✅ Asset created with Livepeer processing:', asset);
+                console.log('Asset created successfully:', asset.id);
               }
+              
+              // Update stream ended timestamp
+              await supabase
+                .from('live_streams')
+                .update({ 
+                  ended_at: new Date().toISOString(),
+                  is_live: false
+                })
+                .eq('id', streamData.id);
+
+            } catch (error) {
+              console.error('Error saving recording:', error);
             }
-          } catch (err) {
-            console.error('❌ Exception importing to Livepeer:', err);
+          } else {
+            console.log('Recording save not enabled for this stream');
           }
         }
       }

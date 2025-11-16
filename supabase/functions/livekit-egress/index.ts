@@ -58,45 +58,37 @@ serve(async (req) => {
       throw new Error('LiveKit credentials not configured');
     }
 
-    // Get Storj credentials (optional - will use LiveKit Cloud storage if not provided)
-    const STORJ_ACCESS_KEY_ID = Deno.env.get('STORJ_ACCESS_KEY_ID');
-    const STORJ_SECRET_ACCESS_KEY = Deno.env.get('STORJ_SECRET_ACCESS_KEY');
-    const STORJ_BUCKET = Deno.env.get('STORJ_BUCKET') || 'livekit-recordings';
-    const STORJ_ENDPOINT = Deno.env.get('STORJ_ENDPOINT') || 'https://gateway.storjshare.io';
+    // Get Storj preferences from stream
+    const { data: streamCheck } = await supabase
+      .from('live_streams')
+      .select('save_to_storj')
+      .eq('id', streamId)
+      .single();
+    
+    const saveToStorj = streamCheck?.save_to_storj ?? false;
+    console.log(`Save to storage enabled: ${saveToStorj}`);
 
-    const useStorj = STORJ_ACCESS_KEY_ID && STORJ_SECRET_ACCESS_KEY;
-    console.log(`Recording mode: ${useStorj ? 'Storj S3' : 'LiveKit Cloud'}`);
-
-    // Generate output filename
-    const timestamp = Date.now();
-    const filename = `livekit-recordings/${user.id}/${roomName}_${timestamp}.mp4`;
-
-    // Create egress request using LiveKit REST API
-    // Documentation: https://docs.livekit.io/home/egress/composite-recording/
+    // Always use LiveKit's default storage
+    // The webhook will download and save to Supabase Storage after
+    console.log('Using LiveKit default storage...');
+    
+    // Create egress request
     const egressRequest: any = {
-      room_name: roomName,
-      layout: 'speaker', // Use default speaker layout
-      preset: 'H264_720P_30',
+      roomName: roomName,
+      roomComposite: {
+        layout: 'grid',
+        videoOnly: false,
+        customBaseUrl: '',
+      },
+      fileOutputs: [
+        {
+          fileType: 'MP4',
+          disableManifest: true,
+        }
+      ],
     };
 
-    // Add S3 output if Storj is configured, otherwise LiveKit Cloud handles storage
-    if (useStorj) {
-      egressRequest.file = {
-        filepath: filename,
-        s3: {
-          access_key: STORJ_ACCESS_KEY_ID,
-          secret: STORJ_SECRET_ACCESS_KEY,
-          region: 'us-east-1',
-          endpoint: STORJ_ENDPOINT,
-          bucket: STORJ_BUCKET,
-        }
-      };
-    } else {
-      // Use file output without S3 - LiveKit will store temporarily
-      egressRequest.file = {
-        filepath: filename,
-      };
-    }
+    const filename = `${roomName}_${Date.now()}.mp4`;
 
     // Create JWT token for LiveKit API authentication with video grants
     const encoder = new TextEncoder();
@@ -169,7 +161,7 @@ serve(async (req) => {
       await supabase
         .from('live_streams')
         .update({
-          description: `Recording to Storj: ${filename}`,
+          description: `Recording enabled`,
         })
         .eq('id', streamId);
     }
