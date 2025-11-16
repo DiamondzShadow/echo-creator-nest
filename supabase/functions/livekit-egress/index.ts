@@ -68,25 +68,37 @@ serve(async (req) => {
     const saveToStorage = streamCheck?.save_to_storj ?? false;
     console.log(`Save to storage enabled: ${saveToStorage}`);
 
-    // Create egress request with proper file output
+    // Create egress request with S3 (Storj) output — required by LiveKit Cloud
     const timestamp = Date.now();
     const filename = `${user.id}/recording-${timestamp}.mp4`;
-    
+
+    const STORJ_ACCESS_KEY_ID = Deno.env.get('STORJ_ACCESS_KEY_ID');
+    const STORJ_SECRET_ACCESS_KEY = Deno.env.get('STORJ_SECRET_ACCESS_KEY');
+    const STORJ_BUCKET = Deno.env.get('STORJ_BUCKET');
+    const STORJ_ENDPOINT = Deno.env.get('STORJ_ENDPOINT') || 'https://gateway.storjshare.io';
+
+    if (!STORJ_ACCESS_KEY_ID || !STORJ_SECRET_ACCESS_KEY || !STORJ_BUCKET) {
+      throw new Error('Storage output not configured. Missing STORJ_* secrets.');
+    }
+
     const egressRequest: any = {
-      roomName: roomName,
+      room_name: roomName,
+      layout: 'speaker',
+      preset: 'H264_720P_30',
       file: {
         filepath: filename,
-        output: {
-          case: 'file',
-          value: {
-            filepath: filename,
-            disableManifest: true,
-          }
+        s3: {
+          access_key: STORJ_ACCESS_KEY_ID,
+          secret: STORJ_SECRET_ACCESS_KEY,
+          region: 'us-east-1',
+          endpoint: STORJ_ENDPOINT,
+          bucket: STORJ_BUCKET,
+          force_path_style: true,
         }
       }
     };
-    
-    console.log('Starting egress with file output:', filename);
+
+    console.log('Starting egress with S3 output:', { filename, bucket: STORJ_BUCKET, endpoint: STORJ_ENDPOINT });
 
     // Create JWT token for LiveKit API authentication with video grants
     const encoder = new TextEncoder();

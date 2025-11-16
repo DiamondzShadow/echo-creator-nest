@@ -200,8 +200,12 @@ serve(async (req) => {
       console.log(`Egress ended: ${egressInfo?.egressId}`);
       const fileResult = egressInfo?.fileResults?.[0];
       
-      if (fileResult && fileResult.download) {
-        console.log(`Recording available at: ${fileResult.download}`);
+      if (fileResult && (fileResult.download || fileResult.filename)) {
+        const storjEndpoint = Deno.env.get('STORJ_ENDPOINT') || 'https://gateway.storjshare.io';
+        const storjBucket = Deno.env.get('STORJ_BUCKET') || 'livepeer-videos';
+        const sourceUrl = fileResult.download || `${storjEndpoint}/${storjBucket}/${fileResult.filename}`;
+
+        console.log(`Recording source: ${sourceUrl}`);
         console.log(`File size: ${fileResult.size} bytes`);
         console.log(`Duration: ${fileResult.duration}ms`);
 
@@ -230,7 +234,7 @@ serve(async (req) => {
             
             try {
               // Download the file from LiveKit
-              const fileResponse = await fetch(fileResult.download);
+              const fileResponse = await fetch(sourceUrl);
               if (!fileResponse.ok) {
                 throw new Error(`Failed to download: ${fileResponse.statusText}`);
               }
