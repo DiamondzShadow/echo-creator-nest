@@ -197,6 +197,10 @@ const VideoWatch = () => {
     );
   }
 
+  const directPlaybackUrl = asset?.livepeer_playback_id?.startsWith('http')
+    ? asset.livepeer_playback_id
+    : (asset?.description?.match(/https?:\/\/\S+/)?.[0] ?? null);
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -232,6 +236,48 @@ const VideoWatch = () => {
                   </Card>
                 }
               >
+                {directPlaybackUrl ? (
+                  <Card className="border-0 shadow-glow bg-gradient-card">
+                    <CardContent className="pt-6">
+                      <div className="aspect-video rounded-lg overflow-hidden bg-black">
+                        <video
+                          controls
+                          playsInline
+                          className="w-full h-full"
+                          src={directPlaybackUrl}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <VideoPlayer
+                    playbackId={asset.livepeer_playback_id}
+                    assetId={asset.id}
+                    title={asset.title}
+                    views={asset.views}
+                    likes={asset.likes}
+                    shares={asset.shares}
+                    isLiked={isLiked}
+                    onLike={handleLike}
+                    onShare={() => fetchAsset()}
+                  />
+                )}
+              </TokenGate>
+            ) : (
+              directPlaybackUrl ? (
+                <Card className="border-0 shadow-glow bg-gradient-card">
+                  <CardContent className="pt-6">
+                    <div className="aspect-video rounded-lg overflow-hidden bg-black">
+                      <video
+                        controls
+                        playsInline
+                        className="w-full h-full"
+                        src={directPlaybackUrl}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
                 <VideoPlayer
                   playbackId={asset.livepeer_playback_id}
                   assetId={asset.id}
@@ -243,19 +289,7 @@ const VideoWatch = () => {
                   onLike={handleLike}
                   onShare={() => fetchAsset()}
                 />
-              </TokenGate>
-            ) : (
-              <VideoPlayer
-                playbackId={asset.livepeer_playback_id}
-                assetId={asset.id}
-                title={asset.title}
-                views={asset.views}
-                likes={asset.likes}
-                shares={asset.shares}
-                isLiked={isLiked}
-                onLike={handleLike}
-                onShare={() => fetchAsset()}
-              />
+              )
             )}
 
             <Card>
