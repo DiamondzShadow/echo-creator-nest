@@ -40,6 +40,7 @@ export const LivepeerViewer = ({ playbackId, title, isLive = false, viewerCount 
     }
   }, [playbackId]);
 
+  return (
     <Card className="border-0 shadow-glow bg-gradient-card overflow-hidden">
       <div className="relative">
         <div className="aspect-video bg-muted rounded-lg overflow-hidden relative">
