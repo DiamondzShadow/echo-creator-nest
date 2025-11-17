@@ -37,7 +37,17 @@ export const VideoEditDialog = ({
   const [clearThumbnail, setClearThumbnail] = useState(false);
   const [loading, setLoading] = useState(false);
   const [generatingAI, setGeneratingAI] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('default');
   const { toast } = useToast();
+
+  const templates = [
+    { id: 'gaming', name: 'Gaming', icon: '🎮', color: 'from-purple-500 to-pink-500' },
+    { id: 'vlog', name: 'Vlog', icon: '📹', color: 'from-orange-400 to-yellow-300' },
+    { id: 'tutorial', name: 'Tutorial', icon: '📚', color: 'from-blue-500 to-cyan-400' },
+    { id: 'podcast', name: 'Podcast', icon: '🎙️', color: 'from-indigo-600 to-purple-500' },
+    { id: 'music', name: 'Music', icon: '🎵', color: 'from-pink-500 to-rose-400' },
+    { id: 'tech', name: 'Tech', icon: '⚡', color: 'from-slate-600 to-blue-500' },
+  ];
 
   const handleThumbnailSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -90,7 +100,8 @@ export const VideoEditDialog = ({
         body: { 
           title: title.trim(),
           description: description.trim(),
-          category: null
+          category: null,
+          template: selectedTemplate
         }
       });
 
@@ -275,14 +286,48 @@ export const VideoEditDialog = ({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="thumbnail" className="flex items-center gap-2">
-              <ImageIcon className="h-4 w-4" />
-              Custom Thumbnail
-            </Label>
-            <p className="text-sm text-muted-foreground">
-              Thumbnails are auto-generated at 5 seconds. Upload a custom image to replace it (JPG, PNG, WEBP, max 5MB).
-            </p>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="thumbnail" className="flex items-center gap-2">
+                <ImageIcon className="h-4 w-4" />
+                Custom Thumbnail
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Thumbnails are auto-generated at 5 seconds. Upload a custom image to replace it (JPG, PNG, WEBP, max 5MB).
+              </p>
+            </div>
+
+            {/* Template Selection */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                AI Template Style
+              </Label>
+              <p className="text-xs text-muted-foreground mb-3">
+                Choose a style for AI-generated thumbnails
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {templates.map((template) => (
+                  <button
+                    key={template.id}
+                    type="button"
+                    onClick={() => setSelectedTemplate(template.id)}
+                    className={`
+                      relative p-3 rounded-lg border-2 transition-all
+                      ${selectedTemplate === template.id 
+                        ? 'border-primary bg-primary/10' 
+                        : 'border-border hover:border-primary/50 bg-background'
+                      }
+                    `}
+                  >
+                    <div className={`text-2xl mb-1 bg-gradient-to-br ${template.color} bg-clip-text text-transparent`}>
+                      {template.icon}
+                    </div>
+                    <div className="text-xs font-medium">{template.name}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
             
             {currentThumbnail && !thumbnailPreview && !clearThumbnail && (
               <div className="mt-2 relative">

@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { title, description, category } = await req.json();
+    const { title, description, category, template } = await req.json();
     
     if (!title) {
       return new Response(
@@ -20,26 +20,74 @@ serve(async (req) => {
       );
     }
 
+    // Template-specific prompt configurations
+    const templates: Record<string, string> = {
+      gaming: `Create a high-energy gaming thumbnail for "${title}". 
+        Style: Bold neon colors (electric blue, toxic green, hot pink), dramatic lighting, action-packed composition
+        Text: Large bold title text with glowing effect and sharp edges
+        Elements: Gaming aesthetic with dramatic shadows, intense energy, explosive effects
+        Mood: Exciting, competitive, attention-grabbing`,
+      
+      vlog: `Create a warm, personal vlog thumbnail for "${title}".
+        Style: Bright natural lighting, warm color palette (coral, yellow, sky blue), friendly and inviting
+        Text: Clean, modern sans-serif title text with subtle shadow
+        Elements: Natural, candid aesthetic with soft bokeh background, authentic feel
+        Mood: Friendly, approachable, conversational`,
+      
+      tutorial: `Create a professional tutorial/educational thumbnail for "${title}".
+        Style: Clean, organized layout with bold accent colors, high contrast
+        Text: Clear, readable title text with numbered steps or arrows if relevant
+        Elements: Professional look with icons, diagrams, or step indicators
+        Mood: Informative, trustworthy, easy to understand`,
+      
+      podcast: `Create an engaging podcast thumbnail for "${title}".
+        Style: Sophisticated color scheme (deep purple, gold accents, dark background), audio wave elements
+        Text: Bold serif or modern title text with elegant styling
+        Elements: Microphone imagery, sound waves, professional studio aesthetic
+        Mood: Intimate, thoughtful, professional`,
+      
+      music: `Create a vibrant music thumbnail for "${title}".
+        Style: Colorful gradient backgrounds, dynamic flow, artistic composition
+        Text: Stylized title text that flows with the music theme
+        Elements: Musical elements like notes, waveforms, or artistic abstractions
+        Mood: Creative, energetic, artistic`,
+      
+      tech: `Create a sleek tech/review thumbnail for "${title}".
+        Style: Modern minimalist design, tech colors (electric blue, silver, black), futuristic feel
+        Text: Clean geometric title text with tech-style accents
+        Elements: Digital/circuit board patterns, product focus, professional lighting
+        Mood: Innovative, cutting-edge, professional`,
+      
+      default: `Create an eye-catching thumbnail for "${title}".
+        Style: Bold, dynamic composition with vibrant colors and high contrast
+        Text: Large, readable title text with strong visual impact
+        Elements: Professional and attention-grabbing design
+        Mood: Engaging and visually appealing`
+    };
+
+    const selectedTemplate = template && templates[template] ? template : 'default';
+    const templatePrompt = templates[selectedTemplate];
+
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    console.log('Generating AI thumbnail for:', title);
+    console.log('Generating AI thumbnail for:', title, 'with template:', selectedTemplate);
 
-    // Create an engaging prompt for thumbnail generation
-    const prompt = `Create an eye-catching YouTube-style thumbnail for a video titled "${title}". 
-${description ? `Video description: ${description}` : ''}
+    // Create template-based prompt
+    const prompt = `${templatePrompt}
+
+Video title: "${title}"
+${description ? `Description: ${description}` : ''}
 ${category ? `Category: ${category}` : ''}
 
-Requirements:
-- Bold, dynamic composition with vibrant colors
-- Large, readable text overlay showing the title in an engaging font
-- Professional and attention-grabbing design
-- High contrast and visual appeal
-- Modern streaming/content creator aesthetic
-- 16:9 aspect ratio suitable for video thumbnails
-- Include visual elements that relate to the content`;
+Technical requirements:
+- 16:9 aspect ratio optimized for video thumbnails
+- High contrast for readability at small sizes
+- Professional quality composition
+- Title text must be integrated into the design`;
+
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
