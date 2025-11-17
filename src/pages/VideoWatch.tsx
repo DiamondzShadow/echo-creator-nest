@@ -21,6 +21,8 @@ interface Asset {
   title: string;
   description: string;
   livepeer_playback_id: string;
+  livepeer_asset_id: string;
+  storage_provider: string | null;
   views: number;
   likes: number;
   shares: number;
@@ -197,9 +199,20 @@ const VideoWatch = () => {
     );
   }
 
-  const directPlaybackUrl = asset?.livepeer_playback_id?.startsWith('http')
-    ? asset.livepeer_playback_id
-    : (asset?.description?.match(/https?:\/\/\S+/)?.[0] ?? null);
+  const directPlaybackUrl = (() => {
+    // Handle Supabase-stored recordings
+    if (asset?.storage_provider === 'supabase' && asset?.livepeer_asset_id?.startsWith('supabase:')) {
+      const storagePath = asset.livepeer_asset_id.replace('supabase:', '');
+      const { data } = supabase.storage.from('recordings').getPublicUrl(storagePath);
+      return data?.publicUrl || null;
+    }
+    // Handle direct HTTP URLs in playback_id
+    if (asset?.livepeer_playback_id?.startsWith('http')) {
+      return asset.livepeer_playback_id;
+    }
+    // Fallback: extract URL from description
+    return asset?.description?.match(/https?:\/\/\S+/)?.[0] ?? null;
+  })();
 
   return (
     <div className="min-h-screen bg-background">

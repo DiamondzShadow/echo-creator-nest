@@ -24,6 +24,7 @@ interface Asset {
   description: string;
   livepeer_playback_id: string;
   livepeer_asset_id: string;
+  storage_provider: string | null;
   status: string;
   duration: number;
   created_at: string;
