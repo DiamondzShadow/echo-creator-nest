@@ -401,11 +401,28 @@ export const ProfileEditDialog = ({ profile, onUpdate }: ProfileEditDialogProps)
         </DialogHeader>
         <div className="space-y-4 overflow-y-auto flex-1 pr-2">
           <div className="space-y-2">
-            <Label htmlFor="coverPhoto">Cover Photo</Label>
+            <Label htmlFor="coverPhoto">Cover Photo (16:5 ratio)</Label>
+            <p className="text-xs text-muted-foreground">You can reposition and zoom your image after selecting</p>
             <div className="flex flex-col gap-2">
               {coverPhotoUrl && (
-                <div className="relative w-full h-32 rounded-md overflow-hidden border">
-                  <img src={coverPhotoUrl} alt="Cover photo preview" className="w-full h-full object-cover" />
+                <div className="relative w-full rounded-md overflow-hidden border group">
+                  <div className="w-full aspect-[16/5]">
+                    <img src={coverPhotoUrl} alt="Cover photo preview" className="w-full h-full object-cover" />
+                  </div>
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => {
+                        setTempCoverImage(coverPhotoUrl);
+                        setShowCropper(true);
+                      }}
+                      className="gap-2"
+                    >
+                      <Pencil className="w-3 h-3" />
+                      Reposition
+                    </Button>
+                  </div>
                 </div>
               )}
               <Label htmlFor="coverPhoto" className="cursor-pointer">
