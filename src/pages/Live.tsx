@@ -802,6 +802,10 @@ const Live = () => {
                 <InstantLiveStreamLiveKit
                   roomToken={livekitToken}
                   onStreamEnd={handleEndStream}
+                  isLive={isLive}
+                  creatorId={user?.id || undefined}
+                  streamId={streamId}
+                  title={title}
                   onStreamConnected={async () => {
                     console.log('🔴 Stream connected! Recording:', enableRecording, 'Room:', roomName, 'Already started:', recordingStarted);
                     console.log('🔴 Marking stream as live with ID:', streamId);
