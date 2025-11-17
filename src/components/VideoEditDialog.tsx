@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Edit, Upload, Loader2, X, Image as ImageIcon } from 'lucide-react';
+import { Edit, Upload, Loader2, X, Image as ImageIcon, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -36,6 +36,7 @@ export const VideoEditDialog = ({
   const [thumbnailPreview, setThumbnailPreview] = useState(currentThumbnail || '');
   const [clearThumbnail, setClearThumbnail] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [generatingAI, setGeneratingAI] = useState(false);
   const { toast } = useToast();
 
   const handleThumbnailSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -71,6 +72,60 @@ export const VideoEditDialog = ({
     setThumbnailFile(null);
     setThumbnailPreview('');
     setClearThumbnail(true);
+  };
+
+  const handleGenerateAI = async () => {
+    if (!title.trim()) {
+      toast({
+        title: 'Title required',
+        description: 'Please enter a video title before generating a thumbnail',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setGeneratingAI(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-ai-thumbnail', {
+        body: { 
+          title: title.trim(),
+          description: description.trim(),
+          category: null
+        }
+      });
+
+      if (error) throw error;
+
+      if (!data?.imageUrl) {
+        throw new Error('No image URL in response');
+      }
+
+      console.log('✨ AI thumbnail generated successfully');
+
+      // Convert base64 to File
+      const response = await fetch(data.imageUrl);
+      const blob = await response.blob();
+      const file = new File([blob], `ai-thumbnail-${Date.now()}.png`, { type: 'image/png' });
+      
+      setThumbnailFile(file);
+      const previewUrl = URL.createObjectURL(blob);
+      setThumbnailPreview(previewUrl);
+      setClearThumbnail(false);
+
+      toast({
+        title: 'AI thumbnail generated',
+        description: 'Your custom AI thumbnail is ready. Click "Save Changes" to apply it.',
+      });
+    } catch (error) {
+      console.error('AI generation error:', error);
+      toast({
+        title: 'AI generation failed',
+        description: error instanceof Error ? error.message : 'Failed to generate thumbnail',
+        variant: 'destructive',
+      });
+    } finally {
+      setGeneratingAI(false);
+    }
   };
 
   const uploadThumbnail = async (): Promise<string | null> => {
@@ -275,27 +330,49 @@ export const VideoEditDialog = ({
               </div>
             )}
             
-            <div className="flex items-center gap-2">
-              <Input
-                id="thumbnail"
-                type="file"
-                accept="image/jpeg,image/jpg,image/png,image/webp"
-                onChange={handleThumbnailSelect}
-                className="flex-1"
-              />
-              {thumbnailFile && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setThumbnailFile(null);
-                    setThumbnailPreview(currentThumbnail || '');
-                  }}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Input
+                  id="thumbnail"
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/webp"
+                  onChange={handleThumbnailSelect}
+                  className="flex-1"
+                />
+                {thumbnailFile && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setThumbnailFile(null);
+                      setThumbnailPreview(currentThumbnail || '');
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={handleGenerateAI}
+                disabled={generatingAI || loading || !title.trim()}
+              >
+                {generatingAI ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Generating AI Thumbnail...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Generate with AI
+                  </>
+                )}
+              </Button>
             </div>
             
             {thumbnailPreview && !clearThumbnail && (
