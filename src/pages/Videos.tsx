@@ -284,6 +284,7 @@ const Videos = () => {
                             currentDescription={asset.description}
                             currentThumbnail={asset.thumbnail_url}
                             currentIsPublic={asset.is_public}
+                            storageProvider={asset.storage_provider}
                             onUpdate={fetchAssets}
                           />
                         </div>
