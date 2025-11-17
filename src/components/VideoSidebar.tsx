@@ -41,9 +41,12 @@ export function VideoSidebar({ selectedCategory, onCategoryChange }: VideoSideba
                   <SidebarMenuItem key={category.title}>
                     <SidebarMenuButton
                       onClick={() => onCategoryChange(category.value)}
-                      className={isActive ? "bg-accent text-accent-foreground font-medium" : ""}
+                      className={isActive 
+                        ? "bg-primary text-primary-foreground font-semibold shadow-sm hover:bg-primary/90" 
+                        : "hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
+                      }
                     >
-                      <category.icon className="h-4 w-4" />
+                      <category.icon className="h-5 w-5" />
                       <span>{category.title}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
