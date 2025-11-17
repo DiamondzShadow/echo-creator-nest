@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Edit, Upload, Loader2 } from 'lucide-react';
+import { Edit, Upload, Loader2, X, Image as ImageIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -15,6 +15,7 @@ interface VideoEditDialogProps {
   currentDescription?: string;
   currentThumbnail?: string;
   currentIsPublic: boolean;
+  storageProvider?: string | null;
   onUpdate: () => void;
 }
 
@@ -24,6 +25,7 @@ export const VideoEditDialog = ({
   currentDescription,
   currentThumbnail,
   currentIsPublic,
+  storageProvider,
   onUpdate 
 }: VideoEditDialogProps) => {
   const [open, setOpen] = useState(false);
@@ -32,6 +34,7 @@ export const VideoEditDialog = ({
   const [isPublic, setIsPublic] = useState(currentIsPublic);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState(currentThumbnail || '');
+  const [clearThumbnail, setClearThumbnail] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -41,35 +44,65 @@ export const VideoEditDialog = ({
       if (!file.type.startsWith('image/')) {
         toast({
           title: 'Invalid file type',
-          description: 'Please select an image file',
+          description: 'Please select an image file (JPG, PNG, WEBP)',
           variant: 'destructive',
         });
         return;
       }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: 'File too large',
+          description: 'Thumbnail must be less than 5MB',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
       setThumbnailFile(file);
       const previewUrl = URL.createObjectURL(file);
       setThumbnailPreview(previewUrl);
+      setClearThumbnail(false);
     }
+  };
+
+  const handleClearThumbnail = () => {
+    setThumbnailFile(null);
+    setThumbnailPreview('');
+    setClearThumbnail(true);
   };
 
   const uploadThumbnail = async (): Promise<string | null> => {
     if (!thumbnailFile) return null;
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return null;
+
       const fileExt = thumbnailFile.name.split('.').pop();
-      const fileName = `${videoId}.${fileExt}`;
-      const filePath = `thumbnails/${fileName}`;
+      const fileName = `custom-thumb-${Date.now()}.${fileExt}`;
+      
+      // Use 'recordings' bucket for Supabase-stored videos, 'avatars' for others
+      const bucket = storageProvider === 'supabase' ? 'recordings' : 'avatars';
+      const filePath = `${session.user.id}/thumbnails/${fileName}`;
+
+      console.log(`📤 Uploading custom thumbnail to ${bucket}/${filePath}`);
 
       const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, thumbnailFile, { upsert: true });
+        .from(bucket)
+        .upload(filePath, thumbnailFile, { 
+          upsert: true,
+          contentType: thumbnailFile.type 
+        });
 
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
+        .from(bucket)
         .getPublicUrl(filePath);
 
+      console.log('✅ Custom thumbnail uploaded:', publicUrl);
       return publicUrl;
     } catch (error) {
       console.error('Thumbnail upload error:', error);
@@ -110,8 +143,13 @@ export const VideoEditDialog = ({
         is_public: isPublic,
       };
 
-      // Upload thumbnail if a new one was selected
-      if (thumbnailFile) {
+      // Handle thumbnail changes
+      if (clearThumbnail) {
+        // Clear custom thumbnail to revert to auto-generated
+        updates.thumbnail_url = null;
+        console.log('🗑️ Clearing custom thumbnail (revert to auto-generated)');
+      } else if (thumbnailFile) {
+        // Upload new custom thumbnail
         const thumbnailUrl = await uploadThumbnail();
         if (thumbnailUrl) {
           updates.thumbnail_url = thumbnailUrl;
@@ -183,29 +221,88 @@ export const VideoEditDialog = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="thumbnail">Custom Thumbnail (Optional)</Label>
+            <Label htmlFor="thumbnail" className="flex items-center gap-2">
+              <ImageIcon className="h-4 w-4" />
+              Custom Thumbnail
+            </Label>
             <p className="text-sm text-muted-foreground">
-              A thumbnail is auto-generated from your video. Upload a custom one only if you want to override it.
+              Thumbnails are auto-generated at 5 seconds. Upload a custom image to replace it (JPG, PNG, WEBP, max 5MB).
             </p>
-            {currentThumbnail && !thumbnailPreview && (
-              <div className="mt-2">
+            
+            {currentThumbnail && !thumbnailPreview && !clearThumbnail && (
+              <div className="mt-2 relative">
                 <p className="text-xs text-muted-foreground mb-1">Current thumbnail:</p>
-                <img 
-                  src={currentThumbnail} 
-                  alt="Current thumbnail" 
-                  className="w-full max-w-md rounded-lg border"
-                />
+                <div className="relative inline-block">
+                  <img 
+                    src={currentThumbnail} 
+                    alt="Current thumbnail" 
+                    className="w-full max-w-md rounded-lg border"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    className="absolute top-2 right-2"
+                    onClick={handleClearThumbnail}
+                  >
+                    <X className="h-4 w-4 mr-1" />
+                    Remove
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Click "Remove" to revert to auto-generated thumbnail
+                </p>
               </div>
             )}
-            <Input
-              id="thumbnail"
-              type="file"
-              accept="image/*"
-              onChange={handleThumbnailSelect}
-            />
-            {thumbnailPreview && (
+            
+            {clearThumbnail && !thumbnailPreview && (
+              <div className="p-4 border border-dashed rounded-lg bg-muted/50">
+                <p className="text-sm text-muted-foreground">
+                  Custom thumbnail will be removed. Auto-generated thumbnail will be used.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
+                  onClick={() => {
+                    setClearThumbnail(false);
+                    setThumbnailPreview(currentThumbnail || '');
+                  }}
+                >
+                  Undo
+                </Button>
+              </div>
+            )}
+            
+            <div className="flex items-center gap-2">
+              <Input
+                id="thumbnail"
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/webp"
+                onChange={handleThumbnailSelect}
+                className="flex-1"
+              />
+              {thumbnailFile && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setThumbnailFile(null);
+                    setThumbnailPreview(currentThumbnail || '');
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            
+            {thumbnailPreview && !clearThumbnail && (
               <div className="mt-2">
-                <p className="text-xs text-muted-foreground mb-1">New thumbnail:</p>
+                <p className="text-xs text-muted-foreground mb-1">
+                  {thumbnailFile ? 'New custom thumbnail:' : 'Current thumbnail:'}
+                </p>
                 <img 
                   src={thumbnailPreview} 
                   alt="Thumbnail preview" 
