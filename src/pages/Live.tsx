@@ -33,8 +33,6 @@ const Live = () => {
   const [livekitToken, setLivekitToken] = useState<string>("");
   const [roomName, setRoomName] = useState<string>("");
   const [enableRecording, setEnableRecording] = useState(true);
-  const [saveToStorj, setSaveToStorj] = useState(false);
-  const [recordingStarted, setRecordingStarted] = useState(false);
   const [endingAll, setEndingAll] = useState(false);
   const [streamMode, setStreamMode] = useState<'browser' | 'pull' | 'youtube' | 'twitch' | 'tiktok'>('browser');
   const [pullStreamUrl, setPullStreamUrl] = useState("");
@@ -117,8 +115,6 @@ const Live = () => {
           action: 'create_token',
           roomName: roomId,
           streamId: data.id,
-          enableRecording,
-          saveToStorj,
         }
       });
 
@@ -172,7 +168,6 @@ const Live = () => {
       setDescription("");
       setLivekitToken("");
       setRoomName("");
-      setRecordingStarted(false);
       
       toast({
         title: "Stream ended",
@@ -354,7 +349,7 @@ const Live = () => {
                                 Record Stream
                               </Label>
                               <p className="text-sm text-muted-foreground">
-                                Save your stream for viewers to watch later
+                                Save your stream to backend storage (recordings appear in Videos)
                               </p>
                             </div>
                             <Switch
@@ -363,24 +358,6 @@ const Live = () => {
                               onCheckedChange={setEnableRecording}
                             />
                           </div>
-
-                          {enableRecording && (
-                            <div className="flex items-center justify-between pl-4 border-l-2 border-primary/30">
-                              <div className="space-y-0.5">
-                                <Label htmlFor="save-to-storj" className="text-sm">
-                                  Save to Storj (Decentralized)
-                                </Label>
-                                <p className="text-xs text-muted-foreground">
-                                  Permanently store on decentralized storage
-                                </p>
-                              </div>
-                              <Switch
-                                id="save-to-storj"
-                                checked={saveToStorj}
-                                onCheckedChange={setSaveToStorj}
-                              />
-                            </div>
-                          )}
                         </CardContent>
                       </Card>
                       
@@ -807,7 +784,7 @@ const Live = () => {
                   streamId={streamId}
                   title={title}
                   onStreamConnected={async () => {
-                    console.log('🔴 Stream connected! Recording:', enableRecording, 'Room:', roomName, 'Already started:', recordingStarted);
+                    console.log('🔴 Stream connected! Room:', roomName);
                     console.log('🔴 Marking stream as live with ID:', streamId);
                     
                     // CRITICAL: Now mark stream as live since broadcaster has published tracks
@@ -825,18 +802,11 @@ const Live = () => {
                           description: `Stream is running but might not be visible: ${updateError.message}`,
                           variant: "destructive",
                         });
-                      } else if (!updateData || updateData.length === 0) {
-                        console.error('❌ Stream update returned no rows');
-                        toast({
-                          title: "Stream Status Warning",
-                          description: "Stream might not be visible to viewers. Please try ending and restarting.",
-                          variant: "destructive",
-                        });
                       } else {
                         console.log('✅ Stream marked as live in database:', updateData);
                         toast({
                           title: "🎉 You're Live!",
-                          description: "Viewers can now see your stream",
+                          description: "Viewers can now see your stream. Recording in browser.",
                         });
                       }
                     } catch (err) {
@@ -847,78 +817,7 @@ const Live = () => {
                         variant: "destructive",
                       });
                     }
-                    
-                    // CRITICAL FIX: Delay recording start to stabilize broadcaster connection
-                    // Starting egress immediately can cause connection issues when viewers join
-                    // Wait 3 seconds to ensure broadcaster's connection is stable
-                    if (enableRecording && roomName && !recordingStarted) {
-                      console.log('📹 Recording will start in 3 seconds to stabilize connection...');
-                      
-                      // Show early toast so user knows recording is queued
-                      toast({
-                        title: "Recording Queued",
-                        description: "Recording will start in a few seconds once connection stabilizes",
-                      });
-                      
-                      // Delay to let broadcaster connection stabilize before adding egress participant
-                      setTimeout(async () => {
-                        console.log('📹 Now starting recording...');
-
-                        // Recording is attempted in background - DO NOT block stream
-                        // Stream is already live and working. Recording failure should NOT stop the stream.
-                        try {
-                          const { data: egressData, error: egressError } = await supabase.functions.invoke('livekit-egress', {
-                            body: {
-                              roomName,
-                              streamId,
-                            }
-                          });
-
-                          console.log('📹 Egress response:', { egressData, egressError });
-
-                          if (egressError || !egressData?.success) {
-                            const errorMsg = egressData?.error || egressError?.message || 'Unknown error';
-                            console.error('❌ Recording failed (stream continues):', errorMsg);
-
-                            // Check if it's a configuration issue
-                            if (egressData?.code === 'STORJ_NOT_CONFIGURED') {
-                              toast({
-                                title: "Recording Not Available",
-                                description: "Storage not configured. Stream is live but won't be recorded. Contact admin to enable recording.",
-                                variant: "default",
-                              });
-                            } else {
-                              toast({
-                                title: "Recording Failed",
-                                description: `Stream is live but recording failed: ${errorMsg}`,
-                                variant: "destructive",
-                              });
-                            }
-                          } else {
-                            setRecordingStarted(true);
-                            const storageLocation = saveToStorj ? "Storj (decentralized)" : "cloud storage";
-                            console.log('✅ Recording started:', egressData.egressId);
-                            toast({
-                              title: "Recording Started",
-                              description: `Saving to ${storageLocation}`,
-                            });
-                          }
-                        } catch (error) {
-                          console.error('❌ Exception starting recording (stream continues):', error);
-                          toast({
-                            title: "Recording Unavailable",
-                            description: "Your stream is live but recording couldn't start. Stream will continue normally.",
-                            variant: "default",
-                          });
-                        }
-                      }, 3000); // 3 second delay to stabilize connection
-                    } else if (enableRecording && recordingStarted) {
-                      console.log('✅ Recording already started');
-                    } else {
-                      console.log('⚠️ Recording disabled by user');
-                    }
                   }}
-                  isLive={isLive}
                 />
               )}
 
