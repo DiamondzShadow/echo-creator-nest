@@ -2,6 +2,8 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import ReactionOverlay from '@/components/ReactionOverlay';
 import { Users } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import Hls from 'hls.js';
 
 interface LivepeerViewerProps {
   playbackId: string;
@@ -11,18 +13,43 @@ interface LivepeerViewerProps {
 }
 
 export const LivepeerViewer = ({ playbackId, title, isLive = false, viewerCount = 0 }: LivepeerViewerProps) => {
-  return (
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !playbackId) return;
+
+    const hlsSource = `https://livepeer.studio/api/playback/${playbackId}/index.m3u8`;
+
+    if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = hlsSource;
+      video.load();
+    } else if (Hls.isSupported()) {
+      const hls = new Hls({ enableWorker: true });
+      hls.loadSource(hlsSource);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.ERROR, (_, data) => {
+        console.error('HLS.js error', data);
+      });
+      return () => {
+        hls.destroy();
+      };
+    } else {
+      // Fallback to MP4 proxy if available in the future
+      video.src = hlsSource;
+    }
+  }, [playbackId]);
+
     <Card className="border-0 shadow-glow bg-gradient-card overflow-hidden">
       <div className="relative">
         <div className="aspect-video bg-muted rounded-lg overflow-hidden relative">
           <div className="relative w-full h-full group">
-            {/* Livepeer HLS Player */}
             <video
+              ref={videoRef}
               controls
               autoPlay
               playsInline
               className="w-full h-full object-cover"
-              src={`https://livepeer.studio/api/playback/${playbackId}/index.m3u8`}
             />
 
             {/* Reactions overlay */}

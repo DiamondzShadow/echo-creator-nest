@@ -23,15 +23,16 @@ export const VideoThumbnail = ({ title, thumbnailUrl, playbackId, duration }: Vi
   const [failed, setFailed] = useState(false);
   const [fallbackStep, setFallbackStep] = useState<0 | 1 | 2 | 3>(0);
 
-  // Generate all possible thumbnail URLs
-  const simpleUrl = useMemo(() => (playbackId ? getSimpleThumbnailUrl(playbackId) : null), [playbackId]);
+  // Generate all possible thumbnail URLs (only when playbackId is a real Livepeer ID)
+  const isLivepeerId = !!playbackId && !/^https?:\/\//i.test(playbackId);
+  const simpleUrl = useMemo(() => (isLivepeerId ? getSimpleThumbnailUrl(playbackId as string) : null), [isLivepeerId, playbackId]);
   const imageCacheUrl = useMemo(
-    () => (playbackId ? `https://image-cache.livepeer.studio/thumbnail?playbackId=${playbackId}` : null),
-    [playbackId]
+    () => (isLivepeerId ? `https://image-cache.livepeer.studio/thumbnail?playbackId=${playbackId}` : null),
+    [isLivepeerId, playbackId]
   );
   const directUrl = useMemo(
-    () => (playbackId ? `https://livepeer.studio/api/playback/${playbackId}/thumbnail.jpg` : null),
-    [playbackId]
+    () => (isLivepeerId ? `https://livepeer.studio/api/playback/${playbackId}/thumbnail.jpg` : null),
+    [isLivepeerId, playbackId]
   );
 
   useEffect(() => {
@@ -117,8 +118,8 @@ export const VideoThumbnail = ({ title, thumbnailUrl, playbackId, duration }: Vi
         </div>
       )}
 
-      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center">
-        <Button variant="secondary" size="lg" className="opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center pointer-events-none">
+        <Button variant="secondary" size="lg" className="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
           <Play className="h-5 w-5 mr-2" />Watch
         </Button>
       </div>
