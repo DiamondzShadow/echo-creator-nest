@@ -19,6 +19,7 @@ import {
 import { createLiveKitRoom, toggleCamera, toggleMicrophone, disconnectFromRoom, LIVEKIT_URL } from '@/lib/livekit-config';
 import { Badge } from '@/components/ui/badge';
 import SoundCloudWidget from './SoundCloudWidget';
+import { supabase } from '@/integrations/supabase/client';
 
 interface InstantLiveStreamLiveKitProps {
   roomToken: string;
@@ -26,6 +27,8 @@ interface InstantLiveStreamLiveKitProps {
   onStreamConnected?: () => void;
   isLive: boolean;
   creatorId?: string;
+  streamId?: string | null;
+  title?: string;
 }
 
 export const InstantLiveStreamLiveKit = ({ 
@@ -33,7 +36,9 @@ export const InstantLiveStreamLiveKit = ({
   onStreamEnd, 
   onStreamConnected,
   isLive,
-  creatorId 
+  creatorId,
+  streamId,
+  title
 }: InstantLiveStreamLiveKitProps) => {
   const [room, setRoom] = useState<Room | null>(null);
   const [isConnecting, setIsConnecting] = useState(true);
@@ -49,10 +54,15 @@ export const InstantLiveStreamLiveKit = ({
   const [musicVolume, setMusicVolume] = useState(70);
   const [voiceVolume, setVoiceVolume] = useState(100);
   
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
+const videoRef = useRef<HTMLVideoElement>(null);
+const audioContextRef = useRef<AudioContext | null>(null);
+const analyserRef = useRef<AnalyserNode | null>(null);
+const animationFrameRef = useRef<number | null>(null);
+// Local recording to backend storage (Supabase) – no Storj
+const recorderRef = useRef<MediaRecorder | null>(null);
+const chunksRef = useRef<BlobPart[]>([]);
+const localVideoTrackRef = useRef<LocalVideoTrack | null>(null);
+const localAudioTrackRef = useRef<MediaStreamTrack | null>(null);
   
   const { toast } = useToast();
 
@@ -84,6 +94,99 @@ export const InstantLiveStreamLiveKit = ({
       updateAudioLevel();
     } catch (error) {
       console.error('Error setting up audio visualization:', error);
+    }
+  };
+
+  // Start browser-side recording and upload to Supabase Storage
+  const startLocalRecording = () => {
+    try {
+      const v = localVideoTrackRef.current?.mediaStreamTrack;
+      const a = localAudioTrackRef.current;
+      if (!v || !a) {
+        console.warn('Recording skipped: tracks not ready');
+        return;
+      }
+      const stream = new MediaStream([v, a]);
+      const mimeTypes = [
+        'video/webm;codecs=vp9,opus',
+        'video/webm;codecs=vp8,opus',
+        'video/webm'
+      ];
+      const mimeType = mimeTypes.find(t => MediaRecorder.isTypeSupported(t)) || 'video/webm';
+      const recorder = new MediaRecorder(stream, { mimeType });
+      chunksRef.current = [];
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
+      };
+      recorder.onstop = async () => {
+        const blob = new Blob(chunksRef.current, { type: mimeType });
+        chunksRef.current = [];
+        await uploadRecording(blob);
+      };
+      recorder.start(1000);
+      recorderRef.current = recorder;
+      console.log('▶️ Local recording started with', mimeType);
+    } catch (err) {
+      console.error('Failed to start local recording', err);
+    }
+  };
+
+  const stopLocalRecording = () => {
+    const rec = recorderRef.current;
+    if (rec && rec.state !== 'inactive') {
+      console.log('⏹️ Stopping local recording...');
+      rec.stop();
+    }
+    recorderRef.current = null;
+  };
+
+  const uploadRecording = async (blob: Blob) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const ownerId = creatorId || session?.user?.id;
+      if (!ownerId) {
+        console.warn('Missing user ID for upload');
+        return;
+      }
+      const fileName = `${Date.now()}.webm`;
+      const folder = streamId ? `${ownerId}/${streamId}` : `${ownerId}`;
+      const objectPath = `${folder}/${fileName}`;
+
+      const { error: upErr } = await supabase.storage
+        .from('recordings')
+        .upload(objectPath, blob, { contentType: blob.type || 'video/webm' });
+      if (upErr) {
+        console.error('Upload failed:', upErr);
+        toast({ title: 'Upload failed', description: upErr.message, variant: 'destructive' });
+        return;
+      }
+
+      const { data: pub } = supabase.storage
+        .from('recordings')
+        .getPublicUrl(objectPath);
+      const publicUrl = pub?.publicUrl;
+
+      const { error: insErr } = await supabase.from('assets').insert({
+        user_id: ownerId,
+        title: title?.trim()?.substring(0, 200) || 'Live Recording',
+        description: null,
+        livepeer_asset_id: `supabase:${objectPath}`,
+        livepeer_playback_id: null,
+        status: 'ready',
+        storage_provider: 'supabase',
+        stream_id: streamId || null,
+        thumbnail_url: null,
+        is_public: true,
+      });
+      if (insErr) {
+        console.error('Failed to create asset:', insErr);
+      } else {
+        toast({ title: 'Recording saved', description: 'Available in your Videos dashboard.' });
+      }
+
+      console.log('✅ Uploaded to', objectPath, publicUrl);
+    } catch (err) {
+      console.error('Upload exception:', err);
     }
   };
 
@@ -252,6 +355,14 @@ export const InstantLiveStreamLiveKit = ({
           source: Track.Source.Microphone,
         });
 
+        // Save local tracks for MediaRecorder
+        localVideoTrackRef.current = videoTrack as LocalVideoTrack;
+        localAudioTrackRef.current = audioTrack.mediaStreamTrack;
+
+        // Start local recording to backend storage (Supabase)
+        startLocalRecording();
+
+
         // Attach video track to video element for preview
         if (videoRef.current) {
           videoTrack.attach(videoRef.current);
@@ -301,6 +412,9 @@ export const InstantLiveStreamLiveKit = ({
       if (audioContextRef.current) {
         audioContextRef.current.close();
       }
+      
+      // Ensure local recording is finalized
+      stopLocalRecording();
       
       if (connectedRoom) {
         connectedRoom.disconnect();
@@ -369,6 +483,8 @@ export const InstantLiveStreamLiveKit = ({
     
     try {
       console.log('🛑 Stopping stream...');
+      // Stop local recording first so it can finalize and upload
+      stopLocalRecording();
       await disconnectFromRoom(room);
       
       if (animationFrameRef.current) {
