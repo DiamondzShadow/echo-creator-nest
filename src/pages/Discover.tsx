@@ -4,6 +4,8 @@ import Navbar from "@/components/Navbar";
 import LiveStreamCard from "@/components/LiveStreamCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BrandBanner } from "@/components/BrandBanner";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { VideoSidebar } from "@/components/VideoSidebar";
 
 interface Profile {
   username: string | null;
@@ -34,6 +36,7 @@ interface Asset {
   created_at: string;
   title?: string | null;
   description?: string | null;
+  category?: string | null;
   profiles?: Profile | null;
 }
 
@@ -42,6 +45,7 @@ const Discover = () => {
   const [allStreams, setAllStreams] = useState<LiveStream[]>([]);
   const [recordings, setRecordings] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   useEffect(() => {
     fetchStreams();
@@ -157,19 +161,31 @@ const Discover = () => {
     setLoading(false);
   };
 
+  // Filter recordings by category
+  const filteredRecordings = selectedCategory
+    ? recordings.filter((rec) => rec.category === selectedCategory)
+    : recordings;
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       <BrandBanner />
-      <div className="container px-4 pt-24 pb-16">
-      <div className="mb-8 animate-fade-in">
-        <h1 className="text-4xl font-bold mb-2 bg-gradient-hero bg-clip-text text-transparent">
-          Discover Creators
-        </h1>
-        <p className="text-muted-foreground">
-          Watch live streams and explore amazing content
-        </p>
-      </div>
+      <SidebarProvider>
+        <div className="flex min-h-screen w-full pt-16">
+          <VideoSidebar selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory} />
+          <main className="flex-1">
+            <div className="container px-4 pt-8 pb-16">
+              <div className="mb-8 animate-fade-in flex items-center gap-4">
+                <SidebarTrigger />
+                <div>
+                  <h1 className="text-4xl font-bold mb-2 bg-gradient-hero bg-clip-text text-transparent">
+                    Discover Creators
+                  </h1>
+                  <p className="text-muted-foreground">
+                    Watch live streams and explore amazing content {selectedCategory && `• ${selectedCategory}`}
+                  </p>
+                </div>
+              </div>
 
         <Tabs defaultValue="live" className="w-full">
           <TabsList className="mb-8">
@@ -226,7 +242,7 @@ const Discover = () => {
               </div>
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 animate-scale-in">
-                {recordings.map((asset) => {
+                {filteredRecordings.map((asset) => {
                   return (
                     <LiveStreamCard 
                       key={asset.id} 
@@ -261,7 +277,10 @@ const Discover = () => {
             )}
           </TabsContent>
         </Tabs>
-      </div>
+            </div>
+          </main>
+        </div>
+      </SidebarProvider>
     </div>
   );
 };
