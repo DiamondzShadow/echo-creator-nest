@@ -15,6 +15,7 @@ interface Profile {
   follower_count: number;
   following_count: number;
   theme_color: string | null;
+  cover_photo_url: string | null;
 }
 
 const TopProfiles = () => {
@@ -25,7 +26,7 @@ const TopProfiles = () => {
     const fetchProfiles = async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, username, display_name, avatar_url, bio, follower_count, following_count, theme_color')
+        .select('id, username, display_name, avatar_url, bio, follower_count, following_count, theme_color, cover_photo_url')
         .order('follower_count', { ascending: false })
         .limit(6);
 
@@ -57,11 +58,21 @@ const TopProfiles = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-6xl mx-auto">
           {profiles.map((profile) => (
             <Link key={profile.id} to={`/profile/${profile.id}`}>
-              <Card className="border shadow-card hover:shadow-glow transition-all hover:scale-[1.03] cursor-pointer h-full">
-                <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6 pb-4 sm:pb-6">
+              <Card className="border shadow-card hover:shadow-glow transition-all hover:scale-[1.03] cursor-pointer h-full overflow-hidden">
+                {profile.cover_photo_url && (
+                  <div className="w-full h-24 sm:h-32 relative">
+                    <img 
+                      src={profile.cover_photo_url} 
+                      alt={`${profile.display_name}'s banner`}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background/60" />
+                  </div>
+                )}
+                <CardContent className={`${profile.cover_photo_url ? '-mt-8 sm:-mt-10' : 'pt-4 sm:pt-6'} px-4 sm:px-6 pb-4 sm:pb-6 relative`}>
                   <div className="flex flex-col items-center text-center">
                     <Avatar 
-                      className="w-16 h-16 sm:w-20 sm:h-20 mb-3 sm:mb-4 ring-4"
+                      className="w-16 h-16 sm:w-20 sm:h-20 mb-3 sm:mb-4 ring-4 bg-background"
                       style={{
                         borderColor: profile.theme_color || 'hsl(var(--primary))',
                       }}
