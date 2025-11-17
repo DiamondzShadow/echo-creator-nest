@@ -140,6 +140,44 @@ const localAudioTrackRef = useRef<MediaStreamTrack | null>(null);
     recorderRef.current = null;
   };
 
+  // Generate thumbnail from video at 5 seconds
+  const generateThumbnail = (videoBlob: Blob): Promise<Blob | null> => {
+    return new Promise((resolve) => {
+      const video = document.createElement('video');
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      video.preload = 'metadata';
+      video.muted = true;
+      video.playsInline = true;
+
+      video.onloadedmetadata = () => {
+        video.currentTime = Math.min(5, video.duration);
+      };
+
+      video.onseeked = () => {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx?.drawImage(video, 0, 0);
+        
+        canvas.toBlob((blob) => {
+          resolve(blob);
+          video.remove();
+          canvas.remove();
+        }, 'image/jpeg', 0.8);
+      };
+
+      video.onerror = () => {
+        console.error('Error loading video for thumbnail');
+        resolve(null);
+        video.remove();
+        canvas.remove();
+      };
+
+      video.src = URL.createObjectURL(videoBlob);
+    });
+  };
+
   const uploadRecording = async (blob: Blob) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -166,6 +204,30 @@ const localAudioTrackRef = useRef<MediaStreamTrack | null>(null);
         .getPublicUrl(objectPath);
       const publicUrl = pub?.publicUrl;
 
+      // Generate and upload thumbnail at 5 seconds
+      let thumbnailUrl: string | null = null;
+      console.log('🖼️ Generating thumbnail at 5 seconds...');
+      const thumbnailBlob = await generateThumbnail(blob);
+      
+      if (thumbnailBlob) {
+        const thumbnailFileName = `thumbnail-${Date.now()}.jpg`;
+        const thumbnailPath = `${folder}/${thumbnailFileName}`;
+
+        const { error: thumbErr } = await supabase.storage
+          .from('recordings')
+          .upload(thumbnailPath, thumbnailBlob, { contentType: 'image/jpeg' });
+
+        if (!thumbErr) {
+          const { data: thumbPub } = supabase.storage
+            .from('recordings')
+            .getPublicUrl(thumbnailPath);
+          thumbnailUrl = thumbPub?.publicUrl;
+          console.log('✅ Thumbnail uploaded:', thumbnailPath);
+        } else {
+          console.error('Thumbnail upload failed:', thumbErr);
+        }
+      }
+
       const { error: insErr } = await supabase.from('assets').insert({
         user_id: ownerId,
         title: title?.trim()?.substring(0, 200) || 'Live Recording',
@@ -175,7 +237,7 @@ const localAudioTrackRef = useRef<MediaStreamTrack | null>(null);
         status: 'ready',
         storage_provider: 'supabase',
         stream_id: streamId || null,
-        thumbnail_url: null,
+        thumbnail_url: thumbnailUrl,
         is_public: true,
       });
       if (insErr) {
