@@ -1,0 +1,115 @@
+╔═══════════════════════════════════════════════════════════════╗
+║                    FIX VIDEO UPLOADS NOW                      ║
+║                      (3 Easy Steps)                           ║
+╚═══════════════════════════════════════════════════════════════╝
+
+Your Livepeer API Key: cce5db20-dca1-4554-9805-de58abb3199e
+
+═══════════════════════════════════════════════════════════════
+
+STEP 1: SET THE SECRET IN SUPABASE (2 minutes)
+───────────────────────────────────────────────────────────────
+
+1. Open: https://supabase.com/dashboard
+
+2. Click your project
+
+3. Click "Settings" (gear icon at bottom left)
+
+4. Click "Edge Functions" 
+
+5. Scroll to "Secrets" section
+
+6. Click "Add Secret" button
+
+7. Enter:
+   Name:  LIVEPEER_API_KEY
+   Value: cce5db20-dca1-4554-9805-de58abb3199e
+
+8. Click "Save"
+
+✓ You should see it appear in your secrets list!
+
+═══════════════════════════════════════════════════════════════
+
+STEP 2: FIX THE DATABASE (1 minute)
+───────────────────────────────────────────────────────────────
+
+1. In Supabase Dashboard, click "SQL Editor" (left sidebar)
+
+2. Click "New Query"
+
+3. Copy this entire SQL block and paste it:
+
+───────────────────────────────────────────────────────────────
+ALTER TABLE assets DROP CONSTRAINT IF EXISTS assets_status_check;
+ALTER TABLE assets ADD CONSTRAINT assets_status_check 
+  CHECK (status IN ('waiting', 'processing', 'ready', 'failed', 'deleting', 'deleted'));
+
+UPDATE assets 
+SET status = 'waiting', updated_at = NOW()
+WHERE status = 'failed' AND created_at > NOW() - INTERVAL '1 hour';
+
+ALTER TABLE assets 
+  ADD COLUMN IF NOT EXISTS ipfs_cid text,
+  ADD COLUMN IF NOT EXISTS storage_provider text DEFAULT 'livepeer',
+  ADD COLUMN IF NOT EXISTS category text,
+  ADD COLUMN IF NOT EXISTS is_public boolean DEFAULT true,
+  ADD COLUMN IF NOT EXISTS views integer DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS likes integer DEFAULT 0;
+───────────────────────────────────────────────────────────────
+
+4. Click "Run" (or press Ctrl+Enter)
+
+5. Should see: "Success. No rows returned" ✓
+
+═══════════════════════════════════════════════════════════════
+
+STEP 3: WAIT & TEST (2 minutes)
+───────────────────────────────────────────────────────────────
+
+1. WAIT 2 minutes for Supabase to propagate the secret
+
+2. Go to your app: /videos page
+
+3. Click "Upload" tab
+
+4. Upload a small test video (< 50MB)
+
+5. Watch the magic:
+   → Uploading: 100% ✓
+   → Processing... ✓
+   → Ready! ✓
+
+═══════════════════════════════════════════════════════════════
+
+DONE! 🎉
+
+Your uploads should now work!
+
+═══════════════════════════════════════════════════════════════
+
+TROUBLESHOOTING:
+───────────────────────────────────────────────────────────────
+
+If still failing:
+  
+  1. Verify secret is set:
+     Dashboard → Edge Functions → Secrets
+     (should see LIVEPEER_API_KEY in list)
+  
+  2. Wait 3 full minutes, then try again
+  
+  3. Check function logs:
+     Dashboard → Edge Functions → livepeer-asset → Logs
+     (look for any error messages)
+  
+  4. Try a very small video (< 10MB)
+  
+  5. Check browser console (F12 → Console tab)
+
+───────────────────────────────────────────────────────────────
+
+Need detailed help? See: YOUR_SETUP_STEPS.md
+
+═══════════════════════════════════════════════════════════════
