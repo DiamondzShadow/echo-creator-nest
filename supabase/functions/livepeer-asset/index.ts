@@ -162,6 +162,18 @@ serve(async (req) => {
         },
       });
 
+      // If asset not found (404), it's likely still being indexed by Livepeer
+      if (response.status === 404) {
+        console.log('Asset not found yet, likely still being indexed');
+        return new Response(
+          JSON.stringify({
+            status: 'waiting',
+            message: 'Asset is being indexed by Livepeer',
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       if (!response.ok) {
         const error = await response.text();
         console.error('Livepeer get status error:', error);
