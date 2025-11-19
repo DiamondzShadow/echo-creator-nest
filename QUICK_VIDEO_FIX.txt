@@ -1,0 +1,64 @@
+╔════════════════════════════════════════════════════════════╗
+║         VIDEO UPLOAD FAILED - 2 MINUTE FIX                 ║
+╚════════════════════════════════════════════════════════════╝
+
+Problem: Video uploads showing "Failed" status
+
+Root Cause: Missing LIVEPEER_API_KEY in Supabase
+
+───────────────────────────────────────────────────────────────
+
+STEP 1: Get Livepeer API Key (1 minute)
+───────────────────────────────────────────────────────────────
+1. Go to: https://livepeer.studio
+2. Sign in (or create free account)
+3. Dashboard → Developers → API Keys
+4. Create new key
+5. Copy it
+
+───────────────────────────────────────────────────────────────
+STEP 2: Set Secret in Supabase (1 minute)
+───────────────────────────────────────────────────────────────
+1. Go to: https://supabase.com/dashboard
+2. Your project → Settings → Edge Functions → Secrets
+3. Click "Add Secret"
+4. Name: LIVEPEER_API_KEY
+5. Value: [paste your key]
+6. Save
+
+───────────────────────────────────────────────────────────────
+STEP 3: Fix Database (30 seconds)
+───────────────────────────────────────────────────────────────
+1. Supabase Dashboard → SQL Editor
+2. Run this:
+
+ALTER TABLE assets DROP CONSTRAINT IF EXISTS assets_status_check;
+ALTER TABLE assets ADD CONSTRAINT assets_status_check 
+  CHECK (status IN ('waiting', 'processing', 'ready', 'failed', 'deleting', 'deleted'));
+
+UPDATE assets SET status = 'waiting' 
+WHERE status = 'failed' AND created_at > NOW() - INTERVAL '1 hour';
+
+───────────────────────────────────────────────────────────────
+STEP 4: Test (30 seconds)
+───────────────────────────────────────────────────────────────
+1. Your app → /videos page
+2. Upload tab
+3. Upload a small test video
+4. Should show: Uploading → Processing → Ready ✓
+
+───────────────────────────────────────────────────────────────
+OPTIONAL: Redeploy Functions (if CLI installed)
+───────────────────────────────────────────────────────────────
+supabase functions deploy livepeer-asset
+
+───────────────────────────────────────────────────────────────
+
+✓ DONE! Uploads should now work.
+
+If still failing:
+- Wait 2 minutes for secrets to propagate
+- Check logs: Supabase Dashboard → Edge Functions → livepeer-asset
+- See VIDEO_UPLOAD_FIX_README.md for detailed troubleshooting
+
+═══════════════════════════════════════════════════════════════
