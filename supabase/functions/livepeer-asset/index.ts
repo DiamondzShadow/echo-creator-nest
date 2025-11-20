@@ -14,7 +14,9 @@ serve(async (req) => {
   try {
     const livepeerApiKey = Deno.env.get('LIVEPEER_API_KEY');
     if (!livepeerApiKey) {
-      throw new Error('LIVEPEER_API_KEY not configured');
+      console.error('CRITICAL: LIVEPEER_API_KEY is not set in Supabase secrets!');
+      console.error('Please set it via: Supabase Dashboard → Settings → Edge Functions → Secrets');
+      throw new Error('LIVEPEER_API_KEY not configured. Please contact administrator to set up Livepeer integration.');
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -58,8 +60,11 @@ serve(async (req) => {
 
       if (!response.ok) {
         const error = await response.text();
-        console.error('Livepeer create upload error:', error);
-        throw new Error(`Failed to create upload: ${error}`);
+        console.error('Livepeer create upload error:', response.status, error);
+        if (response.status === 401 || response.status === 403) {
+          throw new Error('Invalid Livepeer API key. Please check your API key configuration.');
+        }
+        throw new Error(`Failed to create upload (${response.status}): ${error}`);
       }
 
       const data = await response.json();
@@ -82,7 +87,10 @@ serve(async (req) => {
         });
 
       if (dbError) {
-        console.error('Database error:', dbError);
+        console.error('Database error when inserting asset:', dbError);
+        console.error('This might be due to status constraint. Check that database has latest migrations.');
+        // Don't throw here - upload URL was already created successfully
+        // The asset record will be created by refresh function if needed
       }
 
       return new Response(
@@ -141,7 +149,9 @@ serve(async (req) => {
         });
 
       if (dbError) {
-        console.error('Database error:', dbError);
+        console.error('Database error when inserting imported asset:', dbError);
+        console.error('This might be due to status constraint. Check that database has latest migrations.');
+        // Don't throw here - the import was already initiated successfully
       }
 
       return new Response(
